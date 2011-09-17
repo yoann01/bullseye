@@ -1,0 +1,78 @@
+	version développée pour mieux comprendre:
+	def traiter_conteneur(pere, niveau, elt_pere):
+			'''
+				@param ligne : la ligne à laquelle la fonction commence (intérêt de la localité de ce paramètre =  possibilité de threading)
+			'''
+			if(niveau == profondeur_max):
+				#while(getValueOfLevel(tracks[self.i], niveau-1) == elt_pere):
+				model.append(pere, [icon_track, 1, tracks[self.i][2], 1, 1])
+				self.i += 1
+				#traiter_conteneur(None, 0, None)
+				
+			else: #Il faut continuer de "creuser" et ajouter tous les fils de ce père
+				icon = icons[mode[niveau]]
+				elt = getValueOfLevel(tracks[self.i], niveau)
+				#On ajoute le premier fils
+				fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[self.i], niveau), 1, 1])
+				#traiter_conteneur(fils, niveau+1, elt)
+				print('Ancien element pere : ' + str(elt_pere))
+				print('Element pere en cours : ' + str(getValueOfLevel(tracks[self.i], niveau-1)))
+				while((self.i < len(tracks))):
+				#Tant qu'il reste du monde
+				#getValueOfLevel(tracks[self.i], niveau-1) == elt_pere
+					if(elt != getValueOfLevel(tracks[self.i], niveau)):
+					#Si les deux n'ont pas la même valeur sur ce niveau on ajoute la nouvelle ligne :
+						#traiter_conteneur(fils, niveau+1, elt)
+						fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[self.i], niveau), 1, 1])
+						elt = getValueOfLevel(tracks[self.i], niveau)
+						
+					else:
+						#Même valeur sur ce niveau, donc on descend d'un et on répète le schéma
+						elt_petit_fils = getValueOfLevel(tracks[self.i], niveau+1)
+						petit_fils = model.append(fils, [icon, 1, getValueOfLevel(tracks[self.i], niveau+1), 1, 1])
+						while(elt == getValueOfLevel(tracks[self.i], niveau)):
+							if(elt_petit_fils != getValueOfLevel(tracks[self.i], niveau+1)):
+								model.append(fils, [icon, 1, getValueOfLevel(tracks[self.i], niveau+1), 1, 1])
+								elt_petit_fils = getValueOfLevel(tracks[self.i], niveau+1)
+							else:
+								model.append(petit_fils, [icon, 1, getValueOfLevel(tracks[self.i], niveau+2), 1, 1])
+							self.i += 1		
+						
+					print tracks[self.i][indices[mode[niveau]]]
+					
+				print self.i
+				
+				
+		version récursive qui roxxe :
+		def traiter_conteneur(pere, niveau, elt_pere):
+			'''
+				@param ligne : la ligne à laquelle la fonction commence (intérêt de la localité de ce paramètre =  possibilité de threading)
+			'''
+			if(niveau == profondeur_max):
+				#if(getValueOfLevel(tracks[self.i], niveau-1) == elt_pere):
+				model.append(pere, [icon_track, 1, tracks[self.i][2], 1, 1])
+				self.i += 1
+
+				
+			else: #Il faut continuer de "creuser" et ajouter tous les fils de ce père
+				icon = icons[mode[niveau]]
+				elt = getValueOfLevel(tracks[self.i], niveau)
+				#On ajoute le premier fils
+				fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[self.i], niveau), 1, 1])
+				#traiter_conteneur(fils, niveau+1, elt)
+				while(self.i < len(tracks) and elt == getValueOfLevel(tracks[self.i], niveau)):
+				#Tant qu'il reste du monde
+				#getValueOfLevel(tracks[self.i], niveau-1) == elt_pere
+					if(self.i < len(tracks) and elt != getValueOfLevel(tracks[self.i], niveau)):
+					#Si les deux n'ont pas la même valeur sur ce niveau on ajoute la nouvelle ligne :
+						fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[self.i], niveau), 1, 1])
+						elt = getValueOfLevel(tracks[self.i], niveau)
+						
+					else:
+						#Même valeur sur ce niveau, donc on descend d'un et on répète le schéma
+						traiter_conteneur(fils, niveau+1, elt)
+						
+				#On a enfin fini de boucler le premier père accroché à la racine, on passe donc au suivant si il y en a :
+				#if(getValueOfLevel(tracks[self.i], niveau-1) != elt_pere):
+					#traiter_conteneur(None, 0, None)
+				#print self.i

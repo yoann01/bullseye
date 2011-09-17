@@ -1,0 +1,4 @@
+random
+ OR 
+['artist', ' = ', 'Bad Religion']
+['artist', ' = ', 'Scorpions']

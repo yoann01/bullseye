@@ -1,0 +1,4 @@
+notrandom
+ OR 
+['artist', ' LIKE ', 'amadou']
+['artist', ' LIKE ', 'bee']

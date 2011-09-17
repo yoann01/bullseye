@@ -1,0 +1,3 @@
+random
+ AND 
+['artist', ' = ', 'AC/DC']

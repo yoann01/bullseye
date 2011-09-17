@@ -1,0 +1,4 @@
+#!/bin/sh
+
+exec python2 /home/piccolo/workspace/python/bullseye.py
+exist $?

@@ -1,0 +1,135 @@
+# French translations for PACKAGE package
+# Traductions françaises du paquet PACKAGE.
+# Copyright (C) 2010 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#  <Maitre.Piccolo@gmail.com>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2010-12-01 21:07+0100\n"
+"PO-Revision-Date: 2010-12-01 21:07+0100\n"
+"Last-Translator:  <Maitre.Piccolo@gmail.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: playlist.py:274
+msgid "Save as..."
+msgstr "Enregistrer sous..."
+
+#: apprentissage (copie).glade:38
+msgid "Apprentissage"
+msgstr ""
+
+#: apprentissage (copie).glade:49 apprentissage.glade:50 fenetre.glade:24
+msgid "_Fichier"
+msgstr ""
+
+#: apprentissage (copie).glade:108 apprentissage.glade:110
+msgid "É_dition"
+msgstr ""
+
+#: apprentissage (copie).glade:152 apprentissage.glade:154
+msgid "_Affichage"
+msgstr ""
+
+#: apprentissage (copie).glade:159 apprentissage.glade:161 fenetre.glade:101
+msgid "Aid_e"
+msgstr ""
+
+#: apprentissage (copie).glade:326
+msgid "Musique"
+msgstr ""
+
+#: apprentissage (copie).glade:404
+msgid "Photos"
+msgstr ""
+
+#: apprentissage (copie).glade:446 Hello_Jose.glade:56
+msgid "button"
+msgstr ""
+
+#: apprentissage (copie).glade:510
+msgid "Vidéos"
+msgstr ""
+
+#: apprentissage (copie).glade:559 apprentissage.glade:624
+msgid "Entrez un nom:"
+msgstr ""
+
+#: apprentissage.glade:38
+msgid "The Namekian Manager"
+msgstr ""
+
+#: apprentissage.glade:229
+msgid "Library"
+msgstr "Bibliothèque"
+
+#: apprentissage.glade:256
+msgid "Playlists"
+msgstr ""
+
+#: apprentissage.glade:356
+msgid "Music"
+msgstr "Musique"
+
+#: apprentissage.glade:392
+msgid "New files"
+msgstr "Nouveaux"
+
+#: apprentissage.glade:419
+msgid "Categories"
+msgstr "Catégories"
+
+#: apprentissage.glade:510
+msgid "Pictures"
+msgstr "Photos"
+
+#: apprentissage.glade:573
+msgid "Videos"
+msgstr "Vidéos"
+
+#: fenetre.glade:7
+msgid "Éditeur de texte en PyGtk"
+msgstr ""
+
+#: fenetre.glade:132
+msgid "Nouveau"
+msgstr ""
+
+#: fenetre.glade:145
+msgid "Ouvrir"
+msgstr ""
+
+#: fenetre.glade:158
+msgid "Enregistrer"
+msgstr ""
+
+#: fenetre.glade:171
+msgid "Enregistrer sous..."
+msgstr ""
+
+#: fenetre.glade:193
+msgid "À propos"
+msgstr ""
+
+#: fenetre.glade:206
+msgid "Fermer"
+msgstr ""
+
+#: fenetre.glade:219
+msgid "Quitter"
+msgstr ""
+
+#: Hello_Jose.glade:7
+msgid "Hello World!"
+msgstr ""
+
+#: Hello_Jose.glade:69
+msgid "label"
+msgstr ""
