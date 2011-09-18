@@ -13,6 +13,9 @@ data_dir = '/home/piccolo/workspace/python/'
 def get_data_dir():
 	return data_dir
 	
+def get_data_home():
+	return data_home
+	
 def get_config_dir():
 	return config_home
 	

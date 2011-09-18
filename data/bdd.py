@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 class BDD():
 	def __init__(self):
-		if os.path.exists('data.db'):
-			self.conn = sqlite3.connect('data.db')
+		db_path = os.path.join(xdg.get_data_home, 'data.db')
+		if os.path.exists(db_path):
+			self.conn = sqlite3.connect(db_path)
 			self.conn.row_factory = sqlite3.Row
 			self.c = self.conn.cursor()
 		#else:
@@ -133,12 +134,13 @@ class MainBDD():
 		TODO centraliser une méthode pour chopper les elements avec filtres (cf retrieve, load, etc)
 	"""
 	def __init__(self):
-		if os.path.exists('data.db'):
-			self.conn = sqlite3.connect('data.db')
+		db_path = os.path.join(xdg.get_data_home, 'data.db')
+		if os.path.exists(db_path):
+			self.conn = sqlite3.connect(db_path)
 			self.conn.row_factory = sqlite3.Row
 			self.c = self.conn.cursor()
 		else:
-			self.conn = sqlite3.connect('data.db')
+			self.conn = sqlite3.connect(db_path)
 			self.conn.row_factory = sqlite3.Row
 			self.c = self.conn.cursor()
 			self.creer_tables()
