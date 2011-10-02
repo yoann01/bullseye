@@ -111,7 +111,7 @@ class AbstractPanel():
 				for part in parts:
 					s += part
 					if(s not in nodes.keys()):
-						nodes[s] = liste.append(node, [0, s, part, icon])
+						nodes[s] = liste.append(node, [0, 'f' + s, part, icon, None, None])
 					node = nodes[s]
 					s += '/'
 					
@@ -244,7 +244,7 @@ class AbstractPanel():
 						os.renames(child[1] + '/' + child[2], root_path + '/' + child[3] + '/' + new_name)
 						bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path + '/' + child[3], new_name, child[0]))
 			
-			for subContainerID in dic[container_ID]:
+			for subContainerID in dic[container_ID]['children']:
 				bdd.c.execute('SELECT ' + container + '_L FROM ' + container + '_' + type + 's WHERE ' + container + '_ID = ?', (subContainerID,))
 				label = bdd.c.fetchone()[0]
 				processContainer(subContainerID, root_path + '/' + label)
@@ -309,6 +309,7 @@ class AbstractPanel():
 		if(mode == "folder"):
 			dig = False
 			condition = ' LIKE ? '
+			column = 'dossier'
 			#t = (unicode(critere),)
 			#query += "WHERE dossier LIKE ? ORDER BY fichier"
 		elif(mode == "category"):
@@ -383,7 +384,10 @@ class AbstractPanel():
 			#if os.path.exists(thumbnail_path):
 				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
 			#else:
-			thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
+			try:
+				thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
+			except:
+				thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
 			#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
 			#table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
 			#self.elementSelector.append_element((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
@@ -431,6 +435,7 @@ class AbstractPanel():
 				type = model[path][1]
 			except TypeError:
 				id = 0
+				type = 'unknown'
 			
 			m = menus.MenuCU(type, self.data_type, id)
 			m.popup(None, None, None, event.button, event.time)
@@ -451,18 +456,24 @@ class AbstractPanel():
 
 		level = len(container_path)
 		ID = model[container_path][0]
-		type = model[container_path][1] # A letter u, c, f
+		print model[container_path][0]
+		type = model[container_path][1][0] # A letter u, c, f
+		
 		if(type == 'f'):
-			ID = model[container_path][1] + '%'
+			ID = model[container_path][1][1:] + '%'
 		dic = {}
 		
-		if(len(container_path) > 1 and model[container_path[0:-1]][1] != type): # EX : universes matching category in same treeview
+		if(len(container_path) > 1 and model[container_path[0:-1]][1][0] != type): # EX : universes matching category in same treeview
 			parent_node_column = columns[model[container_path[0:-1]][1]]
 			dic[parent_node_column] = model[container_path[0:-1]][0]
 		
-		dic[columns[type]] = ID
 		
-		dic.update(self.filters)
+		dic.update(self.filters) # Update before [filters may say we're in category 2]...
+		dic[columns[type]] = ID  # ...to potentially erase after [but if we drag on category 1 then we want 1 and not 2, thus updating with filters before the final destination]
+		
+		
+		
+		print dic
 		
 		# DEPRECATED
 		#if(mode == "category"):

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class BDD():
 	def __init__(self):
-		db_path = os.path.join(xdg.get_data_home, 'data.db')
+		db_path = os.path.join(xdg.get_data_home(), 'data.db')
 		if os.path.exists(db_path):
 			self.conn = sqlite3.connect(db_path)
 			self.conn.row_factory = sqlite3.Row
@@ -134,7 +134,7 @@ class MainBDD():
 		TODO centraliser une méthode pour chopper les elements avec filtres (cf retrieve, load, etc)
 	"""
 	def __init__(self):
-		db_path = os.path.join(xdg.get_data_home, 'data.db')
+		db_path = os.path.join(xdg.get_data_home(), 'data.db')
 		if os.path.exists(db_path):
 			self.conn = sqlite3.connect(db_path)
 			self.conn.row_factory = sqlite3.Row
@@ -291,7 +291,7 @@ class MainBDD():
 		'''
 		
 		#Redéfinition d'une connexion puisque cette fonction tourne dans un thread secondaire :
-		conn = sqlite3.connect('data.db')
+		conn = sqlite3.connect(os.path.join(xdg.get_data_home(), 'data.db'))
 		conn.row_factory = sqlite3.Row
 		c = conn.cursor()
 		

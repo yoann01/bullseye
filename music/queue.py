@@ -332,7 +332,7 @@ class QueueManager(gtk.Notebook):
 		
 		
 	def marquer_piste(self):#Ajoute un marqueur (pour la piste courante de la liste jouée)
-		icon = gtk.gdk.pixbuf_new_from_file('track.png')
+		icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
 		try:
 			self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, icon)
 			self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, 'bold')

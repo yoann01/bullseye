@@ -104,7 +104,9 @@ class MenuSpecialItem(gtk.Menu):
 		# potentially remove os from import
 		old_path = self.element.path
 		new_path = '/home/piccolo/Images/' + str(self.element.c_ID) + '/' + self.element.file
-		os.renames(old_path, new_path)
+		print("TODO")
+		#self.element.set_path(
+		#os.renames(old_path, new_path)
 		
 
 
@@ -118,7 +120,8 @@ class MenuCU(gtk.Menu):
 			container_type = 'univers'
 		elif(container_type == 'c'):
 			container_type = 'categorie'
-		self.container = elements.Container(container_type, self.type_fichier, id)
+		if(container_type != 'unknown'):
+			self.container = elements.Container(container_type, self.type_fichier, id)
 		gtk.Menu.__init__(self)
 		
 		i = gtk.ImageMenuItem(_("Add an universe"))

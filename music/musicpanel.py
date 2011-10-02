@@ -253,7 +253,7 @@ class LibraryPanel(gtk.VBox):
 			self.tracks[self.mode] = self.BDD.loadTracks(self.mode)
 			tracks = self.tracks[self.mode]
 		
-		icon_track = gtk.gdk.pixbuf_new_from_file('track.png')
+		icon_track = gtk.gdk.pixbuf_new_from_file('icons/track.png')
 		icon_artist = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
 		icon_album = gtk.Image().render_icon(gtk.STOCK_CDROM, gtk.ICON_SIZE_MENU)
 		icon_genre = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
