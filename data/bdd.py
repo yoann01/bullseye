@@ -152,19 +152,29 @@ class MainBDD():
 		
 		@util.threaded
 		def initNetwork():
+			self.network_cache = []
+			try:
+				f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'r')
+				queue = f.readlines()
+				f.close()
+				for e in queue:
+					self.network_cache.append(eval(e))
+			except IOError:
+				logger.debug("No network cache file")
 			try:
 				API_KEY = "04537e40b5501f85610cf4e4bbf1d97a" # this is a sample key
 				API_SECRET = "b36376228a6e72314ffd503b8e3c9f5e"
 
 				# In order to perform a write operation you need to authenticate yourself
-				username = "Maitre_Piccolo"
-				password_hash = md5("tenshinh")
+				username = settings.get_option('music/audioscrobbler_login', '')
+				password_hash = md5(settings.get_option('music/audioscrobbler_password', ''))
 
 				self.network = LastFMNetwork(api_key = API_KEY, api_secret = 
 				API_SECRET, username = username, password_hash = password_hash)
 				self.network_is_connected.set()
 			except NetworkError:
 				logger.debug('Connection to Last.fm failed')
+			
 			
 		
 		initNetwork()
@@ -966,7 +976,16 @@ class MainBDD():
 		t = (track.ID,)
 		self.c.execute('UPDATE tracks SET compteur = compteur + 1 WHERE track_ID = ?', t)
 		self.conn.commit()
-		self.network.scrobble(track.artist, track.title, int(track.time_started))
+		try:
+			self.network.scrobble(track.artist, track.title, int(track.time_started))
+			if len(self.network_cache) > 0:
+				for tup in self.network_cache:
+					self.network.scrobble(tup[0], tup[1], tup[2])
+					print "done"
+				self.network_cache = []
+			self.quit() # update cache
+		except:
+			self.network_cache.append((track.artist, track.title, int(track.time_started)))
 		
 		
 	def format_length(self, length):
@@ -1037,6 +1056,12 @@ class MainBDD():
 		elif(type_cible == "video"):
 			self.c.execute('UPDATE videos SET note = ? WHERE video_ID = ?', t)
 		self.conn.commit()
+	
+	def quit(self):
+		f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'w')
+		for e in self.network_cache:
+			f.write(str(e) + "\n")
+		f.close()
 	
 	@util.threaded
 	def reloadCovers(self, *args):
@@ -1221,11 +1246,18 @@ class MainBDD():
 		task = threading.Thread(target=process)
 		task.start()
 		
-	def retrieveFromSave(self, file_path):
+	def retrieveFromSave(self, file_path, dic):
+		query = ''
+		params = []
+		for param in dic['criterions']:
+				query += ' AND ' + param[0] + param[1] + ' ? '
+				params.append(param[2])
+
 		conn = sqlite3.connect(file_path)
 		conn.row_factory = sqlite3.Row
 		c = conn.cursor()
 		c.execute('SELECT artist, album, title, note, compteur FROM tracks')
 		for row in c:
-			t = (row[3], row[0], row[1], row[2])
+			t = [row[3], row[0], row[1], row[2]]
+			t.extend(params)
 			self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?', t)

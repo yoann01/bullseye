@@ -524,6 +524,7 @@ class Queue(gtk.ScrolledWindow):
 		if(event.keyval == gtk.gdk.keyval_from_name("Delete")):
 			selection = self.TreeView.get_selection()
 			liste, paths = selection.get_selected_rows()
+			paths.reverse() # Start from tail in order to be sure next paths to delete are still referring to the same tracks as before
 			for path in paths:
 				liste.remove(liste.get_iter(path))
 				#next = liste.iter_next(iter)

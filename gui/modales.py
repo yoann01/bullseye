@@ -747,4 +747,20 @@ class FilterManager(gtk.VBox):
 				self.RB_enabled.set_active(True)
 		except KeyError:
 			pass
-			
+
+class ImportHelper(gtk.Dialog):
+	def __init__(self, bdd):
+		gtk.Dialog.__init__(self, title=_("Import helper"), buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		self.Box_Main = gtk.VBox()
+		self.get_content_area().pack_start(self.Box_Main)
+		self.button = gtk.FileChooserButton(_("Choose a database file"))
+		self.Box_Main.pack_start(self.button)
+		
+		self.c_manager = CriterionManager()
+		self.Box_Main.pack_start(self.c_manager)
+		
+		self.show_all()
+		reponse = self.run()
+		if(reponse == -3):
+			bdd.retrieveFromSave(self.button.get_filename(), self.c_manager.get_config())
+		self.destroy()

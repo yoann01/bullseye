@@ -142,10 +142,11 @@ class BullseyeMenuBar(gtk.MenuBar):
 		self.bdd.retrieveFromLastFM(self.P_Bar)
 	
 	def retrieveFromSave(self, menuitem):
-		dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_OPEN, gtk.FILE_CHOOSER_ACTION_OPEN))
-		dialog.run()
-		fichier = dialog.get_filename()
-		dialog.destroy()
-		print(fichier)
-		self.bdd.retrieveFromSave(fichier)
+		dialog = modales.ImportHelper(self.bdd)
+		#dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_OPEN, gtk.FILE_CHOOSER_ACTION_OPEN))
+		#dialog.run()
+		#fichier = dialog.get_filename()
+		#dialog.destroy()
+		#print(fichier)
+		#self.bdd.retrieveFromSave(fichier)
 	
