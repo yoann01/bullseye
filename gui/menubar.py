@@ -80,8 +80,11 @@ class BullseyeMenuBar(gtk.MenuBar):
 			menu.append(item)
 			
 			panes = gtk.RadioMenuItem(None, _('Multi-panes'))
+			panes.set_active(True)
+			panes.connect('toggled', self.temp, "panes")
 			panel = gtk.RadioMenuItem(panes, _('All in one panel'))
-			panel.connect('activate', self.core.hot_swap_widget, 'imagePanel', 'panel')
+			#panel.connect('activate', self.core.hot_swap_widget, 'imagePanel', 'panel')
+			panel.connect('toggled', self.temp, "panel")
 			
 			menu.append(panes)
 			menu.append(panel)
@@ -89,7 +92,23 @@ class BullseyeMenuBar(gtk.MenuBar):
 			pictures.set_submenu(menu)
 			self.append(pictures)
 		self.show_all()
+	
+	def temp(self, garbButton, mode):
+		if(garbButton.get_active()):
+			from uc_sections.panel import UC_Panel, UC_Panes
+			obj = self.core._imagePanel
+			box = obj.get_parent()
 			
+			if(mode == "panel"):
+				newObj = UC_Panel(obj.data_type, obj.elementSelector)
+			else:
+				newObj = UC_Panes(obj.data_type, obj.elementSelector)
+			obj.destroy()
+			box.pack_start(newObj, False)
+			newObj.show_all()
+			self.core._imagePanel = newObj
+	
+		
 	def checkDoubloons(self, *args):
 		print('todo')
 		type = 'image'

@@ -211,11 +211,14 @@ class Core(gobject.GObject):
 				self.videoPlayer = player.VideoPlayer(Box_Video)
 			#ZoneVideo = self.interface.get_object("DA_Video")
 			self._videoSelector = iconselector.VideoSelector()
+			SW_IconsV = gtk.ScrolledWindow()
+			SW_IconsV.set_size_request(-1, 170)
+			SW_IconsV.add(self._videoSelector)
 			self._videoPanel = UC_Panel("video", self._videoSelector)
 			
 			HPaned_Video = gtk.HPaned()
 			HPaned_Video.pack1(self._videoPanel)
-			HPaned_Video.pack2(self._videoSelector)
+			HPaned_Video.pack2(SW_IconsV)
 			Box_Video.pack_start(HPaned_Video, False)
 			Box_Video.show_all()
 			

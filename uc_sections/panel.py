@@ -376,8 +376,11 @@ class AbstractPanel():
 						thumbnail_path = 'icons/none.jpg'
 						logger.debug('IOError on thumbnail ' + path)
 				elif(type == "video"):
-					cmd = ['totem-video-thumbnailer', path, thumbnail_path]
-					ret = subprocess.call(cmd)
+					if(os.path.isfile(path)):
+						cmd = ['totem-video-thumbnailer', path, thumbnail_path]
+						ret = subprocess.call(cmd)
+					else:
+						thumbnail_path = "thumbnails/none.jpg"
 				else:
 					thumbnail_path = "thumbnails/none.jpg"
 					
@@ -498,6 +501,7 @@ class AbstractPanel():
 class UC_Panel(AbstractPanel, gtk.Notebook):
 	"""
 		TODO multi-paneaux
+		TODO init = hotSwap(obj) [delete, init]
 		TODO rewrite folders management
 		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
 		INFO Categorie = forme, univers = fond
@@ -598,7 +602,7 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		label = gtk.Label(_("Sections"))
 		self.append_page(Box, label)
 		self.filters = {}
-	
+		
 	@property
 	def mode(self):
 		return self.CB.get_active_text()
@@ -671,6 +675,9 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		col.add_attribute(cell, 'foreground', 5)
 		col.add_attribute(pb, 'pixbuf', 3)
 		
+		self.columns = {}
+		self.columns["universe"] = col
+		
 		col = gtk.TreeViewColumn(_('Universes'))
 		TV_universes.append_column(col)
 		cell = gtk.CellRendererText()
@@ -680,7 +687,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		col.add_attribute(cell, 'text', 2)
 		col.add_attribute(pb, 'pixbuf', 3)
 		
-		self.universes_col = col
+		self.columns["category"] = col
 		
 		TV_categories.connect("row-activated", self.on_container_click, 'category')
 		TV_universes.connect("row-activated", self.on_container_click, 'universe')
@@ -739,7 +746,8 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		
 		Box = gtk.VBox()
 		SW = gtk.ScrolledWindow()
-		B = gtk.ToggleButton('Test')
+		B = gtk.ToggleButton('Left')
+		B.connect('clicked', self.changeFilter)
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		SW.add(TV_categories)
 		Box.pack_start(SW)
@@ -757,7 +765,10 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		self.toggled = {'category': True, 'universe': False}
 		self.filters = {}
 		
-
+	def changeFilter(self, button):
+		self.toggled['category'] = not self.toggled['category']
+		self.toggled['universe'] = not self.toggled['universe']
+		
 	
 	def load(self, *args):
 		self.processLoading('category', self.categories_model, False)
@@ -775,7 +786,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 			if(self.toggled[self.mode]):
 				path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
 				#self.categories_model[path][5] = 'yellow'
-				col = self.universes_col
+				col = self.columns[self.mode]
 				model = TreeView.get_model()
 				col.set_title('Universes of' + ' ' + model[path][2])
 				try:
