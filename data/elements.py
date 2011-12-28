@@ -35,8 +35,9 @@ class SpecialElement():
 		self.rating = new_rating
 	
 	def set_path(self, folder, file_name):
-		query = "UPDATE " + self.type + "s SET dossier = " + folder + ", fichier = " + file_name + " WHERE " + self.type + "_ID = " + self.ID
-		bdd.execute(query)
+		query = "UPDATE " + self.type + "s SET dossier = ?, fichier = ? WHERE " + self.type + "_ID = " + self.ID
+		t = (folder, file_name)
+		bdd.execute(query, t)
 		self.path = folder + '/' + file_name
 		self.folder = folder
 		self.file = file_name

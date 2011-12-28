@@ -574,7 +574,7 @@ class Playlists_Panel(gtk.VBox):
 				fichier = open('playlists/intelligents/' + nom,'r')
 				data = fichier.readlines()
 				fichier.close()
-				messager.diffuser('intelligent_playlist_request', self, data)
+				messager.diffuser('intelligent_playlist_request', self, eval(data[0]))
 				
 	
 	def editer(self, bouton, uneLigne):

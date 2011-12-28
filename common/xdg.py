@@ -28,7 +28,7 @@ def make_missing_dirs():
 	"""
 		Called in MainBDD. Not elsewhere.
 	"""
-	dirs = (config_home, data_home, get_thumbnail_dir('artist/medium'), get_thumbnail_dir('album/medium'), get_thumbnail_dir('title/medium'))
+	dirs = (config_home, data_home, get_thumbnail_dir('artist/medium'), get_thumbnail_dir('album/medium'), get_thumbnail_dir('title/medium'), get_thumbnail_dir('image/128'))
 	for dir in dirs:
 		if not os.path.exists(dir):
 			os.makedirs(dir)

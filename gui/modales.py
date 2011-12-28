@@ -274,21 +274,22 @@ class TagsEditor(gtk.Dialog):
 		TODO indicator to show what we're editing
 	'''
 	def __init__(self, data):
-		gtk.Dialog.__init__(self, title=_("Tags editor"), buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		gtk.Dialog.__init__(self, title=_("Tags editor"), flags=gtk.CAN_DEFAULT, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_OK))
+		self.set_default_response(gtk.RESPONSE_OK)
 		Box_Main = self.get_content_area()
 		Box = gtk.Table(2,2)
+		self.Table = Box
 		
-		i = 0
+		self.i = 0
 		
 		self.tags = {}
 		def add_line_for(tag, text=''):
-			print i
-			#Box = gtk.HBox()
 			L = gtk.Label(_(tag) + " : ")
-			Box.attach(L, 0, 1, i, i+1)
+			Box.attach(L, 0, 1, self.i, self.i+1)
 			self.tags[tag] = gtk.Entry()
 			self.tags[tag].set_text(text)
-			Box.attach(self.tags[tag], 1, 2, i, i+1)
+			Box.attach(self.tags[tag], 1, 2, self.i, self.i+1)
+			self.i += 1
 
 		def add_line_forDEPREC(tag, text=''):
 			Box = gtk.HBox()
@@ -298,25 +299,28 @@ class TagsEditor(gtk.Dialog):
 			Box.pack_start(L)
 			Box.pack_start(self.tags[tag])
 			Box_Main.pack_start(Box)
+			
+			
 		if type(data).__name__=='dict':
 			self.dic = data
 			for key in self.dic.iterkeys():
 				add_line_for(key, self.dic[key])
-				i += 1
 		else:
 			piste_ID = data
 			add_line_for('artist')
-			i += 1
 			add_line_for('album')
-			i += 1
 			add_line_for('title')
 			
 			
 			self.charger_tags(piste_ID)
 		Box_Main.pack_start(Box)
+		self.cm_manager = CriterionManager()
+		Box_Main.pack_start(gtk.HSeparator())
+		Box_Main.pack_start(gtk.Label(_('Additional matching filter to apply') + ' : '))
+		Box_Main.pack_start(self.cm_manager)
 		self.show_all()
 		reponse = self.run()
-		if(reponse == -3):
+		if(reponse == gtk.RESPONSE_OK):
 			self.valider()
 		self.destroy()
 		
@@ -344,11 +348,16 @@ class TagsEditor(gtk.Dialog):
 		self.tags['album'].set_text(album)
 		self.tags['artist'].set_text(artiste)
 		
+		L = gtk.Label(_('Path') + " : " + fichier)
+		L.set_selectable(True)
+		self.Table.attach(L, 0, 2, self.i, self.i+1)
+		self.i += 1
+		
 	def valider(self):
 		try:
 			tracks = (self.track,)
 		except AttributeError:
-			tracks = elements.bdd.get_tracks(self.dic)
+			tracks = elements.bdd.get_tracks(self.dic, self.cm_manager.get_config())
 		for track in tracks:
 			for key in self.dic.iterkeys():
 				if(self.tags[key].get_text() != self.dic[key]):

@@ -33,7 +33,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 		file.set_submenu(menu)
 		self.append(file)
 		
-		outils = gtk.MenuItem("Ou_tils")
+		outils = gtk.MenuItem(_("_Tools"))
 		menu = gtk.Menu()
 		item = gtk.MenuItem("Récupérer les données Last.fm")
 		item.connect('activate', self.retrieveFromLastFM)

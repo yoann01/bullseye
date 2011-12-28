@@ -214,7 +214,7 @@ class AbstractPanel():
 		
 		def processContainer(container_ID, root_path):
 			print root_path
-			query = 'SELECT ' + type + '_ID, dossier, fichier FROM ' + type + 's WHERE ' + container + '_ID = ?'
+			query = 'SELECT ' + type + '_ID, dossier, fichier, size FROM ' + type + 's WHERE ' + container + '_ID = ?'
 			if(show_antagonistic):
 				query += ' AND ' + antagonist + '_ID = 1'
 			bdd.c.execute(query, (container_ID,))
@@ -223,11 +223,19 @@ class AbstractPanel():
 				new_name = child[2]
 				if((child[1] + '/' + child[2]) != (root_path + '/' + new_name)): #Do not move if paths are the same
 					i = 2
-					while(os.path.isfile(root_path + '/' + new_name)):
-						(shortname, extension) = os.path.splitext(child[2])
-						new_name = shortname + '_' + str(i) + extension
-						i += 1
-					os.renames(child[1] + '/' + child[2], root_path + '/' + new_name)
+					same = False;
+					while(os.path.isfile(root_path + '/' + new_name) and not same):
+						if(not os.path.isfile(child[1] + '/' + child[2]) and os.path.getsize(root_path + '/' + new_name) != child[3]): # Same size, assume database is not up to date, so lets move on the same place thus the database will update correctly
+							(shortname, extension) = os.path.splitext(child[2])
+							new_name = shortname + '_' + str(i) + extension
+							i += 1
+						else:
+							same = True
+					logger.debug('OLD path -> ' + child[1] + '/' + child[2] + ' | NEW path -> ' + root_path + '/' + new_name)
+					try:
+						os.renames(child[1] + '/' + child[2], root_path + '/' + new_name)
+					except OSError:
+						pass
 					bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
 			
 			if(show_antagonistic): #Elements of this container which are antagonist-setted (if category -> universe, if universe->category) will be placed in a subfolder
@@ -450,7 +458,8 @@ class AbstractPanel():
 				TreeView.expand_row(path, False)
 			
 	def reload_sections(self, new_section=None):
-		messager.diffuser('liste_sections', self, [self.data_type, self.CB.get_active_text(), self.liste_sections])
+		self.load()
+		#messager.diffuser('liste_sections', self, [self.data_type, self.CB.get_active_text(), self.liste_sections])
 		
 		
 	def what_is(self, container_path, model):

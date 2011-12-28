@@ -11,6 +11,7 @@ import subprocess
 from common import messager, settings, util, xdg
 import threading
 import time
+from datetime import datetime
 import elements
 import unicodedata
 import logging
@@ -74,16 +75,21 @@ class BDD():
 		self.c.execute(query, params)
 
 		
-	def get_tracks(self, dic):
-		t = []
+	def get_tracks(self, dic, filters={}):
+		params = []
 		for key in dic.iterkeys():
 			try:
 				query += ' AND ' + key + ' = ?'
 			except NameError:
 				query = 'SELECT track_ID FROM tracks WHERE ' + key + ' = ?'
-			t.append(unicode(dic[key]))
+			params.append(unicode(dic[key]))
+
+			for t in filters['criterions']:
+				query += ' ' + filters['link'] + t[0] + t[1] + '? '
+				params.append(t[2])
+		
 		d = self.conn.cursor()
-		d.execute(query, t)
+		d.execute(query, params)
 		tracks = []
 		for row in d:
 			tracks.append(elements.Track(row[0]))
@@ -236,41 +242,27 @@ class MainBDD():
 			liste.append([track[1], track[0], "not set", "not set", '0'] )
 			
 	
-	def create_intelligent_playlist(self, data):
+	def create_intelligent_playlist(self, filter):
 		'''
 			Crée une requête pour séléctionner des pistes selon les paramètres envoyés
 		'''
-		random = data[0]
-		logic_operator = data[1] #AND or OR
+		params = []
+		for t in filter['criterions']:
+			try:
+				query += ' ' + filter['link'] + t[0] + t[1] + '? '
+			except NameError:
+				query = 'SELECT * FROM tracks WHERE ' + t[0] + t[1] + '? '
+			params.append(t[2])
 		
-		query = "SELECT * FROM tracks WHERE "
-		premier = True
-		i = 2
-		while(i < len(data)):
-			if (premier == True):
-				premier = False
-			else:
-				query += logic_operator
-			
-			
-			liste = eval(data[i]) #Conversion de string en list
-			criterion = liste[0]
-			operator = liste[1]
-			condition = liste[2]
-			
-			if(operator == " LIKE " or operator == " NOT LIKE "):
-				condition = '"%' + condition + '%"'
-			else:
-				condition = '"' + condition + '"'
-			
-			query += criterion + operator  + condition + ' COLLATE NOCASE'
-			i += 1
 		
-		if(random == "random\n"):
+		#COLLATE NOCASE'
+		
+		if(filter['random']):
 			query += " ORDER BY RANDOM()"
 
-		self.c.execute(query)
-		print(query)
+		logger.debug(query)
+		logger.debug(params)
+		self.c.execute(query, params)
 		table = []
 		for row in self.c:
 			table.append((row[0], row[1], row[2], row[3], row[4], row[6], row[7], row[8]))
@@ -973,19 +965,26 @@ class MainBDD():
 		#messager.diffuser('desPistes', self, table)
 		
 	def incrementer(self, track):
+		""" Increment track playcount and scrobble the play"""
 		t = (track.ID,)
 		self.c.execute('UPDATE tracks SET compteur = compteur + 1 WHERE track_ID = ?', t)
 		self.conn.commit()
-		try:
-			self.network.scrobble(track.artist, track.title, int(track.time_started))
-			if len(self.network_cache) > 0:
-				for tup in self.network_cache:
-					self.network.scrobble(tup[0], tup[1], tup[2])
-					print "done"
-				self.network_cache = []
-			self.quit() # update cache
-		except:
-			self.network_cache.append((track.artist, track.title, int(track.time_started)))
+		
+		def scrobble(track):
+			time_elapsed = int( time.mktime( datetime.utcnow().timetuple())) - track.time_started
+			if(time_elapsed > 120):
+				try:
+					self.network.scrobble(track.artist, track.title, int(track.time_started))
+					if len(self.network_cache) > 0:
+						for tup in self.network_cache:
+							self.network.scrobble(tup[0], tup[1], tup[2])
+						self.network_cache = []
+					self.quit() # update cache
+				except:
+					self.network_cache.append((track.artist, track.title, int(track.time_started)))
+					
+		task = threading.Thread(target=scrobble, args=(track,))
+		task.start()
 		
 		
 	def format_length(self, length):

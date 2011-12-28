@@ -241,7 +241,17 @@ class ImageSelector(IconSelector):
 	def on_thumbnail_click(self, widget, i):
 		self.openElement = SpecialElement(self.data_type, self.liste[i][0])
 		self.index = i[0]
-		self.afficher_image()
+		try:
+			self.afficher_image()
+		except:
+			#Old trick of mine to repair a bug in moveToUCStructure
+			#import os
+			#if not os.path.isfile(self.openElement.path):
+				#(shortname, extension) = os.path.splitext(self.openElement.file)
+				#self.openElement.set_path(self.openElement.folder, shortname[:-2] + extension)
+				#print shortname
+				#print(shortname[:-2] + extension)
+			pass
 		print(self.get_visible_range())
 		
 		

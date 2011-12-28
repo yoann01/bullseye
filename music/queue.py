@@ -102,18 +102,26 @@ class QueueManager(gtk.Notebook):
 
 		return liste
 		
-	def addToDirectList(self, menuitem, queue, ligne, temp=False):
+	def addToDirectList(self, menuitem, row, temp=False):
 		'''
 		@param menuitem : osef
-		@param ligne : l'iter à ajouter à la directList
+		@param row : TreeReference
 		@param temp : if temp is true then after jumping return where player was before
 		'''
-		self.directList.append(DirectIter(queue, ligne, temp))
-		if temp is True:
-			image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18), '#FFCC00', '#000', '#000')
+		i = 0
+		while((i < len(self.directList)) and not self.directList[i].equals(row)):
+			i+=1
+
+		if(i < len(self.directList) and self.directList[i].equals(row)):
+			self.directList.insert(i, DirectIter(None, temp))
+			i+=1
 		else:
-			image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18))
-		queue.set_value(ligne, 1, image)
+			self.directList.append(DirectIter(row, temp))
+		if temp is True:
+			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18), '#FFCC00', '#000', '#000')
+		else:
+			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18))
+		row.get_model()[row.get_path()][1] = image
 
 
 	def ajouter_selection(self, selection): 
@@ -177,21 +185,24 @@ class QueueManager(gtk.Notebook):
 			
 		try:
 			di = self.directList[0]
+			self.directList.remove(di)
+			if(di.row == None):
+				di = None
 		except IndexError:
 			di = None
 			
 		if(not_a_stop_track): #On vérifie d'abord qu'on ne doit pas s'arrêter avant de mouliner
 			#Quelle est la piste à jouer? 3 possibilités :
 			if(di != None): # 1/ une piste prioritaire
-				self.playing_track = Track(di.queue.get_value(di.ligne, 3))
+				self.playing_track = Track(di.get_model()[di.get_path()][3])
 				
 				if di.temp:
-					self.temp_queue_jouee = di.queue
-					self.temp_playing_iter = di.ligne
+					self.temp_queue_jouee = di.get_model()
+					self.temp_playing_iter = self.temp_queue_jouee.get_iter(di.get_path())
 				else:
-					self.queue_jouee = di.queue
-					self.playing_iter = di.ligne
-				self.directList.remove(di)
+					self.queue_jouee = di.get_model()
+					self.playing_iter = self.queue_jouee.get_iter(di.get_path())
+				
 				messager.diffuser('musique_a_lire', self, self.playing_track)
 				self.marquer_piste()
 			else:
@@ -637,7 +648,7 @@ class Queue(gtk.ScrolledWindow):
 					
 	
 	def surClicDroit(self, TreeView, event):
-		
+		print event
 		# On vérifie que c'est bien un clic droit:
 		if event.button == 3:
 			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
@@ -647,7 +658,7 @@ class Queue(gtk.ScrolledWindow):
 				ligne = queue.get_iter(path)
 			if (path != None):
 				iter = queue.get_iter(path)
-				
+				row = gtk.TreeRowReference(queue, path)
 				m = TrackMenu(piste_ID)
 				m.append(gtk.SeparatorMenuItem())
 				i = gtk.ImageMenuItem(_("Remove from queue"))
@@ -662,14 +673,14 @@ class Queue(gtk.ScrolledWindow):
 				
 				i = gtk.ImageMenuItem(_("Add to perm jump list"))
 				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18))))
-				i.connect('activate', self.gestionnaire.addToDirectList, queue, ligne)
+				i.connect('activate', self.gestionnaire.addToDirectList, row)
 				m.append(i)
 				
 				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18), '#FFCC00', '#000', '#000')
 				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18))
 				i = gtk.ImageMenuItem(_("Add to temp jump list"))
 				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18), '#FFCC00', '#000', '#000')))
-				i.connect('activate', self.gestionnaire.addToDirectList, queue, ligne, True)
+				i.connect('activate', self.gestionnaire.addToDirectList, row, True)
 				m.append(i)
 				
 				
@@ -756,10 +767,13 @@ class Queue(gtk.ScrolledWindow):
 			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
 			if(path != None):
 				queue = TreeView.get_model()
-				piste_ID = queue[path][3]
-				ligne = queue.get_iter(path)
-			self.gestionnaire.addToDirectList(None, queue, ligne, True)
-				
+				row = gtk.TreeRowReference(queue, path)
+				from gtk.gdk import CONTROL_MASK, SHIFT_MASK
+				if event.state & CONTROL_MASK:
+					self.gestionnaire.addToDirectList(None, row, False)
+				else:
+					self.gestionnaire.addToDirectList(None, row, True)
+
 
 class Playlist(Queue):
 	def __init__(self, gestionnaire, label):
@@ -776,11 +790,20 @@ class DirectIter():
 	'''
 		Représente une piste qui sera lue en priorité
 	'''
-	def __init__(self, queue, ligne, temp=False):
-		self.queue = queue
-		self.ligne = ligne
+	def __init__(self, row, temp=False):
+		self.row = row
 		self.temp = temp
-
+	
+	def equals(self, ref):
+		if(self.row == None):
+			return False
+		return (ref.get_path() == self.get_path() and ref.get_model() == self.get_model())
+		
+	def get_model(self):
+		return self.row.get_model()
+	
+	def get_path(self):
+		return self.row.get_path()
 
 
 	
