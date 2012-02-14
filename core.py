@@ -288,7 +288,8 @@ class Core(gobject.GObject):
 			
 		
 	def on_window_destroy(self, widget):
-		self.BDD.quit()
+		from data.bdd import BDD
+		BDD.saveCache()
 		settings.set_option('gui/maximized', self.maximized)
 		
 		if('music' in self.loadedModules):

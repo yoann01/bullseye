@@ -1,125 +1,106 @@
 # -*- coding: utf-8 -*-
-import gtk
 import os
+from PySide import QtGui, QtCore
+from PySide.QtCore import Qt
+
+from PySide.QtCore import QModelIndex, QAbstractItemModel
+
 from common import messager, settings, xdg
+from qt.util import treemodel
+from data.elements import Track
 from gui import menus, modales
-import glib
 import threading
 import time
 #from gui.menus import TrackMenu, TrackContainerMenu
 
-class LibraryPanel(gtk.VBox):
+icon_track = QtGui.QPixmap('icons/track.png')
+icon_artist = QtGui.QPixmap('icons/artist.png')
+icon_album = QtGui.QPixmap('icons/star.png')
+icon_genre = QtGui.QPixmap('icons/genre.png')
+icon_year = QtGui.QPixmap('icons/year.png')
+icon_rating = QtGui.QPixmap('icons/star.png')
+icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
+icon_size = settings.get_option('music/panel_icon_size', 32)
+
+class LibraryPanel(QtGui.QWidget):
 	"""
 		TODO check errors (arkenstone, little richard)
-		Burn factor indicates container with playcount concentrated on fews children
 	"""
-	def __init__(self, BDD):
+		
+	def __init__(self, BDD, queueManager):
+		QtGui.QWidget.__init__(self)
 		self.BDD = BDD
+		self.queueManager = queueManager
 		self.tracks = {}
-		self.TreeView = gtk.TreeView()
-		#self.TreeView.set_headers_visible(False)
-		self.TreeView.enable_model_drag_source(gtk.gdk.MODIFIER_MASK,  [('text/plain', 0, 0)] ,
-                  gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
-		self.TreeView.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-		#self.TreeView.set_rubber_banding(True) #séléction multiple by dragging
-		self.TreeView.connect('row-activated', self.ajouter_pistes)
-		self.TreeView.connect("drag-begin", self.keep_true_selection)
-		self.TreeView.connect("button-press-event", self.on_button_press)
-		self.TreeView.connect("drag-data-get", self.on_drag_data_get)
-		#icon, ID, titre
 		self.mode = '("artist", "album", "title")'
-		self.model = gtk.TreeStore(gtk.gdk.Pixbuf, int, str, int, int, float, str, bool) #icon, id, label, playcount, rating
 		
-		#messager.diffuser('TS_bibliotheque', self, [self.model, self.mode])
+		self.TreeView = QtGui.QTreeView()
 		
-		def is_separator(model, iter):
-			return model.get_value(iter, 7)
-		self.TreeView.set_row_separator_func(is_separator)
+		self.model = LibraryModel()
 		
-		#self.TreeView.set_rules_hint(True)
-		self.TreeView.set_model(self.model)
-		
-		pb = gtk.CellRendererPixbuf()
-		#self.Col_Icon = BSColumn('col_icon_panel', _('Icon'), pb, pixbuf=0, default_width=80)
-		self.Col_Icon = BSColumn('col_icon_panel', _('Icon'), default_width=80)
-		self.Col_Icon.pack_start(pb, False)
-		self.Col_Icon.set_attributes(pb, pixbuf=0)
-		Col_Label = BSColumn('col_label_panel', _('Label'), expand=True, default_width=170)
-		self.TreeView.append_column(self.Col_Icon)
-		self.TreeView.append_column(Col_Label)
-		cell = gtk.CellRendererText()
-		
-		#Col_Label.pack_start(pb, False)
-		Col_Label.pack_start(cell, True)
-		#Col_Label.set_attributes(pb, pixbuf=0)
-		Col_Label.add_attribute(cell, 'text', 2)
-		Col_Label.set_sort_column_id(2)
-		Col_Label.connect("clicked", self.on_column_clicked)
-		Col_Count = BSColumn('col_count_panel', _('Count'), cell, model_text=3, default_width=50)
-		Col_Rating = gtk.TreeViewColumn(_('Rating'), cell, text=4)
-		Col_Valor = gtk.TreeViewColumn(_('Burn'), cell, text=6)
-		self.TreeView.append_column(Col_Count)
-		self.TreeView.append_column(Col_Rating)
-		self.TreeView.append_column(Col_Valor)
-		Col_Count.set_sort_column_id(3)
-		Col_Count.connect("clicked", self.on_column_clicked)
-		Col_Rating.set_sort_column_id(4)
-		Col_Rating.connect("clicked", self.on_column_clicked)
-		Col_Valor.set_sort_column_id(5)
-		Col_Valor.connect("clicked", self.on_column_clicked)
 		
 		self.notLoading = threading.Event()
 		self.notLoading.set()
 		self.fill_model()
 		
-		LS_CB = gtk.ListStore(str, str)
-		LS_CB.append(['("artist", "album", "title")', _("Artist")])
-		LS_CB.append(['("album", "title")', _("Album")])
-		LS_CB.append(['("genre", "album", "title")', _("Genre")])
-		LS_CB.append(['("year", "artist", "album", "title")', _("Year")])
-		LS_CB.append(['("year", "genre", "artist", "album", "title")', _("Year - Genre")])
-		LS_CB.append(['("note", "year", "genre", "artist", "album", "title")', _("Rating - Year - Genre")])
-		CB = gtk.ComboBox()
-		cell = gtk.CellRendererText()
-		CB.pack_start(cell)
-		CB.add_attribute(cell, "text", 1)
-		CB.set_model(LS_CB)
-		CB.set_active(0)
-		CB.connect("changed", self.changer_mode)
-		self.CB = CB
+		#TreeNode(self.model, None, LibraryItem(None, 1, "ok", 1, 1, 1, 1, False))
+		#self.model.append(LibraryItem(None, 1, "ok", 1, 1, 1, 1, False))
+		self.TreeView.setModel(self.model)
+		self.TreeView.activated.connect(self.ajouter_pistes)
 		
-		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
-		B_refresh.connect('clicked', self.fill_model, True)
+		# *** TreeView visual tweaks
+		self.TreeView.setColumnWidth(1, settings.get_option('music/col_label_panel_width', 170))
 		
-		gtk.VBox.__init__(self)
-		Box_mode = gtk.HBox()
-		Box_mode.pack_start(CB)
-		Box_mode.pack_start(B_refresh, False)
-		self.pack_start(Box_mode, False)
-		SW = gtk.ScrolledWindow()
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(self.TreeView)
-		self.pack_start(SW)
-		E_Search  = gtk.Entry()
-		Search = SearchEntry(E_Search)
-		Search.connect('activate', self.restreindre)
-		self.pack_start(E_Search, False)
+		# *** Mode selector ***
+		modsModel = QtGui.QStandardItemModel()
+		modsModel.appendRow([QtGui.QStandardItem('("artist", "album", "title")'), QtGui.QStandardItem(_("Artist"))])
+		modsModel.appendRow([QtGui.QStandardItem('("genre", "album", "title")'), QtGui.QStandardItem(_("Genre"))])
+		self.CB_mod = QtGui.QComboBox()
+		self.CB_mod.setModelColumn(1)
+		self.CB_mod.setModel(modsModel)
+		
+		refreshButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('view-refresh'), _('Refresh'))
+		refreshButton.clicked.connect(self.fill_model)
+		modLayout = QtGui.QHBoxLayout()
+		modLayout.addWidget(self.CB_mod)
+		modLayout.addWidget(refreshButton)
+		modLayout.setStretch(0, 1)
+		modLayout.setStretch(1, 0)
+		
+		layout = QtGui.QVBoxLayout()
+		layout.addLayout(modLayout)
+		layout.addWidget(self.TreeView)
+		
+		
+
+		#self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding))
+		self.setLayout(layout)
+		self.setMinimumSize(settings.get_option('music/paned_position', 200), 500)
+		
+	def resizeEvent(self, event):
+		print  event.size().width()
+		settings.set_option('music/paned_position', event.size().width())
 	
 		
-	def ajouter_pistes(self, w, i, c):
-		mode = eval(self.CB.get_active_text()) #Ex : '("artist", "album")'
-		level = len(i) #On choppe le niveau de profondeur de la séléction (ex : 1 = Artiste, 2 = Album, 3 = Piste)
-		#if(level == len(mode)): #On est au plus bas : on veut une piste
-			#messager.diffuser('queue_add_track', self, self.model[i][1])
-		#else:
+	def ajouter_pistes(self, i):
+		mode = eval(self.CB_mod.model().item(self.CB_mod.currentIndex(), 0).text()) #Ex : '("artist", "album")'
 		
 		dic = {}
-		while(level > 0): #On remonte la chaîne tant qu'on est pas arrivé à la racine
-			i = i[0:level] #On enlève l'étage de fin
-			level -= 1
-			dic[mode[level]] = self.model[i][2]
-		messager.diffuser('need_tracks', self, dic)
-		print dic
+		level = 0
+		params = []
+		while(i.isValid()): #On remonte la chaîne tant qu'on est pas arrivé à la racine
+			level += 1
+			params.append(i.internalPointer().label)
+			i = i.parent()
+			
+		params.reverse()
+		
+		i = 0
+		while(i < level):
+			dic[mode[i]] = params[i]
+			i += 1
+		
+		self.queueManager.addSelection(self.BDD.getTracks(dic))
 		
 	def changer_mode(self, mode):
 		self.mode = self.CB.get_active_text()
@@ -139,7 +120,7 @@ class LibraryPanel(gtk.VBox):
 		indices = {"title":2, "artist":4, "album":3, "genre":5, "note":8, "year":9}
 		
 		icon_size = settings.get_option('music/panel_icon_size', 32)
-		self.Col_Icon.set_min_width(icon_size + 16)
+		
 		
 		def getValueOfLevel(track_line, level):
 			'''
@@ -174,14 +155,7 @@ class LibraryPanel(gtk.VBox):
 
 			if(niveau == profondeur_max): #Si on est au dernier niveau du mode d'affichage, c'est que c'est une piste
 				if(add_all or tracks[ligne][2].lower().find(mot) != -1):
-					count = tracks[ligne][7]
-					rated = int(tracks[ligne][8] != 0)
-					if rated:
-						count_rated = count
-					else:
-						count_rated = 0
-						
-					selection['children'][ligne] = {'props':{'count':count, 'rating':tracks[ligne][8], 'rated':rated, 'count_rated':count_rated} }
+					selection['children'][ligne] = {'props':{'count':tracks[ligne][7], 'rating':tracks[ligne][8], 'rated':int(tracks[ligne][8] != 0)} }
 						#self.expand.append(ligne)
 					#fils = model.append(pere, [icon_track, tracks[ligne][0], tracks[ligne][2], 1, 1])
 					#TreeView.expand_to_path(model.get_path(fils))
@@ -201,7 +175,7 @@ class LibraryPanel(gtk.VBox):
 				if(add_all == False  and getValueOfLevel(tracks[ligne], niveau).lower().find(mot) != -1):
 					add_all = True
 					
-				new = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0, 'count_rated':0}}
+				new = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
 				
 
 				#Tant qu'il reste du monde et qu'on est toujours sur le même conteneur :
@@ -232,7 +206,6 @@ class LibraryPanel(gtk.VBox):
 				selection['props']['count'] += selection['children'][i-1]['props']['count']
 				selection['props']['rating'] += selection['children'][i-1]['props']['rating']
 				selection['props']['rated'] += selection['children'][i-1]['props']['rated']
-				selection['props']['count_rated'] += selection['children'][i-1]['props']['count_rated']
 					
 			except KeyError:
 				pass
@@ -262,13 +235,7 @@ class LibraryPanel(gtk.VBox):
 			self.tracks[self.mode] = self.BDD.loadTracks(self.mode)
 			tracks = self.tracks[self.mode]
 		
-		icon_track = gtk.gdk.pixbuf_new_from_file('icons/track.png')
-		icon_artist = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-		icon_album = gtk.Image().render_icon(gtk.STOCK_CDROM, gtk.ICON_SIZE_MENU)
-		icon_genre = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-		icon_year = gtk.gdk.pixbuf_new_from_file('icons/year.png')
-		icon_rating = gtk.gdk.pixbuf_new_from_file('icons/star.png')
-		icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
+
 		mode = eval(self.mode)
 		profondeur_max = len(mode) - 1
 		
@@ -282,7 +249,7 @@ class LibraryPanel(gtk.VBox):
 			'''
 			try:
 				path = os.path.join(xdg.get_thumbnail_dir(mode[level] + '/medium'),  track_line[indices[mode[level]]].replace ('/', ' ') + '.jpg')
-				icon = gtk.gdk.pixbuf_new_from_file_at_size(path, icon_size, icon_size)
+				icon = QtGui.QIImage(path).scaled(icon_size)
 			except:
 				icon = icons[mode[level]]
 			return icon
@@ -295,10 +262,11 @@ class LibraryPanel(gtk.VBox):
 				if(child['props']['rated'] == 0):
 					burn = 0
 				else:
-					burn = float(child['props']['count_rated']) / float(child['props']['rated'] +1)
-					#burn = float(child['props']['count_rated']) / float(child['props']['count'] +1)
-				icon = getIcon(tracks[ligne], niveau)
-				child_node = self.model.append(pere, [icon, tracks[ligne][0], getValueOfLevel(tracks[ligne], niveau), child['props']['count'], child['props']['rating'], burn, "%.2f" % burn, False ])
+					burn = float(child['props']['count']) / float(child['props']['rated'] +1)
+				#icon = getIcon(tracks[ligne], niveau)
+				
+				
+				child_node = pere.append(LibraryItem(pere, None, tracks[ligne][0], getValueOfLevel(tracks[ligne], niveau), child['props']['count'], child['props']['rating'], burn, "%.2f" % burn, False, mode[niveau]))
 				
 				if(niveau < len(mode)-1):
 					if ligne in self.expand[niveau]:
@@ -306,8 +274,8 @@ class LibraryPanel(gtk.VBox):
 						self.expand_paths.append(self.model.get_path(child_node))
 						#self.TreeView.expand_row(self.model.get_path(fils), False)
 					ajouter_selection(child_node, niveau+1, child)
-			if(niveau == 1):
-				child_node = self.model.append(pere, [None, 0, None, 0, 0, 0, None, True])
+			#if(niveau == 1):
+				#child_node = pere.append(LibraryItem(None, 0, None, 0, 0, 0, None, True))
 
 			
 			
@@ -328,7 +296,7 @@ class LibraryPanel(gtk.VBox):
 				self.selection = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
 				ligne = traiter_conteneur(0, ligne, self.selection)
 				
-				ajouter_selection(None, 0, self.selection)
+				ajouter_selection(self.model.rootItem, 0, self.selection)
 				#glib.idle_add(ajouter_selection, None, 0, self.selection)
 				expand()
 			#self.TreeView.expand_all()
@@ -338,7 +306,7 @@ class LibraryPanel(gtk.VBox):
 			
 		
 		
-		self.model.clear()
+		self.model.reset()
 		a = threading.Thread(target=traiter_tous_les_conteneurs)
 		a.start()
 	
@@ -513,120 +481,84 @@ class LibraryPanel(gtk.VBox):
 		#print(self.model[i][0])
 		
 		
-class Playlists_Panel(gtk.VBox):
+
+
+
+
+
+
+		
+
+        
+class LibraryItem(treemodel.TreeItem):
+	def __init__(self, parent, icon, ID, label, playcount, rating, burn, rounded_burn, is_separator, type):
+		treemodel.TreeItem.__init__(self, label, parent)
+		self.icon = icon
+		self.ID = ID
+		self.label = label
+		self.playcount = playcount
+		self.rating = rating
+		self.burn = burn
+		self.rounded_burn = rounded_burn
+		self.is_separator = is_separator
+		self.type = type
+		
+		self.subelements = []
+		
+	def __str__( self ):
+		return self.label
+		
+	def __repr__(self):
+		return self.label
+
+
+
+		
+	
+            
+class LibraryModel(treemodel.TreeModel):
 	def __init__(self):
-		#Attributs:
-		self.TV = gtk.TreeView()
-		self.model = gtk.TreeStore(gtk.gdk.Pixbuf, int, str) #icon, ID, titre
-		dossier = 'playlists/'
-		
-		
-		pixbuf_dir = gtk.ToolButton().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_BUTTON)
-		self.pere = self.model.append(None, [pixbuf_dir, 0, "Personalised lists"])
-		for f in os.listdir(dossier):
-			pixbuf = gtk.gdk.pixbuf_new_from_file('icons/playlist.png')
-			if os.path.isfile(os.path.join(dossier, f)):
-				self.model.append(self.pere, [pixbuf, 0, f])
-		
-		self.intelligent_pere = self.model.append(None, [pixbuf_dir, 0, _("Intelligents playlists")])
-		dossier = dossier + 'intelligents/'
-		for f in os.listdir(dossier):
-			if os.path.isfile(os.path.join(dossier, f)):
-				self.model.append(self.intelligent_pere, [pixbuf, 0, f])
-		
+		treemodel.TreeModel.__init__(self)
+
+
+	def columnCount(self, parent):
+		return 3
+
+	def data(self, index, role):
+		if not index.isValid():
+			return None
+		item = index.internalPointer()
+		if role == Qt.DisplayRole:
+			if index.column() == 1:
+				return item.label
+			elif index.column() == 2:
+				return item.playcount
+		elif role == Qt.DecorationRole and index.column() == 0:
+			if(item.icon is None):
+				try:
+					path = os.path.join(xdg.get_thumbnail_dir(item.type + '/medium'),  item.label.replace ('/', ' ') + '.jpg')
+					item.icon = QtGui.QPixmap(path)
+					if(item.icon.isNull()):
+						item.icon = icons[item.type]
+					else:
+						item.icon = item.icon.scaledToHeight(icon_size)
+				except:
+					item.icon = icons[item.label]
 				
-				
-		
-		self.TV.set_model(self.model)
-		colonne = gtk.TreeViewColumn('Column 0')
-		self.TV.append_column(colonne)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		colonne.pack_start(pb, False)
-		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 2)
-		colonne.set_attributes(pb, pixbuf=0)
-		
-		self.TV.expand_all()
-		
-		#Signaux
-		self.TV.connect('row-activated', self.charger_playlist)
-		self.TV.connect("button-press-event", self.surClicDroit)
-		
-		#Abonnements
-		messager.inscrire(self.ajouter_playlist, 'playlist_ajoutee')
-		gtk.VBox.__init__(self)
-		self.pack_start(self.TV)
-		
-	
-	def ajouter_playlist(self, data):
-		label = data[1]
-		type = data[0]
-		if(type == "intelligent"):
-			pere = self.intelligent_pere
-		else:
-			pere = self.pere
+			return item.icon
+		return None
+
+	def headerData(self, section, orientation, role):
+		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+			if section == 0:
+				return 'Icon'
+			elif section == 1:
+				return 'Label'
+			elif section == 2:
+				return _('Count')
 			
-		pixbuf = gtk.gdk.pixbuf_new_from_file('icons/playlist.png')	
-		self.model.append(pere, [pixbuf, 0, label])
-	
-	def charger_playlist(self, w, i, colonne, stop_mod=False):
-		level = len(i)
-		if(level == 2): #On est bien sur une playlist
-			nom = self.model[i][2]
-			if(i[0] == 0): #On est sur une playlist perso
-				fichier = open('playlists/' + nom,'r')
-				liste = fichier.readlines()
-				fichier.close()
-				#On envoie la liste d'ID à la BDD, elle va la traiter et renvoyer les infos au queue_manager
-				messager.diffuser('playlistData', self, [liste, nom, stop_mod])
-			else: #On est sur une playlist intelligente
-				fichier = open('playlists/intelligents/' + nom,'r')
-				data = fichier.readlines()
-				fichier.close()
-				messager.diffuser('intelligent_playlist_request', self, eval(data[0]))
-				
-	
-	def editer(self, bouton, uneLigne):
-		path = self.model.get_path(uneLigne)
-		nom = self.model.get_value(uneLigne, 2)
-		if(path[0] == 0): #normal playlist
-			print('temp rename')
-		else: #intelligent playlist
-			d = modales.IntelligentPlaylistCreator(nom)
-		
-		
-	def supprimer(self, bouton, uneLigne):
-		path = self.model.get_path(uneLigne)
-		nom = self.model.get_value(uneLigne, 2)
-		if(path[0] == 0):
-			os.remove('playlists/' + nom)
-		else:
-			os.remove('playlists/intelligents/' + nom)
-		self.model.remove(uneLigne)
-		
-	def surClicDroit(self, TreeView, event):
-		# On vérifie que c'est bien un clic droit:
-		if event.button == 3:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			level = len(path)
-			if(level ==2):
-				ligne = self.model.get_iter(path)
-				m = menus.PlaylistMenu(self, ligne)
-				#i.connect('activate', self.supprimer, playlist)
-				#i.show() 
-				#m.append(i) 
-				m.popup(None, None, None, event.button, event.time)
-			else:
-				m = menus.CreatePlaylistMenu()
-				m.popup(None, None, None, event.button, event.time)
-				
-
-
-
-
-
-
+		return None
+            
 class SearchEntry(object):
 	"""
 		A gtk.Entry that emits the "activated" signal when something has
@@ -673,26 +605,3 @@ class SearchEntry(object):
 		to the internal entry item
 		"""
 		return getattr(self.entry, attr)
-		
-class BSColumn(gtk.TreeViewColumn):
-	'''
-		Bullseye Special Column
-	'''
-	def __init__(self, name, label, cell=None, model_text=None, pixbuf=None, default_width=50, expand=False):
-		kwargs = {}
-		if(model_text is not None):
-			kwargs['text'] = model_text
-		if(pixbuf is not None):
-			kwargs['pixbuf'] = pixbuf
-		gtk.TreeViewColumn.__init__(self, label, cell, **kwargs)
-		self.name = name
-		width = settings.get_option('music/' + self.name + '_width', default_width)
-		self.set_min_width(default_width)
-		#self.set_max_width(width)
-		self.set_expand(expand)
-		self.set_resizable(True)
-		self.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self.connect('notify::width', self.on_width_change)
-		
-	def on_width_change(self, *args):
-		settings.set_option('music/' + self.name + '_width', self.get_width())

@@ -132,6 +132,39 @@ class BDD():
 			table.append((row[0], row[1], row[2], row[3], row[4], row[6], row[7], row[8]))
 
 		return table
+		
+	@staticmethod
+	@util.threaded
+	def initNetwork():
+		BDD.network_cache = []
+		try:
+			f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'r')
+			queue = f.readlines()
+			f.close()
+			for e in queue:
+				BDD.network_cache.append(eval(e))
+		except IOError:
+			logger.debug("No network cache file")
+		try:
+			API_KEY = "04537e40b5501f85610cf4e4bbf1d97a" # this is a sample key
+			API_SECRET = "b36376228a6e72314ffd503b8e3c9f5e"
+
+			# In order to perform a write operation you need to authenticate yourself
+			username = settings.get_option('music/audioscrobbler_login', '')
+			password_hash = md5(settings.get_option('music/audioscrobbler_password', ''))
+
+			BDD.network = LastFMNetwork(api_key = API_KEY, api_secret = 
+			API_SECRET, username = username, password_hash = password_hash)
+			#network_is_connected.set()
+		except NetworkError:
+			logger.debug('Connection to Last.fm failed')
+			
+	@staticmethod
+	def saveCache():
+		f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'w')
+		for e in BDD.network_cache:
+			f.write(str(e) + "\n")
+		f.close()
 
 
 class MainBDD():
@@ -155,37 +188,11 @@ class MainBDD():
 		xdg.make_missing_dirs()
 		
 		self.network_is_connected = threading.Event()
-		
-		@util.threaded
-		def initNetwork():
-			self.network_cache = []
-			try:
-				f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'r')
-				queue = f.readlines()
-				f.close()
-				for e in queue:
-					self.network_cache.append(eval(e))
-			except IOError:
-				logger.debug("No network cache file")
-			try:
-				API_KEY = "04537e40b5501f85610cf4e4bbf1d97a" # this is a sample key
-				API_SECRET = "b36376228a6e72314ffd503b8e3c9f5e"
-
-				# In order to perform a write operation you need to authenticate yourself
-				username = settings.get_option('music/audioscrobbler_login', '')
-				password_hash = md5(settings.get_option('music/audioscrobbler_password', ''))
-
-				self.network = LastFMNetwork(api_key = API_KEY, api_secret = 
-				API_SECRET, username = username, password_hash = password_hash)
-				self.network_is_connected.set()
-			except NetworkError:
-				logger.debug('Connection to Last.fm failed')
 			
 			
 		
-		initNetwork()
+		BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
-		messager.inscrire(self.incrementer,'incrementation')
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
 		#messager.inscrire(self.remplir_liste_sections, 'liste_sections')
@@ -867,6 +874,13 @@ class MainBDD():
 		return table
 		
 	
+	def getTracks(self, dic):
+		tracks = []
+		tracksData = self.get_tracks_data(dic, False)
+		for dataTuple in tracksData:
+			tracks.append(elements.Track(dataTuple))
+		return tracks
+		
 	def get_track_data(self, track_ID):
 	#Renvoie un tableau contentant les informations de la piste dont l'ID est track_ID
 		t = (track_ID,)
@@ -964,27 +978,27 @@ class MainBDD():
 		##On envoie la séléction au queue_manager
 		#messager.diffuser('desPistes', self, table)
 		
-	def incrementer(self, track):
-		""" Increment track playcount and scrobble the play"""
-		t = (track.ID,)
-		self.c.execute('UPDATE tracks SET compteur = compteur + 1 WHERE track_ID = ?', t)
-		self.conn.commit()
+	#def incrementer(self, track):
+		#""" Increment track playcount and scrobble the play"""
+		#t = (track.ID,)
+		#self.c.execute('UPDATE tracks SET compteur = compteur + 1 WHERE track_ID = ?', t)
+		#self.conn.commit()
 		
-		def scrobble(track):
-			time_elapsed = int( time.mktime( datetime.utcnow().timetuple())) - track.time_started
-			if(time_elapsed > 120):
-				try:
-					self.network.scrobble(track.artist, track.title, int(track.time_started))
-					if len(self.network_cache) > 0:
-						for tup in self.network_cache:
-							self.network.scrobble(tup[0], tup[1], tup[2])
-						self.network_cache = []
-					self.quit() # update cache
-				except:
-					self.network_cache.append((track.artist, track.title, int(track.time_started)))
+		#def scrobble(track):
+			#time_elapsed = int( time.mktime( datetime.utcnow().timetuple())) - track.time_started
+			#if(time_elapsed > 120):
+				#try:
+					#BDD.network.scrobble(track.artist, track.title, int(track.time_started))
+					#if len(self.network_cache) > 0:
+						#for tup in self.network_cache:
+							#BDD.network.scrobble(tup[0], tup[1], tup[2])
+						#self.network_cache = []
+					#self.quit() # update cache
+				#except:
+					#self.network_cache.append((track.artist, track.title, int(track.time_started)))
 					
-		task = threading.Thread(target=scrobble, args=(track,))
-		task.start()
+		#task = threading.Thread(target=scrobble, args=(track,))
+		#task.start()
 		
 		
 	def format_length(self, length):
@@ -1058,7 +1072,7 @@ class MainBDD():
 	
 	def quit(self):
 		f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'w')
-		for e in self.network_cache:
+		for e in BDD.network_cache:
 			f.write(str(e) + "\n")
 		f.close()
 	
@@ -1082,7 +1096,7 @@ class MainBDD():
 				artist_name = rows[i][0]
 				dest_path = os.path.join(artist_dir + '/medium', artist_name.replace ('/', ' ') + '.jpg')
 				if(forceReload or not os.path.isfile(dest_path)):
-					artist = self.network.get_artist(artist_name)
+					artist = BDD.network.get_artist(artist_name)
 					cover = artist.get_cover_image(1)
 					
 					if(cover is not None):
@@ -1095,7 +1109,7 @@ class MainBDD():
 					dest_path = os.path.join(album_dir + '/medium', album_name.replace ('/', ' ') + '.jpg')
 					if(forceReload or not os.path.isfile(dest_path)):
 						try:
-							album = self.network.get_album(artist_name, album_name)
+							album = BDD.network.get_album(artist_name, album_name)
 							cover = album.get_cover_image(1)
 						except WSError:
 							logger.debug('Error : No album ' + album_name)
@@ -1124,7 +1138,7 @@ class MainBDD():
 			account = settings.get_option('music/audioscrobbler_login', None)
 			if account is not None:
 				
-				library = self.network.get_user("Maitre_Piccolo").get_library()
+				library = BDD.network.get_user("Maitre_Piccolo").get_library()
 				
 				query = 'SELECT DISTINCT artist, album FROM tracks '
 				
@@ -1198,7 +1212,7 @@ class MainBDD():
 			account = settings.get_option('music/audioscrobbler_login', None)
 			if account is not None:
 				
-				library = self.network.get_user("Maitre_Piccolo").get_library()
+				library = BDD.network.get_user("Maitre_Piccolo").get_library()
 				
 				bdd.execute_with_filters('SELECT DISTINCT artist FROM tracks ', 'music')
 				artists = bdd.c.fetchall()

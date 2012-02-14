@@ -34,7 +34,7 @@ class CriterionManager(gtk.VBox):
 		self.liste_operateurs_note.append([" >= ", _("is at least")])
 		
 		BB = gtk.HButtonBox()
-		self.RB_Criterion = gtk.CheckButton(_("Whatever criterion match"))
+		self.RB_Criterion = gtk.CheckButton(_("Whatever criterion matches"))
 		self.RB_Random = gtk.CheckButton(_("Random order"))
 		B_Add = gtk.ToolButton(gtk.STOCK_ADD)
 		B_Add.connect("clicked", self.add_criterion)
@@ -275,56 +275,67 @@ class TagsEditor(gtk.Dialog):
 	'''
 	def __init__(self, data):
 		gtk.Dialog.__init__(self, title=_("Tags editor"), flags=gtk.CAN_DEFAULT, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_OK))
+
+		single = type(data).__name__ == 'int';
+		
 		self.set_default_response(gtk.RESPONSE_OK)
 		Box_Main = self.get_content_area()
+		
+		if single:
+			Box_Main.pack_start(gtk.Label(_('Single file mod')))
+		else:
+			Box_Main.pack_start(gtk.Label(_('Container mod')))
+		
 		Box = gtk.Table(2,2)
 		self.Table = Box
 		
 		self.i = 0
 		
-		self.tags = {}
+		self.tagsEntries = {}
 		def add_line_for(tag, text=''):
 			L = gtk.Label(_(tag) + " : ")
 			Box.attach(L, 0, 1, self.i, self.i+1)
-			self.tags[tag] = gtk.Entry()
-			self.tags[tag].set_text(text)
-			Box.attach(self.tags[tag], 1, 2, self.i, self.i+1)
+			self.tagsEntries[tag] = gtk.Entry()
+			self.tagsEntries[tag].set_text(text)
+			Box.attach(self.tagsEntries[tag], 1, 2, self.i, self.i+1)
 			self.i += 1
 
 		def add_line_forDEPREC(tag, text=''):
 			Box = gtk.HBox()
 			L = gtk.Label(_(tag) + " : ")
-			self.tags[tag] = gtk.Entry()
-			self.tags[tag].set_text(text)
+			self.tagsEntries[tag] = gtk.Entry()
+			self.tagsEntries[tag].set_text(text)
 			Box.pack_start(L)
-			Box.pack_start(self.tags[tag])
+			Box.pack_start(self.tagsEntries[tag])
 			Box_Main.pack_start(Box)
 			
-			
+		
+		Box_Main.pack_start(Box)
+		
 		if type(data).__name__=='dict':
-			self.dic = data
-			for key in self.dic.iterkeys():
-				add_line_for(key, self.dic[key])
+			self.incomingData = data
+			
+				
+			self.cm_manager = CriterionManager()
+			Box_Main.pack_start(gtk.HSeparator())
+			
+			Box_Main.pack_start(self.cm_manager)
 		else:
 			piste_ID = data
-			add_line_for('artist')
-			add_line_for('album')
-			add_line_for('title')
+			self.loadTrackData(piste_ID)
 			
-			
-			self.charger_tags(piste_ID)
-		Box_Main.pack_start(Box)
-		self.cm_manager = CriterionManager()
-		Box_Main.pack_start(gtk.HSeparator())
-		Box_Main.pack_start(gtk.Label(_('Additional matching filter to apply') + ' : '))
-		Box_Main.pack_start(self.cm_manager)
+		if(self.incomingData != None):
+			for key in self.incomingData.iterkeys():
+				add_line_for(key, self.incomingData[key])
+		
+		
 		self.show_all()
 		reponse = self.run()
 		if(reponse == gtk.RESPONSE_OK):
 			self.valider()
 		self.destroy()
 		
-	def charger_tags(self, piste_ID):
+	def loadTrackData(self, piste_ID):
 		self.track = elements.Track(piste_ID)
 		fichier = self.track.path
 		audio = self.track.get_tags()
@@ -343,10 +354,7 @@ class TagsEditor(gtk.Dialog):
 		except:
 			artiste =  _("Unknown")
 		
-		self.dic = {'title':titre, 'album':album, 'artist':artiste}
-		self.tags['title'].set_text(titre)
-		self.tags['album'].set_text(album)
-		self.tags['artist'].set_text(artiste)
+		self.incomingData = {'title':titre, 'album':album, 'artist':artiste}
 		
 		L = gtk.Label(_('Path') + " : " + fichier)
 		L.set_selectable(True)
@@ -354,14 +362,15 @@ class TagsEditor(gtk.Dialog):
 		self.i += 1
 		
 	def valider(self):
+		#FIXME optimize process by saving file only once (only where all tags are processed)
 		try:
-			tracks = (self.track,)
+			matchingTracks = (self.track,)
 		except AttributeError:
-			tracks = elements.bdd.get_tracks(self.dic, self.cm_manager.get_config())
-		for track in tracks:
-			for key in self.dic.iterkeys():
-				if(self.tags[key].get_text() != self.dic[key]):
-					track.set_tag(key, self.tags[key].get_text())
+			matchingTracks = elements.bdd.get_tracks(self.incomingData, self.cm_manager.get_config())
+		for track in matchingTracks:
+			for key in self.incomingData.iterkeys():
+				if(self.tagsEntries[key].get_text() != self.incomingData[key]):
+					track.set_tag(key, self.tagsEntries[key].get_text())
 		#self.track.set_tag("title", self.E_Titre.get_text())
 		#self.track.set_tag("artist", self.E_Artist.get_text())
 		#self.track.set_tag("album", self.E_Album.get_text())
@@ -417,6 +426,12 @@ class SettingsEditor(gtk.Dialog):
 			
 			# Général
 			Box_General = gtk.VBox()
+			
+			self.CB_gui_framework = gtk.combo_box_new_text()
+			libs = {'Gtk 2':0, 'Qt 4':1}
+			self.CB_gui_framework.append_text('Gtk 2')
+			self.CB_gui_framework.append_text('Qt 4')
+			
 			self.picture_enabled = gtk.CheckButton(_('Enable pictures manager'))
 			self.picture_enabled.set_active(settings.get_option('pictures/enabled', False))
 			self.video_enabled = gtk.CheckButton(_('Enable videos manager'))
@@ -424,6 +439,7 @@ class SettingsEditor(gtk.Dialog):
 			
 			# Option : Cacher les menus de la barre d'outils en fonction de la section
 			
+			Box_General.pack_start(self.CB_gui_framework)
 			Box_General.pack_start(self.picture_enabled)
 			Box_General.pack_start(self.video_enabled)
 			self.Box_Main.pack_start(Box_General)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import gtk
-import glib
+from PySide import QtGui, QtCore
+from PySide.QtCore import Qt
 import threading
 import time
 import gobject
@@ -10,62 +10,55 @@ import logging
 
 from common import messager, settings
 
-from data.elements import Track, BDD
+from data.elements import QueuedTrack, BDD
 
 import gui.modales
 from gui.menus import TrackMenu
-from gui.util import icons, etoiles
+from qt.util.stardelegate.starrating import StarRating
+from qt.util.stardelegate.stardelegate import StarDelegate
+from qt.util import icons
 
 IM = icons.IconManager()
 
 logger = logging.getLogger(__name__)
 
-class QueueManager(gtk.Notebook):
+class QueueManager(QtGui.QTabWidget):
 	"""
         Cet objet correspond au gestionnaire de pistes à jouer, graphiquement c'est un NoteBook (onglets, etc...)
         TODO ponts (A -> B, B-> C), filtres
-        TODO bouton stop = set stop track 
+        TODO bouton stop = set stop track
         """
-	def __init__(self, player):
-		#gtk.rc_parse_string("style \"ephy-tab-close-button-style\"\n"
-			     #"{\n"
-			       #"GtkWidget::focus-padding = 0\n"
-			       #"GtkWidget::focus-line-width = 0\n"
-			       #"xthickness = 0\n"
-			       #"ythickness = 0\n"
-			     #"}\n"
-			     #"widget \"*.ephy-tab-close-button\" style \"ephy-tab-close-button-style\"")
-		gtk.Notebook.__init__(self)
-		self.player = player
+	def __init__(self, playerWidget):
+		QtGui.QTabWidget.__init__(self)
+		
+		# *** Visual features ***
+		self.setTabsClosable(True)
+		self.tabCloseRequested.connect(self.removeQueue)
+		addTabButton = QtGui.QPushButton('+')
+		addTabButton.setFlat(True)
+		addTabButton.released.connect(self.addQueue)
+		self.setCornerWidget(addTabButton)
+		
+		# *** Data attributes
+		self.playerWidget = playerWidget
+		self.playerWidget.queueManager = self
 		self.directList = [] #Liste de pistes à jouer en priorité
 		self.bridges_src = {}
 		self.bridges_dest = {}
 		
-		#Abonnement à certains types de messages auprès du messager
-		#messager.inscrire(self.charger_playlist, 'playlist')
-		messager.inscrire(self.ajouter_selection, 'desPistes')
-		messager.inscrire(self.charger_playlist, 'playlistData')
-		messager.inscrire(self.avance_ou_arrete, 'need_piste_suivante')
-		messager.inscrire(self.recule, 'need_piste_precedente')
-		messager.inscrire(self.demarquer_piste, 'MusicPlayerStopped')
-		
-		self.numero = 0 #Le numéro de piste à jouer
-		
-		
-		self.connect("switch-page", self.on_tab_change)
-		
-		self.IM = icons.IconManager()
 		self.queue_jouee = None
 		self.playing_iter = None
 		self.dest_row = None
+		
+		q = Queue(self, 'Q0')
+		q.model.append(QueuedTrack(1, q))
+		q.model.append(QueuedTrack(2, q))
+		q.model.append(QueuedTrack(3, q))
+		self.addTab(q, 'Queue0')
 		# On ajoute une liste pour commencer
-		self.load_state()
-		self.initialisation_raccourcis()
-		glib.timeout_add_seconds(300, self.save_state)
 		
-		
-		self.connect('expose-event', self.redrawAddTabButton)
-		self.connect('button-release-event', self.onButtonRelease)
+		QtGui.QShortcut(QtGui.QKeySequence(self.tr("Ctrl+T", "File|New")), self, self.addQueue)
+		QtGui.QShortcut(QtGui.QKeySequence(self.tr("Ctrl+W", "File|Close")), self, self.removeQueue)
 		
 
 	def getAddTabButtonPos(self):
@@ -94,13 +87,17 @@ class QueueManager(gtk.Notebook):
 		self.window.draw_pixbuf(None, icon, 0, 0, alloc[0], alloc[1])
 
 	@property
-	def queue_visible(self):
+	def visibleQueue(self):
 		try:
-			liste = self.get_nth_page(self.get_current_page()).Liste
+			q = self.currentWidget()
 		except:
-			liste = None
+			q = None
 
-		return liste
+		return q
+		
+	def addSelection(self, tracks):
+		self.visibleQueue.addTracks(tracks)
+		
 		
 	def addToDirectList(self, menuitem, row, temp=False):
 		'''
@@ -130,7 +127,7 @@ class QueueManager(gtk.Notebook):
 			@param selection : t de list content les informations des pistes à ajouter
 				rappel de l'ordre: police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
 		'''
-		liste = self.queue_visible
+		liste = self.visibleQueue
 		try:
 			iter_pos = liste.get_iter(self.dest_row[0])
 			pos_type = self.dest_row[1]
@@ -151,16 +148,17 @@ class QueueManager(gtk.Notebook):
 		self.dest_row = None
 		
 	def addQueue(self, button=None, label=None):
-		nb_pages = self.get_n_pages()
+		nb_pages = self.count()
 		if(label != None):
 			#Cela veut dire qu'on a reçu une playlist du messager
-			nouvelleQueue = Playlist(self, label)
+			newQueue = Playlist(self, label)
 		else:
-			label = _("List ") + str(nb_pages)
-			nouvelleQueue = Queue(self, label)
-			
-		self.set_current_page(nb_pages)
-		return nouvelleQueue
+			label = _("Queue ") + str(nb_pages)
+			newQueue = Queue(self, label)
+		
+		self.addTab(newQueue, label)
+		self.setCurrentIndex(nb_pages)
+		return newQueue
 		
 		
 	def avance_ou_arrete(self, motif):
@@ -219,7 +217,7 @@ class QueueManager(gtk.Notebook):
 					else:
 						next_iter = self.queue_jouee.iter_next(self.playing_iter)
 				else: # 3/ la première piste de la queue visible
-					self.queue_jouee = self.queue_visible
+					self.queue_jouee = self.visibleQueue
 					next_iter = self.queue_jouee.get_iter_first()
 					
 				
@@ -272,6 +270,15 @@ class QueueManager(gtk.Notebook):
 					#self.numero +=1
 
 	
+	def removeQueue(self, i=-1):
+		if i == -1: # triggered by shortcut
+			i = self.currentIndex()
+		if(self.widget(i).modified == True):
+			print "TODO"
+		self.removeTab(i)
+		if(self.count() == 0):
+			self.addQueue()
+		
 	def fermer_onglet(self, bouton=None, onglet=None):
 		if(bouton == None):
 			#La demande provient d'un raccourci clavier
@@ -307,8 +314,11 @@ class QueueManager(gtk.Notebook):
 		
 		return length
 		
+	def getDefaultTrack(self):
+		return self.visibleQueue.getTrackAt(0)
+		
 	def incrementPlayedTrack(self):
-		self.playing_track.incrementPlayCount()
+		messager.diffuser('incrementation', self, self.playing_track)
 		try:
 			compteur = self.temp_queue_jouee.get_value(self.temp_playing_iter, 9)
 			self.temp_queue_jouee.set_value(self.temp_playing_iter, 9, compteur)
@@ -390,7 +400,8 @@ class QueueManager(gtk.Notebook):
 			chemin = self.queue_jouee[self.numero][4]
 			messager.diffuser('musique_a_lire', self, chemin)
 			self.marquer_piste()
-			
+
+		
 	def save_state(self):
 		i = 0
 		queues = {}
@@ -411,116 +422,103 @@ class QueueManager(gtk.Notebook):
 			
 
 
-class Queue(gtk.ScrolledWindow):
+class Queue(QtGui.QTableView):
 	'''
 		Représente une queue (onglet) d'un gestionnaire de queue.
 	'''
 	def __init__(self, gestionnaire, label):
+		QtGui.QTableView.__init__(self)
+		
+		self.setItemDelegate(StarDelegate())
+		#self.setItemDelegateForColumn(3, StarDelegate())
+		
+		self.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.SelectedClicked)
+		# Visual tweaks
+		self.setAlternatingRowColors(True);
+		
+		
+		
+		#self.setStyleSheet("{ border: none;}")
+		self.setShowGrid(False)
+		self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+		self.verticalHeader().hide()
+		self.setSortingEnabled(True)
+		
+		
+		
+		# *** Data attributes ***
 		self.modified = False #pour les playlists enregistrées
 		self.gestionnaire = gestionnaire
+		
 		#police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
-		self.Liste = gtk.ListStore(str, gtk.gdk.Pixbuf, gtk.gdk.Pixbuf, int, str, str, str, str, str, int, gtk.gdk.Pixbuf, int, str)
-		self.TreeView = gtk.TreeView(self.Liste)
-		self.TreeView.set_rules_hint(True)
-		self.TreeView.set_reorderable(True)
-		self.TreeView.connect("row-activated", gestionnaire.on_zik_click)
-		self.TreeView.connect("button-press-event", self.surClicDroit)
-		self.TreeView.connect("key-press-event", self.executerRaccourci)
-		#On s'occupe du "label" de l'onglet
-		tab_label_box = gtk.EventBox()
-		tab_label_box.set_visible_window(False) #make event box don't change anything lookwise
-		tab_label_box.connect('event', self.on_tab_click, self.TreeView)
-		self.tab_label = gtk.Label(label)
-		self.tab_label.set_max_width_chars(20)
-		hbox = gtk.HBox(False, 2)
-		hbox.pack_start(self.tab_label, False, False)
-		close_icon = gtk.Image()
-		close_icon.set_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
-		close_button = gtk.Button()
-		close_button.set_relief(gtk.RELIEF_NONE)
-		close_button.set_focus_on_click(False)
-		close_button.set_tooltip_text(_("Close Tab"))
-		close_button.add(close_icon)
-		close_button.set_size_request(24,24) # avoid big padding
-		close_button.connect('clicked', gestionnaire.fermer_onglet, self)
-		hbox.pack_end(close_button, False, False)
-		tab_label_box.add(hbox)
-		tab_label_box.show_all()
+		self.model = QueueModel()
+		self.setModel(self.model)
 		
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		pb2 = gtk.CellRendererPixbuf()
-		cellr = etoiles.RatingCellRenderer()
-		cellr.connect('rating-changed', self.on_cell_rating_changed)
-		#col = gtk.TreeViewColumn('header', cell, text=0, font=1)
-		Col_Titre = BSColumn('col_title', _('Title'), expand=True)
-		Col_Artiste = BSColumn('col_artist', _('Artist'), expand=True)
-		Col_Album = BSColumn('col_album', _('Album'), expand=True)
-		Col_Duree = BSColumn('col_length', _('Length'))
-		Col_Count = BSColumn('col_playcount', _('Playcount'), cell, model_text=9)
-		Col_Note = BSColumn('col_rating', _('Rating'), cellr, pixbuf=10, default_width=85)
-		Col_Titre.name = 'col_title'
-		Col_Artiste.name = 'col_artist'
-		self.TreeView.append_column(Col_Titre)
-		self.TreeView.append_column(Col_Album)
-		self.TreeView.append_column(Col_Artiste)
-		self.TreeView.append_column(Col_Duree)
-		self.TreeView.append_column(Col_Count)
-		self.TreeView.append_column(Col_Note)
+		header = self.horizontalHeader()
 		
-		self.TreeView.set_enable_search(False)
-		self.TreeView.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-		#self.TreeView.set_rubber_banding(True) #séléction multiple by dragging
-		#Le TreeView accepte les données droppées
-		self.TreeView.enable_model_drag_dest([('text/plain', 0, 0), ('GTK_TREE_MODEL_ROW', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-		self.TreeView.connect("drag-data-received", self.on_drag_data_received)
+		# Give the visual index for each logical index
+		self.columnsPos = settings.get_option('music/columns_order', [0, 1, 2, 3, 4, 5, 6])
+		logical = 0
+		while logical < 7:
+			current = header.visualIndex(logical)
+			if current != self.columnsPos[logical]:
+				header.moveSection(current, self.columnsPos[logical])
+				self.columnsPos[logical] = current
+			logical += 1
+		#self.setContextMenuPolicy(Qt.CustomContextMenu)
+		#self.customContextMenuRequested.connect(self.showContextMenu)
 		
-		Col_Titre.pack_start(pb, False)
-		Col_Titre.pack_start(pb2, False)
-		Col_Titre.pack_start(cell, True)
-		Col_Artiste.pack_start(cell, True)
-		Col_Album.pack_start(cell, True)
-		Col_Duree.pack_start(cell, True)
+		# Column tweaks - need to be done after model is setted
+		self.setColumnWidth(1, settings.get_option('music/col_artist_width', 50))
+		self.setColumnWidth(2, settings.get_option('music/col_album_width', 50))
 		
-		Col_Titre.set_attributes(cell, text=5, font=0)
-		Col_Titre.add_attribute(pb, 'pixbuf', 1)
-		Col_Titre.add_attribute(pb2, 'pixbuf', 2)
-		Col_Artiste.add_attribute(cell, 'text', 7)
-		Col_Album.add_attribute(cell, 'text', 6)
-		Col_Duree.add_attribute(cell, 'text', 8)
+		header = self.horizontalHeader()
+		header.setMovable(True)
+		header.sectionMoved.connect(self.columnMoved)
+		#header.setStretchLastSection(True)
+		#self.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
+		header.setResizeMode(6, QtGui.QHeaderView.Fixed)
 		
-		Col_Titre.set_sort_column_id(5)
-		Col_Album.set_sort_column_id(6)
-		Col_Artiste.set_sort_column_id(7)
-		Col_Count.set_sort_column_id(9)
-		Col_Note.set_sort_column_id(11)
-
+		self.activated.connect(self.onActivated)
 		
-		
-		cols = [Col_Titre, Col_Artiste, Col_Album, Col_Count, Col_Note]
-		
-		for col in cols:
-			col.connect('clicked', self.on_column_clicked)
-		
-		
-		#Col_Titre.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		#Col_Titre.set_fixed_width(40)
-		
-		messager.inscrire(self.refresh_view, 'track_data_changed')
-		
-		
-		gtk.ScrolledWindow.__init__(self)
-		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		self.add(self.TreeView)
-		gestionnaire.append_page(self, tab_label_box)
-		gestionnaire.show_all()
-		
-                  
-	def enlever_piste(self, button, ligne):
-		self.Liste.remove(ligne)
 	
 		
+	def onActivated(self, i):
+		self.gestionnaire.playerWidget.playTrack(self.getTrackAt(i), self)
+		
+	def addTracks(self, tracks):
+		self.model.append(tracks)
+		
+	def columnMoved(self, logicalIndex, oldVisualIndex, newVisualIndex):
+		header = self.horizontalHeader()
+		for i in range(header.count()):
+			self.columnsPos[i] = header.visualIndex(i)
+			
+		settings.set_option('music/columns_order', self.columnsPos)
+	
+	
+	def contextMenuEvent(self, event):
+		track = self.getTrackAt(self.rowAt(event.y()))
+		jumpListSize = str(len(self.gestionnaire.playerWidget.jumpList))
+		self.popMenu = QtGui.QMenu( self )
+		removeAction = self.popMenu.addAction(QtGui.QIcon.fromTheme('list-remove'), _('Remove from queue'))
+		stopAction = self.popMenu.addAction(QtGui.QIcon.fromTheme('media-playback-stop'), _('Set stop cursor'))
+		permAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18))), _('Add to perm jump list'))
+		tempAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18), '#FFCC00', '#000', '#000')), _('Add to temp jump list'))
+		self.popMenu.addSeparator()
+		self.popMenu.addAction('José Long')
+		action = self.popMenu.exec_(self.mapToGlobal(event.pos()))
+		if action == removeAction:
+			self.model.removeTrack(track)
+		elif action == stopAction:
+			self.toggleStopFlag(track)
+		elif action == permAction:
+			self.gestionnaire.playerWidget.addToJumpList(self, track, False)
+		elif action == tempAction:
+			self.gestionnaire.playerWidget.addToJumpList(self, track, True)
+			
 	def enregistrer(self, button):
 		DN = gtk.Dialog()
 		Entry = gtk.Entry()
@@ -566,8 +564,36 @@ class Queue(gtk.ScrolledWindow):
 		#if(self.NB.get_n_pages() == 0):
 			#self.NB.addQueue()
 		
+	def getTrackAt(self, i):
+		if type(i).__name__ == 'int':
+			try:
+				return self.model.tracks[i]
+			except IndexError:
+				return None
+		else:
+			return self.model.tracks[i.row()]
 		
-		
+	def keyPressEvent(self, e):
+		if e.key() == Qt.Key.Key_S:
+			indexes = self.selectedIndexes()
+			if len(indexes) > 0:
+				first = indexes[0]
+				last = indexes[-1]
+				for index in indexes:
+					self.toggleStopFlag(self.getTrackAt(index))
+				self.model.dataChanged.emit(first, last)
+		else:
+			QtGui.QTableView.keyPressEvent(self, e)
+	
+	def mouseReleaseEvent(self, e):
+		if e.button() == Qt.MidButton:
+			track = self.getTrackAt(self.rowAt(e.y()))
+			if Qt.ControlModifier and e.modifiers():
+				self.gestionnaire.playerWidget.addToJumpList(self, track, False)
+			else:
+				self.gestionnaire.playerWidget.addToJumpList(self, track, True)
+				
+	
 	def on_cell_rating_changed(self, widget, path, rating):
 		#self.Liste[path][10] = IM.pixbuf_from_rating(rating)
 		Track(self.Liste[path][3]).change_rating(widget, rating)
@@ -615,7 +641,9 @@ class Queue(gtk.ScrolledWindow):
 		#Ajoute ou enlève un marqueur sur la piste séléctionnée
 		self.set_stop_track(ligne)
 	
-	
+	def refreshView(self, track):
+		self.model.refreshView(track)
+		
 	def refresh_view(self, track):
 		"""
 			A track data has just changed. Checks if we have this track and update accordingly
@@ -627,7 +655,6 @@ class Queue(gtk.ScrolledWindow):
 				self.Liste.set(iter, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
 			iter = self.Liste.iter_next(iter)
 		
-		
 	def save(self, name=None):
 		if(name == None):
 			name = self.tab_label.get_text()[1:]
@@ -638,6 +665,13 @@ class Queue(gtk.ScrolledWindow):
 		fichier.close()
 		
 	
+	def toggleStopFlag(self, track):
+		flags = track.flags
+		if 'stop' in flags:
+			flags.remove('stop')
+		else:
+			flags.add('stop')
+		
 	def set_stop_track(self, ligne):
 		icon = gtk.ToolButton()
 		icon = icon.render_icon(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_BUTTON, detail=None)
@@ -816,27 +850,110 @@ class DirectIter():
 
 	
 	
-class BSColumn(gtk.TreeViewColumn):
-	'''
-		Bullseye Special Column
-	'''
-	def __init__(self, name, label, cell=None, model_text=None, pixbuf=None, default_width=50, expand=False):
-		kwargs = {}
-		if(model_text is not None):
-			kwargs['text'] = model_text
-		if(pixbuf is not None):
-			kwargs['pixbuf'] = pixbuf
-		gtk.TreeViewColumn.__init__(self, label, cell, **kwargs)
-		self.name = name
-		width = settings.get_option('music/' + self.name + '_width', default_width)
-		self.set_min_width(default_width)
-		#self.set_max_width(width)
-		self.set_expand(expand)
-		self.set_resizable(True)
-		self.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self.connect('notify::width', self.on_width_change)
-		
-	def on_width_change(self, *args):
-		settings.set_option('music/' + self.name + '_width', self.get_width())
+class QueueModel(QtCore.QAbstractTableModel):
+	def __init__(self, parent=None, *args):
+		QtCore.QAbstractTableModel.__init__(self, parent, *args)
+		self.tracks = []
 
+	def append(self, data):
+		
+		if type(data).__name__=='list':
+			self.beginInsertRows(QtCore.QModelIndex(), 0, len(data))
+			self.tracks.extend(data)
+		else:
+			self.beginInsertRows(QtCore.QModelIndex(), 0, 1)
+			self.tracks.append(data)
+			
+		self.endInsertRows()
+		#self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
+		
+	def rowCount(self, parent):
+		return len(self.tracks)
+
+	def columnCount(self, parent):
+		return 7
+		return len(self.tracks[0])
+
+	def data(self, index, role):
+		if not index.isValid():
+			return None
+		elif role == Qt.DisplayRole:
+			if index.column() == 1:
+				return self.tracks[index.row()].title
+			elif index.column() == 2:
+				return self.tracks[index.row()].album
+			elif index.column() == 3:
+				return self.tracks[index.row()].artist
+			elif index.column() == 4:
+				return self.tracks[index.row()].length
+			elif index.column() == 5:
+				return self.tracks[index.row()].playcount
+			elif index.column() == 6:
+				return self.tracks[index.row()].rating
+		elif role == Qt.FontRole:
+			if 'play' in self.tracks[index.row()].flags:
+				font = QtGui.QFont()
+				font.setBold(True)
+				return font
+		elif role == Qt.DecorationRole and index.column() == 0:
+			if 'play' in self.tracks[index.row()].flags:
+				return QtGui.QIcon.fromTheme('media-playback-start')
+			elif 'permjump' in self.tracks[index.row()].flags:
+				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18)))
+			elif 'tempjump' in self.tracks[index.row()].flags:
+				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18), '#FFCC00', '#000', '#000'))
+			elif 'stop' in self.tracks[index.row()].flags:
+				return QtGui.QIcon.fromTheme('media-playback-stop')
+		return None
+	
+	def flags(self, index):
+		if(index.column() == 6):
+			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
+		else:
+			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+			
+	def getNextTrack(self, tr):
+		try:
+			return self.tracks[self.tracks.index(tr) + 1]
+		except IndexError:
+			return None
+			
+	def getPreviousTrack(self, tr):
+		try:
+			return self.tracks[self.tracks.index(tr) - 1]
+		except IndexError:
+			return None
+		
+	def headerData(self, section, orientation, role):
+		if section == 0:
+			return '#'
+		elif section == 1:
+			return _('Title')
+		elif section == 2:
+			return _('Album')
+		elif section == 3:
+			return _('Artist')
+		elif section == 4:
+			return _('Length')
+		elif section == 5:
+			return _('Playcount')
+		#elif section == 6:
+			#return _('Rating')
+			
+	
+	def refreshView(self, track):
+		index = self.createIndex(self.tracks.index(track), 0)
+		self.dataChanged.emit(index, index)
+		
+	def removeTrack(self, track):
+		index = self.createIndex(self.tracks.index(track), 0)
+		self.beginRemoveRows(index, 0, 1)
+		self.tracks.remove(track)
+		self.endRemoveRows()
+	
+	def setData(self, index, value, role=QtCore.Qt.EditRole):
+		if(index.column() == 6):
+			self.tracks[index.row()].rating = value
+		return True
+		print 'TODO';
 

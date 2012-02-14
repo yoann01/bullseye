@@ -6,8 +6,10 @@ from mutagen.oggvorbis import OggVorbis
 from datetime import datetime
 import time
 import logging
+import threading
 from common import messager
 from data.bdd import BDD
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,10 +45,15 @@ class SpecialElement():
 		self.file = file_name
 
 class Track():
-	def __init__(self, ID):
-		ID = str(ID)
-		query = "SELECT track_ID, path, title, album, artist, length, compteur, note FROM tracks WHERE track_ID = " + ID
-		data = bdd.execute_and_return(query)
+	def __init__(self, data):
+		'''
+			Data might contain a Track ID from which we retrieve real data from db or a tuple containing all data necessary
+		'''
+		if(type(data).__name__=='int'):
+			ID = str(data)
+			query = "SELECT track_ID, path, title, album, artist, length, compteur, note FROM tracks WHERE track_ID = " + ID
+			data = bdd.execute_and_return(query)
+		
 		self.ID = str(data[0])
 		self.path = data[1]
 		self.tags = {'title':data[2], 'album':data[3], 'artist':data[4], 'length':data[5]}
@@ -55,10 +62,13 @@ class Track():
 		self.artist = data[4]
 		self.length = data[5]
 		self.play_count = data[6]
+		self.playcount = data[6]
 		self.rating = data[7]
 		self.time_started = int( time.mktime( datetime.utcnow().timetuple() ) )
 		temp, self.format = os.path.splitext(self.path)
 		
+		self.flags = set()
+		self.priority = 0
 	
 	def change_rating(self, w, new_rating):
 		query = "UPDATE tracks SET note = " + str(new_rating) + " WHERE track_ID = " + self.ID
@@ -73,6 +83,27 @@ class Track():
 			audio = OggVorbis(self.path)
 		return audio
 		
+	def incrementPlayCount(self):
+		self.playcount += 1
+		query = "UPDATE tracks SET compteur = compteur + 1  WHERE track_ID = " + self.ID
+		bdd.execute(query)
+		
+		def scrobble():
+			time_elapsed = int( time.mktime( datetime.utcnow().timetuple())) - self.time_started
+			if(time_elapsed > 120):
+				try:
+					BDD.network.scrobble(self.artist, self.title, int(self.time_started))
+					if len(BDD.network_cache) > 0:
+						for tup in BDD.network_cache:
+							BDD.network.scrobble(tup[0], tup[1], tup[2])
+						BDD.network_cache = []
+						BDD.saveCache() # update cache
+				except:
+					BDD.network_cache.append((self.artist, self.title, int(self.time_started)))
+					
+		task = threading.Thread(target=scrobble)
+		task.start()
+		
 	def set_tag(self, tag, value):
 		audio = self.get_tags()
 		audio[tag] = value
@@ -82,6 +113,13 @@ class Track():
 		bdd.execute(query, t)
 		self.tags[tag] = value
 		messager.diffuser('track_data_changed', self, self)
+		
+
+class QueuedTrack(Track):
+	def __init__(self, data, queue):
+		Track.__init__(self, data)
+		self.queue = queue
+		self.flags = set()
 		
 		
 class Container():
