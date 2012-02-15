@@ -35,6 +35,8 @@ class LibraryPanel(QtGui.QWidget):
 		self.mode = '("artist", "album", "title")'
 		
 		self.TreeView = QtGui.QTreeView()
+		self.TreeView.setExpandsOnDoubleClick(False)
+		self.TreeView.mouseReleaseEvent = self.mouseReleaseEvent
 		
 		self.model = LibraryModel()
 		
@@ -285,12 +287,15 @@ class LibraryPanel(QtGui.QWidget):
 				self.TreeView.expand_row(path, False)
 
 		def traiter_tous_les_conteneurs():
+			time.sleep(1)
+			
 			self.notLoading.wait()
 			self.notLoading.clear()
 			niveau = 0
 			ligne = 0
 
 			while(ligne < len(tracks)):
+				self.model.beginInsertRows(QtCore.QModelIndex(), 0, 0)
 				self.expand = [[], []]
 				self.expand_paths = []
 				self.selection = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
@@ -299,10 +304,12 @@ class LibraryPanel(QtGui.QWidget):
 				ajouter_selection(self.model.rootItem, 0, self.selection)
 				#glib.idle_add(ajouter_selection, None, 0, self.selection)
 				expand()
+				self.model.endInsertRows()
 			#self.TreeView.expand_all()
 			if(e != None):
 				e.set() #On a fini donc on prévient les autres threads qui nous attendaient
 			self.notLoading.set()
+			
 			
 		
 		
@@ -325,6 +332,14 @@ class LibraryPanel(QtGui.QWidget):
 		else:
 			self.selection = selection.get_selected_rows()[1]
 		
+	def mouseReleaseEvent(self, e):
+		if e.button() == Qt.MidButton:
+			i = self.TreeView.indexAt(QtCore.QPoint(e.x(), e.y()))
+			self.TreeView.setExpanded(i, not self.TreeView.isExpanded(i))
+		else:
+			QtGui.QTreeView.mouseReleaseEvent(self.TreeView, e)
+			
+	
 	def on_button_press(self, TV, event):
 		if event.button == 1: #Clic gauche
 			model, self.selection = TV.get_selection().get_selected_rows()
@@ -536,12 +551,13 @@ class LibraryModel(treemodel.TreeModel):
 		elif role == Qt.DecorationRole and index.column() == 0:
 			if(item.icon is None):
 				try:
-					path = os.path.join(xdg.get_thumbnail_dir(item.type + '/medium'),  item.label.replace ('/', ' ') + '.jpg')
+					path = os.path.join(xdg.get_thumbnail_dir(item.type + '/medium'),  item.label.replace ('/', ' ')) # + '.jpg')
 					item.icon = QtGui.QPixmap(path)
 					if(item.icon.isNull()):
 						item.icon = icons[item.type]
 					else:
-						item.icon = item.icon.scaledToHeight(icon_size)
+						item.icon = item.icon.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation) #scaledToHeight(icon_size)
+						
 				except:
 					item.icon = icons[item.label]
 				

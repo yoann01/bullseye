@@ -136,6 +136,7 @@ class BDD():
 	@staticmethod
 	@util.threaded
 	def initNetwork():
+		BDD.network_is_connected = threading.Event()
 		BDD.network_cache = []
 		try:
 			f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'r')
@@ -155,7 +156,7 @@ class BDD():
 
 			BDD.network = LastFMNetwork(api_key = API_KEY, api_secret = 
 			API_SECRET, username = username, password_hash = password_hash)
-			#network_is_connected.set()
+			BDD.network_is_connected.set()
 		except NetworkError:
 			logger.debug('Connection to Last.fm failed')
 			
@@ -187,7 +188,7 @@ class MainBDD():
 		
 		xdg.make_missing_dirs()
 		
-		self.network_is_connected = threading.Event()
+		
 			
 			
 		
@@ -1083,10 +1084,10 @@ class MainBDD():
 		album_dir = xdg.get_thumbnail_dir('album')
 		
 		
-		if(self.network_is_connected.isSet()):
+		if(BDD.network_is_connected.isSet()):
 			bdd = BDD()
 			
-			bdd.execute_with_filters('SELECT DISTINCT artist, album FROM tracks ', 'music') 
+			bdd.execute_with_filters('SELECT DISTINCT artist, album FROM tracks ', 'music')
 			
 			rows = bdd.c.fetchall()
 			length = float(len(rows))
@@ -1094,19 +1095,21 @@ class MainBDD():
 			i = 0
 			while(i < len(rows)):
 				artist_name = rows[i][0]
-				dest_path = os.path.join(artist_dir + '/medium', artist_name.replace ('/', ' ') + '.jpg')
+				dest_path = os.path.join(artist_dir + '/medium', artist_name.replace ('/', ' ')) # + '.jpg')
 				if(forceReload or not os.path.isfile(dest_path)):
 					artist = BDD.network.get_artist(artist_name)
 					cover = artist.get_cover_image(1)
+					os.path
 					
 					if(cover is not None):
+						#extension = os.path.splitext(f)[1]
 						urlretrieve(cover, dest_path)
 					else:
 						logger.debug('No cover url for artist ' + artist_name)
 				
 				while(i < len(rows) and artist_name == rows[i][0]):
 					album_name = rows[i][1]
-					dest_path = os.path.join(album_dir + '/medium', album_name.replace ('/', ' ') + '.jpg')
+					dest_path = os.path.join(album_dir + '/medium', album_name.replace ('/', ' ')) # + '.jpg')
 					if(forceReload or not os.path.isfile(dest_path)):
 						try:
 							album = BDD.network.get_album(artist_name, album_name)

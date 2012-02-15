@@ -12,9 +12,9 @@ import gobject
 
 #Création de la classe Frame issue de QWidget. 
 #Toute application graphique doit contenir au moins une telle classe.
-class Frame(QtGui.QWidget):
+class Frame(QtGui.QMainWindow):
 	def __init__(self, parent=None):
-		QtGui.QWidget.__init__(self, parent)
+		QtGui.QMainWindow.__init__(self, parent)
 		
 	#Redimensionnement de la fenêtre principale.
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
@@ -35,29 +35,66 @@ class Frame(QtGui.QWidget):
 		self.NB_Main.setTabPosition(QtGui.QTabWidget.West)
 		
 		
+		
+		from data.bdd import MainBDD
+		self.BDD = MainBDD()
+		
+		if(settings.get_option('pictures/preload', False)):
+			self.loadMusic()
+		else:
+			button = QtGui.QPushButton('load')
+			button.clicked.connect(self.loadMusic)
+			self.NB_Main.addTab(button, "Music")
+			
+		
+		
+		
+		#from qt.uc_sections.pictures.imagewidget import ImageWidget
+		#self.NB_Main.addTab(ImageWidget(), 'Pictures')
+		
+		#layout = QtGui.QVBoxLayout()
+		from qt.gui.menubar import MenuBar
+		#layout.addWidget(MenuBar())
+		#layout.addWidget(self.NB_Main)
+		#self.setLayout(layout)
+		
+		self.setMenuBar(MenuBar())
+		self.setCentralWidget(self.NB_Main)
+		
+		self.destroyed.connect(self.onWindowDestroyed)
+	
+	def closeEvent(self, e):
+		self.BDD.quit()
+		settings.MANAGER.save()
+		print 'Good bye'
+		
+	
+	def loadMusic(self):
 		from qt.music.musicpanel import LibraryPanel
 		from qt.music.playerwidget import PlayerWidget
 		from media.playerr import Player
 		#, Playlists_Panel
 		from qt.music.queue import QueueManager
-		from data.bdd import MainBDD
-		self.BDD = MainBDD()
-		
 		player = Player()
 		playerWidget = PlayerWidget(player)
 		
+		self.NB_Main.removeTab(self.NB_Main.currentIndex())
 		self.HPaned_Music = QtGui.QSplitter(self)
-		self.pnl_1 = QtGui.QWidget(self.NB_Main)
-		self.pnl_2 = QtGui.QWidget(self.NB_Main)
+
 		self.queueManager = QueueManager(playerWidget)
-		self.HPaned_Music.addWidget(LibraryPanel(self.BDD, self.queueManager))
+		self.libraryPanel = LibraryPanel(self.BDD, self.queueManager)
+		self.HPaned_Music.addWidget(self.libraryPanel)
 		
 		
 		
 		
 		rightLayout = QtGui.QVBoxLayout()
 		rightLayout.addWidget(self.queueManager)
-		rightLayout.addWidget(playerWidget)
+		
+		dockPlayer = QtGui.QDockWidget('Player')
+		dockPlayer.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetMovable)
+		dockPlayer.setWidget(playerWidget)
+		rightLayout.addWidget(dockPlayer)
 		rightWidget = QtGui.QWidget()
 		rightWidget.setLayout(rightLayout)
 		self.HPaned_Music.addWidget(rightWidget)
@@ -66,22 +103,6 @@ class Frame(QtGui.QWidget):
 		self.HPaned_Music.setStretchFactor(1,1)
 		
 		self.NB_Main.addTab(self.HPaned_Music, "Music")
-		
-		from qt.uc_sections.pictures.imagewidget import ImageWidget
-		self.NB_Main.addTab(ImageWidget(), 'Pictures')
-		
-		layout = QtGui.QVBoxLayout()
-		from qt.gui.menubar import MenuBar
-		layout.addWidget(MenuBar())
-		layout.addWidget(self.NB_Main)
-		self.setLayout(layout)
-		
-		self.destroyed.connect(self.onWindowDestroyed)
-	
-	def closeEvent(self, e):
-		self.BDD.quit()
-		settings.MANAGER.save()
-		print 'Good bye'
 		
 	def onWindowDestroyed(self):
 		self.BDD.quit()

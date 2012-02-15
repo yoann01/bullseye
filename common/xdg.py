@@ -4,11 +4,13 @@ config_home = glib.get_user_config_dir()
 config_home = os.path.join(config_home, "bullseye")
 
 data_home = glib.get_user_data_dir()
+
 data_home = os.path.join(data_home, "bullseye")
 
 data_thumbnails = os.path.join(data_home, 'thumbnails')
 
-data_dir = '/home/piccolo/workspace/python/'
+data_dir = '~/workspace/bullseye/trunk/'
+data_dir = os.path.dirname(os.path.dirname(__file__)) + os.sep
 
 def get_data_dir():
 	return data_dir

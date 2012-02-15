@@ -281,7 +281,7 @@ class LibraryPanel(gtk.VBox):
 					ex de mode ('artist, 'album', 'title') level 0 = artist, level 2 = title, etc...
 			'''
 			try:
-				path = os.path.join(xdg.get_thumbnail_dir(mode[level] + '/medium'),  track_line[indices[mode[level]]].replace ('/', ' ') + '.jpg')
+				path = os.path.join(xdg.get_thumbnail_dir(mode[level] + '/medium'),  track_line[indices[mode[level]]].replace ('/', ' ')) # + '.jpg')
 				icon = gtk.gdk.pixbuf_new_from_file_at_size(path, icon_size, icon_size)
 			except:
 				icon = icons[mode[level]]

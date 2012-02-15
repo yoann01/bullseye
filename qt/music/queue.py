@@ -51,9 +51,9 @@ class QueueManager(QtGui.QTabWidget):
 		self.dest_row = None
 		
 		q = Queue(self, 'Q0')
-		q.model.append(QueuedTrack(1, q))
-		q.model.append(QueuedTrack(2, q))
-		q.model.append(QueuedTrack(3, q))
+		#q.model.append(QueuedTrack(1, q))
+		#q.model.append(QueuedTrack(2, q))
+		#q.model.append(QueuedTrack(3, q))
 		self.addTab(q, 'Queue0')
 		# On ajoute une liste pour commencer
 		
@@ -856,12 +856,12 @@ class QueueModel(QtCore.QAbstractTableModel):
 		self.tracks = []
 
 	def append(self, data):
-		
+		size = len(self.tracks)
 		if type(data).__name__=='list':
-			self.beginInsertRows(QtCore.QModelIndex(), 0, len(data))
+			self.beginInsertRows(QtCore.QModelIndex(), size, size + len(data))
 			self.tracks.extend(data)
 		else:
-			self.beginInsertRows(QtCore.QModelIndex(), 0, 1)
+			self.beginInsertRows(QtCore.QModelIndex(), size, size +1)
 			self.tracks.append(data)
 			
 		self.endInsertRows()
