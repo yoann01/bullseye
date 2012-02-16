@@ -228,14 +228,13 @@ class Core(gobject.GObject):
 	def loadMusic(self, button=None):
 		from music.queue import QueueManager
 		from music.musicpanel import LibraryPanel, Playlists_Panel
+		from music.playerwidget import PlayerWidget
 		
 		if(button is not None):
 			button.destroy()
 		
 		Left_music_box = gtk.VBox()
 		Right_music_box = gtk.VBox()
-		
-		Box_PlayerM = gtk.HBox()
 		
 		backend = (settings.get_option('music/playback_lib', 'GStreamer'))
 		if(backend == 'VLC'):
@@ -246,12 +245,11 @@ class Core(gobject.GObject):
 			self.player = mplayers.MusicPlayer(Box_PlayerM)
 			Right_music_box.pack_start(self.player, False)
 		else:
-			from media import player
-			self.player = player.MusicPlayer(Box_PlayerM)
+			from media.player import Player
+			self.player = Player()
 			
-			
-
-		self.queueManager = QueueManager(self.player)
+		playerWidget = PlayerWidget(self.player)
+		self.queueManager = QueueManager(playerWidget)
 		
 		NB_PanelM = gtk.Notebook()
 		self.library_panel = LibraryPanel(self.BDD)
@@ -262,7 +260,7 @@ class Core(gobject.GObject):
 
 		Left_music_box.pack_start(NB_PanelM)
 		Right_music_box.pack_start(self.queueManager)
-		Right_music_box.pack_start(Box_PlayerM, False)
+		Right_music_box.pack_start(playerWidget, False)
 		
 		self.HPaned_Music.pack1(Left_music_box, False, False)
 		self.HPaned_Music.pack2(Right_music_box)

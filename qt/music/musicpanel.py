@@ -50,8 +50,14 @@ class LibraryPanel(QtGui.QWidget):
 		self.TreeView.setModel(self.model)
 		self.TreeView.activated.connect(self.ajouter_pistes)
 		
+		self.TreeView.setDragEnabled(True)
+		self.TreeView.setAcceptDrops(True)
+		self.TreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+		
 		# *** TreeView visual tweaks
 		self.TreeView.setColumnWidth(1, settings.get_option('music/col_label_panel_width', 170))
+		header = self.TreeView.header()
+		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
 		
 		# *** Mode selector ***
 		modsModel = QtGui.QStandardItemModel()
@@ -564,6 +570,9 @@ class LibraryModel(treemodel.TreeModel):
 			return item.icon
 		return None
 
+	def flags(self, index):
+		return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled
+	
 	def headerData(self, section, orientation, role):
 		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
 			if section == 0:

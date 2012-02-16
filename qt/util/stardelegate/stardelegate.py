@@ -171,6 +171,7 @@ if __name__ == "__main__":
              ["Three More Foxes", "Jazz", "Maynard Ferguson", 4],
              ["Sex Bomb", "Pop", "Tom Jones", 3],
              ["Barbie Girl", "Pop", "Aqua", 5] ]
+             
 
     for r in range(len(data)):
         tableWidget.setItem(r, 0, QTableWidgetItem(data[r][0]))
@@ -180,7 +181,7 @@ if __name__ == "__main__":
         item.setData(0, StarRating(data[r][3]).starCount)
         tableWidget.setItem(r, 3, item)
 
-    tableWidget.resizeColumnsToContents()
+    #tableWidget.resizeColumnsToContents()
     tableWidget.resize(500, 300)
     tableWidget.show()
     

@@ -156,6 +156,7 @@ class BDD():
 
 			BDD.network = LastFMNetwork(api_key = API_KEY, api_secret = 
 			API_SECRET, username = username, password_hash = password_hash)
+			logger.debug('Connection successfuly established with Last.fm')
 			BDD.network_is_connected.set()
 		except NetworkError:
 			logger.debug('Connection to Last.fm failed')
@@ -170,6 +171,7 @@ class BDD():
 
 class MainBDD():
 	"""
+		A class used for utility purpose and GUI access to database
 		TODO Optimiser l'analayse des nouveaux fichiers
 		TODO centraliser une méthode pour chopper les elements avec filtres (cf retrieve, load, etc)
 	"""
@@ -192,7 +194,7 @@ class MainBDD():
 			
 			
 		
-		BDD.initNetwork()
+		#BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
@@ -697,7 +699,7 @@ class MainBDD():
 		
 	def fill_library_browserBOURRIN(self, data):
 		'''
-			DEPRECATED Use way to much SQL queries
+			DEPRECATED Used way to much SQL queries
 			Remplit la liste arborescente avec les pistes de la BDD selon l'arborescence du mode séléctionné
 			
 			data = [TreeStore, mode]

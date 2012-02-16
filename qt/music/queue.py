@@ -429,7 +429,7 @@ class Queue(QtGui.QTableView):
 	def __init__(self, gestionnaire, label):
 		QtGui.QTableView.__init__(self)
 		
-		self.setItemDelegate(StarDelegate())
+		#self.setItemDelegate(StarDelegate())
 		#self.setItemDelegateForColumn(3, StarDelegate())
 		
 		self.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.SelectedClicked)
@@ -443,6 +443,9 @@ class Queue(QtGui.QTableView):
 		self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 		self.verticalHeader().hide()
 		self.setSortingEnabled(True)
+		self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+		self.setDragEnabled(True)
+		self.setAcceptDrops(True)
 		
 		
 		
@@ -483,11 +486,7 @@ class Queue(QtGui.QTableView):
 		
 		self.activated.connect(self.onActivated)
 		
-	
-		
-	def onActivated(self, i):
-		self.gestionnaire.playerWidget.playTrack(self.getTrackAt(i), self)
-		
+			
 	def addTracks(self, tracks):
 		self.model.append(tracks)
 		
@@ -593,6 +592,9 @@ class Queue(QtGui.QTableView):
 			else:
 				self.gestionnaire.playerWidget.addToJumpList(self, track, True)
 				
+	
+	def onActivated(self, i):
+		self.gestionnaire.playerWidget.playTrack(self.getTrackAt(i), self)
 	
 	def on_cell_rating_changed(self, widget, path, rating):
 		#self.Liste[path][10] = IM.pixbuf_from_rating(rating)
@@ -853,6 +855,7 @@ class DirectIter():
 class QueueModel(QtCore.QAbstractTableModel):
 	def __init__(self, parent=None, *args):
 		QtCore.QAbstractTableModel.__init__(self, parent, *args)
+		self.setSupportedDragActions(QtCore.Qt.MoveAction)
 		self.tracks = []
 
 	def append(self, data):
@@ -908,9 +911,9 @@ class QueueModel(QtCore.QAbstractTableModel):
 	
 	def flags(self, index):
 		if(index.column() == 6):
-			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
+			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 		else:
-			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+			return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 			
 	def getNextTrack(self, tr):
 		try:
@@ -956,4 +959,7 @@ class QueueModel(QtCore.QAbstractTableModel):
 			self.tracks[index.row()].rating = value
 		return True
 		print 'TODO';
+		
+	def supportedDropActions(self):
+		return Qt.CopyAction | Qt.MoveAction
 

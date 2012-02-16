@@ -72,7 +72,7 @@ class Frame(QtGui.QMainWindow):
 	def loadMusic(self):
 		from qt.music.musicpanel import LibraryPanel
 		from qt.music.playerwidget import PlayerWidget
-		from media.playerr import Player
+		from media.player import Player
 		#, Playlists_Panel
 		from qt.music.queue import QueueManager
 		player = Player()

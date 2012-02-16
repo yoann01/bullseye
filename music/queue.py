@@ -26,7 +26,7 @@ class QueueManager(gtk.Notebook):
         TODO ponts (A -> B, B-> C), filtres
         TODO bouton stop = set stop track 
         """
-	def __init__(self, player):
+	def __init__(self, playerWidget):
 		#gtk.rc_parse_string("style \"ephy-tab-close-button-style\"\n"
 			     #"{\n"
 			       #"GtkWidget::focus-padding = 0\n"
@@ -36,7 +36,8 @@ class QueueManager(gtk.Notebook):
 			     #"}\n"
 			     #"widget \"*.ephy-tab-close-button\" style \"ephy-tab-close-button-style\"")
 		gtk.Notebook.__init__(self)
-		self.player = player
+		self.playerWidget = playerWidget
+		self.playerWidget.queueManager = self
 		self.directList = [] #Liste de pistes à jouer en priorité
 		self.bridges_src = {}
 		self.bridges_dest = {}
@@ -331,6 +332,13 @@ class QueueManager(gtk.Notebook):
 
         
         def load_state(self):
+		"""
+			TODO Use one sql query by queue (using parametized IN clause) and thread this
+			self.memcursor.execute('''SELECT id, matbefore, matafter, name, date 
+                            FROM main 
+                           WHERE name IN (%s)''' % 
+                       ','.join('?'*len(offset)), (offset,))
+		"""
 		def traiter_queues():
 			bdd = BDD()
 			queues = settings.get_option('session/queues', None)
@@ -371,7 +379,7 @@ class QueueManager(gtk.Notebook):
 		self.playing_iter = self.queue_jouee.get_iter(i)
 		#chemin = self.queue_jouee[i][4]
 		self.playing_track = Track(self.queue_jouee[i][3])
-		messager.diffuser('musique_a_lire', self, self.playing_track)
+		self.playerWidget.playTrack(self.playing_track, self.queue_jouee)
 		self.marquer_piste()
 		
 		
@@ -814,7 +822,7 @@ class DirectIter():
 		return self.row.get_path()
 
 
-	
+		
 	
 class BSColumn(gtk.TreeViewColumn):
 	'''
