@@ -338,23 +338,8 @@ class TagsEditor(gtk.Dialog):
 	def loadTrackData(self, piste_ID):
 		self.track = elements.Track(piste_ID)
 		fichier = self.track.path
-		audio = self.track.get_tags()
 		
-		try:
-			titre = audio["title"][0]
-		except:
-			titre = _("Unknown")
-		
-		try:
-			album = audio["album"][0]
-		except:
-			album =  _("Unknown")
-		try:
-			artiste = audio["artist"][0]
-		except:
-			artiste =  _("Unknown")
-		
-		self.incomingData = {'title':titre, 'album':album, 'artist':artiste}
+		self.incomingData = self.track.get_tags()
 		
 		L = gtk.Label(_('Path') + " : " + fichier)
 		L.set_selectable(True)

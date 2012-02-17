@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 import sys
 from PySide import QtGui
@@ -112,6 +113,7 @@ class Frame(QtGui.QMainWindow):
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.
 app = QtGui.QApplication(sys.argv)
+print sys.argv
 gobject.threads_init()
 frame = Frame()
 frame.show()

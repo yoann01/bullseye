@@ -96,6 +96,14 @@ class BDD():
 		return tracks
 		
 		
+	def getTracks(self, dic):
+		tracks = []
+		tracksData = self.get_tracks_data(dic)
+		for dataTuple in tracksData:
+			tracks.append(elements.Track(dataTuple))
+		return tracks
+		
+		
 	def get_tracks_data(self, data):
 		'''
 			Créer une liste (tableau) de données sur les pistes correspondant aux critères passés en paramètre
@@ -174,6 +182,8 @@ class MainBDD():
 		A class used for utility purpose and GUI access to database
 		TODO Optimiser l'analayse des nouveaux fichiers
 		TODO centraliser une méthode pour chopper les elements avec filtres (cf retrieve, load, etc)
+		TODO Merge MainBDD & BDD
+		TODO Make a utility class (static)
 	"""
 	def __init__(self):
 		db_path = os.path.join(xdg.get_data_home(), 'data.db')

@@ -25,6 +25,7 @@ icon_size = settings.get_option('music/panel_icon_size', 32)
 class LibraryPanel(QtGui.QWidget):
 	"""
 		TODO check errors (arkenstone, little richard)
+		TODO réimplémenter mousePressEvent pour avoir l'image lors du drag
 	"""
 		
 	def __init__(self, BDD, queueManager):
@@ -48,7 +49,7 @@ class LibraryPanel(QtGui.QWidget):
 		#TreeNode(self.model, None, LibraryItem(None, 1, "ok", 1, 1, 1, 1, False))
 		#self.model.append(LibraryItem(None, 1, "ok", 1, 1, 1, 1, False))
 		self.TreeView.setModel(self.model)
-		self.TreeView.activated.connect(self.ajouter_pistes)
+		self.TreeView.activated.connect(self.enqueue)
 		
 		self.TreeView.setDragEnabled(True)
 		self.TreeView.setAcceptDrops(True)
@@ -90,25 +91,29 @@ class LibraryPanel(QtGui.QWidget):
 		settings.set_option('music/paned_position', event.size().width())
 	
 		
-	def ajouter_pistes(self, i):
-		mode = eval(self.CB_mod.model().item(self.CB_mod.currentIndex(), 0).text()) #Ex : '("artist", "album")'
-		
-		dic = {}
-		level = 0
-		params = []
-		while(i.isValid()): #On remonte la chaîne tant qu'on est pas arrivé à la racine
-			level += 1
-			params.append(i.internalPointer().label)
-			i = i.parent()
-			
-		params.reverse()
-		
-		i = 0
-		while(i < level):
-			dic[mode[i]] = params[i]
-			i += 1
+	def enqueue(self, i):
+		dic = i.internalPointer().getFilter()
 		
 		self.queueManager.addSelection(self.BDD.getTracks(dic))
+		
+	#def enqueue(self, i): DEPRECATED
+		#mode = eval(self.CB_mod.model().item(self.CB_mod.currentIndex(), 0).text()) #Ex : '("artist", "album")'
+		
+		#dic = {}
+		#level = 0
+		#params = []
+		#while(i.isValid()): #On remonte la chaîne tant qu'on est pas arrivé à la racine
+			#level += 1
+			#params.append(i.internalPointer().label)
+			#i = i.parent()
+			
+		#params.reverse()
+		
+		#i = 0
+		#while(i < level):
+			#dic[mode[i]] = params[i]
+			#i += 1
+		#self.queueManager.addSelection(self.BDD.getTracks(dic))
 		
 	def changer_mode(self, mode):
 		self.mode = self.CB.get_active_text()
@@ -531,6 +536,17 @@ class LibraryItem(treemodel.TreeItem):
 		
 	def __repr__(self):
 		return self.label
+		
+	def getFilter(self):
+		'''
+			ex : {"artist":"AC/DC", "album":"Back In Black", "title":"You Shook Me All Night Long"}
+		'''
+		dic = {}
+		item = self
+		while(item.parent() != None): # Don't  eval rootItem 
+			dic[item.type] = item.label
+			item = item.parent()
+		return dic
 
 
 
@@ -583,6 +599,24 @@ class LibraryModel(treemodel.TreeModel):
 				return _('Count')
 			
 		return None
+		
+	def mimeData(self, indexes):
+		'''
+			What is passed during drag operations
+		'''
+		data = QtCore.QMimeData()
+		selection = []
+		for i in indexes:
+			selection.append(i.internalPointer().getFilter())
+		data.setData('bullseye/library.items', str(selection))
+		return data
+		
+	def mimeTypes(self):
+		'''
+			FIXME Not used, didn't manage to find out how to automatically serialize items (thus overrided mimeData instead)
+		'''
+		return ('bullseye/library.items',)
+		
             
 class SearchEntry(object):
 	"""

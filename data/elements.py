@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import sqlite3
 import os
-from mutagen.easyid3 import EasyID3
-from mutagen.oggvorbis import OggVorbis
+from music.tags import Tags
 from datetime import datetime
 import time
 import logging
@@ -47,7 +46,7 @@ class SpecialElement():
 class Track():
 	def __init__(self, data):
 		'''
-			Data might contain a Track ID from which we retrieve real data from db or a tuple containing all data necessary
+			Data might contain a Track ID (from which we retrieve real data from db) or a tuple containing all data necessary
 		'''
 		if(type(data).__name__=='int'):
 			ID = str(data)
@@ -76,12 +75,19 @@ class Track():
 		self.rating = new_rating
 		messager.diffuser('track_data_changed', self, self)
 	
+	@staticmethod
+	def fromPath(path):
+		try:
+			track = bdd.getTracks({'path':path})[0] # This file exists in our database
+		except IndexError:
+			tags = Tags.fromPath(path)
+			track = Track([0, path, tags['title'], tags['album'], tags['artist'], tags['length'], 0, 0])
+		return track
+			
+			
+	
 	def get_tags(self):
-		if(self.format == ".mp3"):
-			audio = EasyID3(self.path)
-		elif(self.format == ".ogg"):
-			audio = OggVorbis(self.path)
-		return audio
+		return Tags.fromPath(self.path)
 		
 	def incrementPlayCount(self):
 		self.playcount += 1
@@ -105,9 +111,7 @@ class Track():
 		task.start()
 		
 	def set_tag(self, tag, value):
-		audio = self.get_tags()
-		audio[tag] = value
-		audio.save()
+		Tags.setValue(self.path, tag, value)
 		query = 'UPDATE tracks SET ' + tag + ' = ? WHERE track_ID = ?'
 		t = (value, self.ID)
 		bdd.execute(query, t)

@@ -10,7 +10,7 @@ import logging
 
 from common import messager, settings
 
-from data.elements import QueuedTrack, BDD
+from data.elements import QueuedTrack, Track, BDD
 
 import gui.modales
 from gui.menus import TrackMenu
@@ -27,6 +27,7 @@ class QueueManager(QtGui.QTabWidget):
         Cet objet correspond au gestionnaire de pistes à jouer, graphiquement c'est un NoteBook (onglets, etc...)
         TODO ponts (A -> B, B-> C), filtres
         TODO bouton stop = set stop track
+        TODO open external track files (mime + isLoaded(musicSection)) + handle drop event for that
         """
 	def __init__(self, playerWidget):
 		QtGui.QTabWidget.__init__(self)
@@ -518,6 +519,46 @@ class Queue(QtGui.QTableView):
 		elif action == tempAction:
 			self.gestionnaire.playerWidget.addToJumpList(self, track, True)
 			
+	def dragEnterEvent(self, e):
+		data = e.mimeData()
+		print data.formats()
+		if e.mimeData().hasFormat('bullseye/library.items'):
+			e.accept()
+			#e.acceptProposedAction()
+		elif data.hasUrls():
+			e.accept()
+	
+		
+		print data.data('bullseye/library.items')
+		#e.accept()
+	
+	def dragMoveEvent(self, e):
+		# Must reimplement this otherwise the drag event is not spread
+		# But at this point the event has already been checked by dragEnterEvent
+		e.accept()
+		
+	def dropEvent(self, e):
+		print "DROP EVENT"
+		data = e.mimeData()
+		print data.formats()
+		
+		
+		if data.hasFormat('bullseye/library.items'):
+			dic = eval(str(data.data('bullseye/library.items')))
+			bdd = BDD()
+			tracks = bdd.getTracks(dic)
+		elif data.hasUrls():
+			tracks = []
+			for url in data.urls():
+				path = url.toLocalFile()
+				track = Track.fromPath(path)
+				
+				if track is not None:
+					tracks.append(track)
+		
+		self.model.insert(tracks, self.rowAt(e.pos().y()))
+		
+	
 	def enregistrer(self, button):
 		DN = gtk.Dialog()
 		Entry = gtk.Entry()
@@ -859,16 +900,23 @@ class QueueModel(QtCore.QAbstractTableModel):
 		self.tracks = []
 
 	def append(self, data):
-		size = len(self.tracks)
+		self.insert(data, len(self.tracks))
+		
+	def insert(self, data, pos):
 		if type(data).__name__=='list':
-			self.beginInsertRows(QtCore.QModelIndex(), size, size + len(data))
-			self.tracks.extend(data)
+			self.beginInsertRows(QtCore.QModelIndex(), pos, pos + len(data))
+			if(pos == len(self.tracks)):
+				self.tracks.extend(data)
+			else:
+				for track in data:
+					self.tracks.insert(pos, track)
 		else:
-			self.beginInsertRows(QtCore.QModelIndex(), size, size +1)
-			self.tracks.append(data)
+			self.beginInsertRows(QtCore.QModelIndex(), pos, pos +1)
+			self.tracks.insert(data, pos)
 			
 		self.endInsertRows()
 		#self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
+		
 		
 	def rowCount(self, parent):
 		return len(self.tracks)
@@ -942,7 +990,8 @@ class QueueModel(QtCore.QAbstractTableModel):
 			return _('Playcount')
 		#elif section == 6:
 			#return _('Rating')
-			
+
+		
 	
 	def refreshView(self, track):
 		index = self.createIndex(self.tracks.index(track), 0)
