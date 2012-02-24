@@ -108,6 +108,9 @@ class TreeModel(QtCore.QAbstractItemModel):
             parentItem = parent.internalPointer()
 
         return parentItem.childCount()
+        
+    def reset(self):
+	self.rootItem = TreeItem(("Title", "Summary"))
 
     def setupModelData(self, lines, parent):
         parents = [parent]

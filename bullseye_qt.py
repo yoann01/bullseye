@@ -5,14 +5,12 @@ from PySide import QtGui
 from common import messager, settings
 from data.elements import Track
 
-#Initialisation de la traduction
+#Init translation
 import gettext
 gettext.install("bullseye")
 
 import gobject
 
-#Création de la classe Frame issue de QWidget. 
-#Toute application graphique doit contenir au moins une telle classe.
 class Frame(QtGui.QMainWindow):
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
@@ -40,20 +38,24 @@ class Frame(QtGui.QMainWindow):
 		from data.bdd import MainBDD
 		self.BDD = MainBDD()
 		
-		if(settings.get_option('pictures/preload', False)):
+		if(settings.get_option('music/preload', False)):
 			self.loadMusic()
 		else:
 			button = QtGui.QPushButton('load')
 			button.clicked.connect(self.loadMusic)
-			self.NB_Main.addTab(button, "Music")
+			self.NB_Main.addTab(button, _('Music'))
+			
+		if(settings.get_option('pictures/preload', False)):
+			self.loadSection('pictures')
+		else:
+			button = QtGui.QPushButton('load')
+			button.clicked.connect(lambda: self.loadModule('pictures'))
+			self.NB_Main.addTab(button, _('Pictures'))
 			
 		
 		
 		
-		#from qt.uc_sections.pictures.imagewidget import ImageWidget
-		#self.NB_Main.addTab(ImageWidget(), 'Pictures')
 		
-		#layout = QtGui.QVBoxLayout()
 		from qt.gui.menubar import MenuBar
 		#layout.addWidget(MenuBar())
 		#layout.addWidget(self.NB_Main)
@@ -103,7 +105,13 @@ class Frame(QtGui.QMainWindow):
 		self.HPaned_Music.setStretchFactor(0,0)
 		self.HPaned_Music.setStretchFactor(1,1)
 		
-		self.NB_Main.addTab(self.HPaned_Music, "Music")
+		self.NB_Main.addTab(self.HPaned_Music, _('Music'))
+		
+	def loadModule(self, moduleKey):
+		self.NB_Main.removeTab(self.NB_Main.currentIndex())
+		if(moduleKey == 'pictures'):
+			from qt.uc_sections.pictures.imagewidget import ImageWidget
+			self.NB_Main.addTab(ImageWidget(), _('Pictures'))
 		
 	def onWindowDestroyed(self):
 		self.BDD.quit()

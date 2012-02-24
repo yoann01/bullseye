@@ -5,10 +5,11 @@ from qt.gui import modales
 class MenuBar(QtGui.QMenuBar):
 	def __init__(self):
 		QtGui.QMenuBar.__init__(self)
-		self.addAction('settings', self.triggered)
+		toolsMenu = QtGui.QMenu(_('&Tools'))
+		toolsMenu.addAction('settings', self.openSettings)
+		self.addMenu(toolsMenu)
 		
-	def triggered(self, action):
-		print action
+	def openSettings(self):
 		dialog = modales.SettingsEditor()
 		dialog.exec_()
 		

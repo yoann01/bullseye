@@ -59,19 +59,23 @@ class LibraryPanel(QtGui.QWidget):
 		self.TreeView.setColumnWidth(1, settings.get_option('music/col_label_panel_width', 170))
 		header = self.TreeView.header()
 		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+		self.TreeView.setAnimated(True)
 		
-		# *** Mode selector ***
-		modsModel = QtGui.QStandardItemModel()
-		modsModel.appendRow([QtGui.QStandardItem('("artist", "album", "title")'), QtGui.QStandardItem(_("Artist"))])
-		modsModel.appendRow([QtGui.QStandardItem('("genre", "album", "title")'), QtGui.QStandardItem(_("Genre"))])
-		self.CB_mod = QtGui.QComboBox()
-		self.CB_mod.setModelColumn(1)
-		self.CB_mod.setModel(modsModel)
+		# --- Mode selector ---
+		
+		modesModel = QtGui.QStandardItemModel()
+		modesModel.appendRow([QtGui.QStandardItem('("artist", "album", "title")'), QtGui.QStandardItem(_("Artist"))])
+		modesModel.appendRow([QtGui.QStandardItem('("genre", "album", "title")'), QtGui.QStandardItem(_("Genre"))])
+		self.modeCB = QtGui.QComboBox()
+		self.modeCB.setModel(modesModel)
+		self.modeCB.setModelColumn(1)
+		self.modeCB.currentIndexChanged[int].connect(self.changeMode)
+		
 		
 		refreshButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('view-refresh'), _('Refresh'))
 		refreshButton.clicked.connect(self.fill_model)
 		modLayout = QtGui.QHBoxLayout()
-		modLayout.addWidget(self.CB_mod)
+		modLayout.addWidget(self.modeCB)
 		modLayout.addWidget(refreshButton)
 		modLayout.setStretch(0, 1)
 		modLayout.setStretch(1, 0)
@@ -97,7 +101,7 @@ class LibraryPanel(QtGui.QWidget):
 		self.queueManager.addSelection(self.BDD.getTracks(dic))
 		
 	#def enqueue(self, i): DEPRECATED
-		#mode = eval(self.CB_mod.model().item(self.CB_mod.currentIndex(), 0).text()) #Ex : '("artist", "album")'
+		#mode = eval(self.modeCB.model().item(self.modeCB.currentIndex(), 0).text()) #Ex : '("artist", "album")'
 		
 		#dic = {}
 		#level = 0
@@ -115,10 +119,10 @@ class LibraryPanel(QtGui.QWidget):
 			#i += 1
 		#self.queueManager.addSelection(self.BDD.getTracks(dic))
 		
-	def changer_mode(self, mode):
-		self.mode = self.CB.get_active_text()
+	def changeMode(self, i):
+		model = self.modeCB.model()
+		self.mode = model.data(model.index(i, 0))
 		self.fill_model()
-		#messager.diffuser('TS_bibliotheque', self, [self.model, mode])
 		
 	
 	def fill_model(self, garbageFromConnect=None, force_reload=False, mot='', e=None):

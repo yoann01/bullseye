@@ -430,7 +430,7 @@ class SettingsEditor(gtk.Dialog):
 			self.Box_Main.pack_start(Box_General)
 			self.widgets['general'] = Box_General
 			
-			# Folders section
+			# --- Folders section ---
 			Box_folders = gtk.VBox()
 			TV_folders = gtk.TreeView()
 			self.folders = gtk.ListStore(str, bool)
@@ -467,8 +467,10 @@ class SettingsEditor(gtk.Dialog):
 			B_remove_folder = gtk.Button(_('Remove'), gtk.STOCK_REMOVE)
 			B_remove_folder.connect('clicked', remove_folder)
 			Box_folders.pack_start(TV_folders)
-			Box_folders.pack_start(B_add_folder)
-			Box_folders.pack_start(B_remove_folder)
+			Box = gtk.HBox()
+			Box.pack_start(B_add_folder)
+			Box.pack_start(B_remove_folder)
+			Box_folders.pack_start(Box, False)
 			
 			self.Box_Main.pack_start(Box_folders)
 			self.widgets['folders'] = Box_folders
@@ -476,7 +478,7 @@ class SettingsEditor(gtk.Dialog):
 			# ******* Music section *********
 			Box_music = gtk.Table(2,2)
 			i = 0
-			Box_music.attach(gtk.Label(_('Playback library') + ' :'), 0, 1, i, i+1)
+			Box_music.attach(gtk.Label(_('Playback library') + ' :'), 0, 1, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
 			self.CB_music_playback_lib = gtk.combo_box_new_text()
 			libs = {'GStreamer':0, 'MPlayer':1, 'VLC':2}
 			self.CB_music_playback_lib.append_text('GStreamer')
@@ -484,11 +486,11 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_music_playback_lib.append_text('VLC')
 			
 			self.CB_music_playback_lib.set_active(libs[settings.get_option('music/playback_lib', 'GStreamer')])
-			Box_music.attach(self.CB_music_playback_lib, 1, 2, i, i+1)
+			Box_music.attach(self.CB_music_playback_lib, 1, 2, i, i+1, gtk.FILL, gtk.FILL)
 			
 			
 			i += 1
-			Box_music.attach(gtk.Label(_('Panel icon size') + ' :'), 0, 1, i, i+1)
+			Box_music.attach(gtk.Label(_('Panel icon size') + ' :'), 0, 1, i, i+1, gtk.FILL, gtk.FILL)
 			self.CB_icon_size_panel_music = gtk.combo_box_new_text()
 			self.CB_icon_size_panel_music.append_text('16')
 			self.CB_icon_size_panel_music.append_text('24')
@@ -497,7 +499,7 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_icon_size_panel_music.append_text('64')
 			
 			self.CB_icon_size_panel_music.set_active(settings.get_option('music/panel_icon_size', 32) /16)
-			Box_music.attach(self.CB_icon_size_panel_music, 1, 2, i, i+1)
+			Box_music.attach(self.CB_icon_size_panel_music, 1, 2, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
 			
 			self.Box_Main.pack_start(Box_music)
 			self.widgets['music'] = Box_music
@@ -512,17 +514,17 @@ class SettingsEditor(gtk.Dialog):
 			
 			# Audioscrobbler section
 			Box_audioscrobbler = gtk.Table(2, 2)
-			Box_audioscrobbler.attach(gtk.Label(_('Login') + ' : '), 0, 1, 0, 1) 
+			Box_audioscrobbler.attach(gtk.Label(_('Login') + ' : '), 0, 1, 0, 1, gtk.FILL, gtk.FILL) 
 			
 			self.audioscrobbler_login = gtk.Entry()
 			self.audioscrobbler_login.set_text(settings.get_option('music/audioscrobbler_login', ''))
-			Box_audioscrobbler.attach(self.audioscrobbler_login, 1, 2, 0, 1) 
+			Box_audioscrobbler.attach(self.audioscrobbler_login, 1, 2, 0, 1, gtk.FILL|gtk.EXPAND, gtk.FILL) 
 			
 			
-			Box_audioscrobbler.attach(gtk.Label(_('Password') + ' : '), 0, 1, 1, 2) 
+			Box_audioscrobbler.attach(gtk.Label(_('Password') + ' : '), 0, 1, 1, 2, gtk.FILL, gtk.FILL) 
 			self.audioscrobbler_password = gtk.Entry()
 			self.audioscrobbler_password.set_text(settings.get_option('music/audioscrobbler_password', ''))
-			Box_audioscrobbler.attach(self.audioscrobbler_password, 1, 2, 1, 2) 
+			Box_audioscrobbler.attach(self.audioscrobbler_password, 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL) 
 			
 			self.Box_Main.pack_start(Box_audioscrobbler)
 			self.widgets['audioscrobbler'] = Box_audioscrobbler
@@ -534,9 +536,9 @@ class SettingsEditor(gtk.Dialog):
 			self.picture_preload = gtk.CheckButton(_('Preload pictures manager'))
 			self.picture_preload.set_active(settings.get_option('pictures/preload', False))
 			self.picture_preload.set_tooltip_text(_('If true, will be preloaded before application start, else will be loaded on demand (slightly faster startup)'))
-			Box_pictures.attach(self.picture_preload, 0, 2, i, i+1)
+			Box_pictures.attach(self.picture_preload, 0, 2, i, i+1, gtk.FILL, gtk.FILL)
 			i += 1
-			Box_pictures.attach(gtk.Label(_('Panel thumbnail size')), 0, 1, i, i+1)
+			Box_pictures.attach(gtk.Label(_('Panel thumbnail size') + ' : '), 0, 1, i, i+1, gtk.FILL, gtk.FILL)
 			self.CB_icon_size_panel_pictures = gtk.combo_box_new_text()
 			self.CB_icon_size_panel_pictures.append_text('16')
 			self.CB_icon_size_panel_pictures.append_text('24')
@@ -545,7 +547,7 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_icon_size_panel_pictures.append_text('64')
 			
 			self.CB_icon_size_panel_pictures.set_active(settings.get_option('pictures/panel_icon_size', 32) /16)
-			Box_pictures.attach(self.CB_icon_size_panel_pictures, 1, 2, i, i+1)
+			Box_pictures.attach(self.CB_icon_size_panel_pictures, 1, 2, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
 			
 			self.Box_Main.pack_start(Box_pictures)
 			self.widgets['pictures'] = Box_pictures
@@ -574,7 +576,7 @@ class SettingsEditor(gtk.Dialog):
 			
 			self.createUCBox('videos')
 			i = 3
-			self.widgets['videos'].attach(gtk.Label(_('Playback library') + ' :'), 0, 1, i, i+1)
+			self.widgets['videos'].attach(gtk.Label(_('Playback library') + ' :'), 0, 1, i, i+1, gtk.FILL, gtk.FILL)
 			self.CB_video_playback_lib = gtk.combo_box_new_text()
 			libs = {'GStreamer':0, 'MPlayer':1, 'VLC':2}
 			self.CB_video_playback_lib.append_text('GStreamer')
@@ -582,7 +584,7 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_video_playback_lib.append_text('VLC')
 			
 			self.CB_video_playback_lib.set_active(libs[settings.get_option('videos/playback_lib', 'GStreamer')])
-			self.widgets['videos'].attach(self.CB_video_playback_lib, 1, 2, i, i+1)
+			self.widgets['videos'].attach(self.CB_video_playback_lib, 1, 2, i, i+1, gtk.FILL, gtk.FILL)
 			
 			
 			
