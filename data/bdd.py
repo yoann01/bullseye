@@ -204,7 +204,7 @@ class MainBDD():
 			
 			
 		
-		#BDD.initNetwork()
+		BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')

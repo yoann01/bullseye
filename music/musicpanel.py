@@ -13,8 +13,9 @@ class LibraryPanel(gtk.VBox):
 		TODO check errors (arkenstone, little richard)
 		Burn factor indicates container with playcount concentrated on fews children
 	"""
-	def __init__(self, BDD):
+	def __init__(self, BDD, queueManager):
 		self.BDD = BDD
+		self.queueManager = queueManager
 		self.tracks = {}
 		self.TreeView = gtk.TreeView()
 		#self.TreeView.set_headers_visible(False)
@@ -118,8 +119,8 @@ class LibraryPanel(gtk.VBox):
 			i = i[0:level] #On enlève l'étage de fin
 			level -= 1
 			dic[mode[level]] = self.model[i][2]
-		messager.diffuser('need_tracks', self, dic)
-		print dic
+		#DEPRECATED messager.diffuser('need_tracks', self, dic)
+		self.queueManager.addSelection(self.BDD.getTracks(dic))
 		
 	def changer_mode(self, mode):
 		self.mode = self.CB.get_active_text()

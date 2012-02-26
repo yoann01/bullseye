@@ -68,6 +68,8 @@ class Track():
 		
 		self.flags = set()
 		self.priority = 0
+		self.bridgeSrc = None
+		self.bridgeDest = None
 	
 	def change_rating(self, w, new_rating):
 		query = "UPDATE tracks SET note = " + str(new_rating) + " WHERE track_ID = " + self.ID
@@ -120,10 +122,16 @@ class Track():
 		
 
 class QueuedTrack(Track):
+	'''
+		A Track with many flags. Currently not used (Actually these flags are packed in every track)
+	'''
 	def __init__(self, data, queue):
 		Track.__init__(self, data)
 		self.queue = queue
 		self.flags = set()
+		self.priority = 0
+		self.bridgeSrc = None
+		self.bridgeDest = None
 		
 		
 class Container():

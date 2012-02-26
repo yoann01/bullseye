@@ -160,115 +160,8 @@ class QueueManager(QtGui.QTabWidget):
 		self.addTab(newQueue, label)
 		self.setCurrentIndex(nb_pages)
 		return newQueue
-		
-		
-	def avance_ou_arrete(self, motif):
-		'''
-			Méthode primordiale permettant au MusicPlayer d'avoir sa piste sur demande (démarrage ou enchaînement)
-		'''
-		# Tout d'abord on incrémente si fin de piste atteinte et on vire le marquage de l'ancienne piste courante
-		
-		if(motif == "eos"):
-			#ID_courant = self.queue_jouee.get_value(self.playing_iter, 3)
-			self.incrementPlayedTrack()
 			
-		self.demarquer_piste()
-			
-		try:	
-			if (self.queue_jouee.get_value(self.playing_iter, 2) is None):
-				not_a_stop_track = True
-			else:
-				not_a_stop_track = False
-		except:
-			not_a_stop_track = True
-			
-		try:
-			di = self.directList[0]
-			self.directList.remove(di)
-			if(di.row == None):
-				di = None
-		except IndexError:
-			di = None
-			
-		if(not_a_stop_track): #On vérifie d'abord qu'on ne doit pas s'arrêter avant de mouliner
-			#Quelle est la piste à jouer? 3 possibilités :
-			if(di != None): # 1/ une piste prioritaire
-				self.playing_track = Track(di.get_model()[di.get_path()][3])
-				
-				if di.temp:
-					self.temp_queue_jouee = di.get_model()
-					self.temp_playing_iter = self.temp_queue_jouee.get_iter(di.get_path())
-				else:
-					self.queue_jouee = di.get_model()
-					self.playing_iter = self.queue_jouee.get_iter(di.get_path())
-				
-				messager.diffuser('musique_a_lire', self, self.playing_track)
-				self.marquer_piste()
-			else:
-				if(self.playing_iter): # 2/ la piste qui suit la dernière piste lue
-					bridge_key = self.queue_jouee.get_value(self.playing_iter, 12)
-					if(bridge_key != None):
-						try:
-							ref = self.bridges_dest[bridge_key]
-							queue = ref.get_model()
-							next_iter = queue.get_iter(ref.get_path())
-							self.queue_jouee = queue
-						except:
-							next_iter = self.queue_jouee.iter_next(self.playing_iter)
-					else:
-						next_iter = self.queue_jouee.iter_next(self.playing_iter)
-				else: # 3/ la première piste de la queue visible
-					self.queue_jouee = self.visibleQueue
-					next_iter = self.queue_jouee.get_iter_first()
-					
-				
-				if(next_iter): # Après recherche, on a obtenu une piste
-					self.playing_iter = next_iter
-					self.playing_track = Track(self.queue_jouee.get_value(self.playing_iter, 3))
-					messager.diffuser('musique_a_lire', self, self.playing_track)
-					self.marquer_piste()
-				else: # Il n'y a pas de suivant
-					self.queue_jouee.set_value(self.playing_iter, 2, None)
-					messager.diffuser('arret_musique', self, True)
-					print("Liste de lecture terminée ou stoppée")
 
-		else: # On s'arrête simplement
-			self.queue_jouee.set_value(self.playing_iter, 2, None)
-			messager.diffuser('arret_musique', self, True)
-			print("Liste de lecture terminée ou stoppée")
-			
-			
-			
-	def charger_playlist(self, data):
-		#data[0] = tracks ID, data[1] = playlist name
-		queue = self.addQueue(data[1])
-		messager.diffuser('ID_playlist', self, [data[0], queue], False)
-	
-	def cleanDirectList(self):
-		"""
-			Remove all DirectIter that is no longer present
-		"""
-		for di in self.directList:
-			if(di.queue.get_path(di.ligne) == None):
-				self.directList.remove(di)
-
-	def demarquer_piste(self, forward=False):
-		try:
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, None)
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, None)
-			self.temp_queue_jouee = None
-			self.temp_playing_iter = None
-		except:
-			logger.debug('No temporary jump track to unmark')
-		try:
-			print(self.queue_jouee.get_value(self.playing_iter, 5))
-			self.queue_jouee.set_value(self.playing_iter, 1, None)
-			self.queue_jouee.set_value(self.playing_iter, 0, None)
-		except:
-			logger.debug('No standard track to unmark')
-		#if(forward):
-				#if(self.numero + 1 < len(self.queue_jouee)):
-					#self.numero +=1
 
 	
 	def removeQueue(self, i=-1):
@@ -318,26 +211,7 @@ class QueueManager(QtGui.QTabWidget):
 	def getDefaultTrack(self):
 		return self.visibleQueue.getTrackAt(0)
 		
-	def incrementPlayedTrack(self):
-		messager.diffuser('incrementation', self, self.playing_track)
-		try:
-			compteur = self.temp_queue_jouee.get_value(self.temp_playing_iter, 9)
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 9, compteur)
-		except:
-			compteur = self.queue_jouee.get_value(self.playing_iter, 9) + 1
-			self.queue_jouee.set_value(self.playing_iter, 9, compteur)
-		
-	def initialisation_raccourcis(self):
-		raccourcis = (
-			('<Control>W', lambda *e: self.fermer_onglet()),
-			('<Control>T', lambda *e: self.addQueue()),
-		)
-		accel_group = gtk.AccelGroup()
-		for key, function in raccourcis:
-			key, mod = gtk.accelerator_parse(key)
-			accel_group.connect_group(key, mod, gtk.ACCEL_VISIBLE,
-				function)
-		messager.diffuser('desRaccourcis', self, accel_group)
+
 		
 
         
@@ -361,46 +235,6 @@ class QueueManager(QtGui.QTabWidget):
 		a = threading.Thread(target=traiter_queues)
 		a.start()
 		
-		
-	def marquer_piste(self):#Ajoute un marqueur (pour la piste courante de la liste jouée)
-		icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
-		try:
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, icon)
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, 'bold')
-		except:
-			self.queue_jouee.set_value(self.playing_iter, 1, icon)
-			self.queue_jouee.set_value(self.playing_iter, 0, 'bold')
-		
-		
-	def on_zik_click(self, TreeView, i , c):
-		#W = TV_zik, c = colonne, i = numero de ligne
-		
-		#On vire le marquage de piste en cours si il y en a un
-		self.demarquer_piste()
-		self.numero = i[0]
-		self.queue_jouee = TreeView.get_model()
-		self.playing_iter = self.queue_jouee.get_iter(i)
-		#chemin = self.queue_jouee[i][4]
-		self.playing_track = Track(self.queue_jouee[i][3])
-		messager.diffuser('musique_a_lire', self, self.playing_track)
-		self.marquer_piste()
-		
-		
-	def on_tab_change(self, notebook, page, page_num):
-			#Je rechoppe la page car ici elle est de type GPointer, non exploitable en PyGtk
-			page = notebook.get_nth_page(page_num) # La page = le contenu = une liste de lecture = un TreeView
-			if self.queue_jouee == None:
-				self.queue_jouee = page.Liste
-				self.numero = 0
-		
-	def recule(self, data):
-		if self.numero > 0:
-			self.demarquer_piste()
-			self.numero -= 1
-			self.playing_iter = self.queue_jouee.get_iter(self.numero)
-			chemin = self.queue_jouee[self.numero][4]
-			messager.diffuser('musique_a_lire', self, chemin)
-			self.marquer_piste()
 
 		
 	def save_state(self):
@@ -522,7 +356,7 @@ class Queue(QtGui.QTableView):
 	def dragEnterEvent(self, e):
 		data = e.mimeData()
 		print data.formats()
-		if e.mimeData().hasFormat('bullseye/library.items'):
+		if data.hasFormat('bullseye/library.items') or data.hasFormat('bullseye/queue.items'):
 			e.accept()
 			#e.acceptProposedAction()
 		elif data.hasUrls():
@@ -533,9 +367,12 @@ class Queue(QtGui.QTableView):
 		#e.accept()
 	
 	def dragMoveEvent(self, e):
+		QtGui.QTableView.dragMoveEvent(self, e)
+		e.accept()
+		#e.acceptProposedAction()
 		# Must reimplement this otherwise the drag event is not spread
 		# But at this point the event has already been checked by dragEnterEvent
-		e.accept()
+		
 		
 	def dropEvent(self, e):
 		print "DROP EVENT"
@@ -603,6 +440,9 @@ class Queue(QtGui.QTableView):
 		##si aucun onglet, en créer un
 		#if(self.NB.get_n_pages() == 0):
 			#self.NB.addQueue()
+
+	def getNextTrack(self, tr):
+		return self.model.getNextTrack(tr)
 		
 	def getTrackAt(self, i):
 		if type(i).__name__ == 'int':
@@ -991,7 +831,8 @@ class QueueModel(QtCore.QAbstractTableModel):
 		#elif section == 6:
 			#return _('Rating')
 
-		
+	def mimeTypes(self):
+		return ('bullseye/queue.items',)	
 	
 	def refreshView(self, track):
 		index = self.createIndex(self.tracks.index(track), 0)

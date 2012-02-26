@@ -25,17 +25,17 @@ class PlayerWidget(AbstractPlayerWidget, gtk.HBox):
 		#BB = gtk.HButtonBox()
 		#BB.set_spacing(10)
 		prevButton = gtk.ToolButton(gtk.STOCK_MEDIA_PREVIOUS)
-		prevButton.connect("clicked", self.onPrevClick)
+		prevButton.connect_object("clicked", AbstractPlayerWidget.playPreviousTrack, self)
 		
 		self.playButton = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
-		self.playButton.connect("clicked", self.togglePause)
+		self.playButton.connect_object("clicked", AbstractPlayerWidget.togglePause, self)
 		
 		nextButton = gtk.ToolButton(gtk.STOCK_MEDIA_NEXT)
 		stopButton = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
 		
 		
-		nextButton.connect("clicked", self.onNextClick)
-		stopButton.connect("clicked", self.stop)
+		nextButton.connect_object("clicked", AbstractPlayerWidget.playNextTrack, self)
+		stopButton.connect_object("clicked", AbstractPlayerWidget.stop, self)
 		self.pack_start(prevButton, False)
 		self.pack_start(self.playButton, False)
 		self.pack_start(nextButton, False)
@@ -46,21 +46,21 @@ class PlayerWidget(AbstractPlayerWidget, gtk.HBox):
 		self.pack_start(volumeButton, False)
 		self.pack_start(self.progressBar)
 	
-	def onNextClick(self, button):
-		self.playNextTrack()
-	
-	def onPrevClick(self, button):
-		self.playPreviousTrack()
+
 		
 	def startUpdatingProgress(self):
 		self.timer.start()
+		self.progressBar.set_sensitive(True)
 		self.playButton.set_stock_id(gtk.STOCK_MEDIA_PAUSE)
 	
 	def stopUpdatingProgress(self, resetProgress=False):
 		self.timer.stop()
+			
 		self.playButton.set_stock_id(gtk.STOCK_MEDIA_PLAY)
 		if resetProgress:
 			self.progressBar.set_fraction(0)
+			self.progressBar.set_sensitive(False)
+			self.progressBar.set_text(_("Pending..."))
 	
 	def seekTo(self, widget, event):
 		mouse_x, mouse_y = event.get_coords()
@@ -76,9 +76,6 @@ class PlayerWidget(AbstractPlayerWidget, gtk.HBox):
 	def showProgress(self):
 		self.progressBar.set_fraction(self.player.percentage)
 		self.progressBar.set_text(self.player.etat)
-		
-	def stop(self, button):
-		AbstractPlayerWidget.stop(self)
 		
 
 class Updater(object):

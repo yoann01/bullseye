@@ -20,9 +20,9 @@ IM = icons.IconManager()
 
 logger = logging.getLogger(__name__)
 
-class QueueManager(gtk.Notebook):
+class QueueManager(gtk.VBox):
 	"""
-        Cet objet correspond au gestionnaire de pistes à jouer, graphiquement c'est un NoteBook (onglets, etc...)
+        Cet objet correspond au manager de pistes à jouer, graphiquement c'est un NoteBook (onglets, etc...)
         TODO ponts (A -> B, B-> C), filtres
         TODO bouton stop = set stop track 
         """
@@ -35,25 +35,19 @@ class QueueManager(gtk.Notebook):
 			       #"ythickness = 0\n"
 			     #"}\n"
 			     #"widget \"*.ephy-tab-close-button\" style \"ephy-tab-close-button-style\"")
-		gtk.Notebook.__init__(self)
+		gtk.VBox.__init__(self)
+		self.NoteBook = gtk.Notebook()
+		
 		self.playerWidget = playerWidget
 		self.playerWidget.queueManager = self
-		self.directList = [] #Liste de pistes à jouer en priorité
-		self.bridges_src = {}
-		self.bridges_dest = {}
+
 		
-		#Abonnement à certains types de messages auprès du messager
+		#DEPRECATED Abonnement à certains types de messages auprès du messager
 		#messager.inscrire(self.charger_playlist, 'playlist')
 		messager.inscrire(self.ajouter_selection, 'desPistes')
 		messager.inscrire(self.charger_playlist, 'playlistData')
-		messager.inscrire(self.avance_ou_arrete, 'need_piste_suivante')
-		messager.inscrire(self.recule, 'need_piste_precedente')
-		messager.inscrire(self.demarquer_piste, 'MusicPlayerStopped')
-		
-		self.numero = 0 #Le numéro de piste à jouer
-		
-		
-		self.connect("switch-page", self.on_tab_change)
+
+
 		
 		self.IM = icons.IconManager()
 		self.queue_jouee = None
@@ -64,14 +58,25 @@ class QueueManager(gtk.Notebook):
 		self.initialisation_raccourcis()
 		glib.timeout_add_seconds(300, self.save_state)
 		
+		actionBox = gtk.HBox()
+		scrollToCurrentButton = gtk.ToolButton(gtk.STOCK_JUMP_TO)
+		scrollToCurrentButton.connect('clicked', self.scrollToCurrent)
+		actionBox.pack_start(scrollToCurrentButton, False)
 		
-		self.connect('expose-event', self.redrawAddTabButton)
+		self.pack_start(self.NoteBook)
+		self.pack_start(actionBox, False)
+		
+		
+		self.NoteBook.connect('expose-event', self.redrawAddTabButton)
 		self.connect('button-release-event', self.onButtonRelease)
 		
 
+	def addSelection(self, tracks):
+		self.visibleQueue.addTracks(tracks)
+		
 	def getAddTabButtonPos(self):
 		try:
-			last_tab_label = self.get_tab_label(self.get_nth_page(self.get_n_pages() -1))
+			last_tab_label = self.NoteBook.get_tab_label(self.NoteBook.get_nth_page(self.NoteBook.get_n_pages() -1))
 			alloc = last_tab_label.get_allocation()
 		except:
 			print 'TODO'
@@ -95,34 +100,13 @@ class QueueManager(gtk.Notebook):
 		self.window.draw_pixbuf(None, icon, 0, 0, alloc[0], alloc[1])
 
 	@property
-	def queue_visible(self):
+	def visibleQueue(self):
 		try:
-			liste = self.get_nth_page(self.get_current_page()).Liste
+			queue = self.NoteBook.get_nth_page(self.NoteBook.get_current_page())
 		except:
-			liste = None
+			queue = None
 
-		return liste
-		
-	def addToDirectList(self, menuitem, row, temp=False):
-		'''
-		@param menuitem : osef
-		@param row : TreeReference
-		@param temp : if temp is true then after jumping return where player was before
-		'''
-		i = 0
-		while((i < len(self.directList)) and not self.directList[i].equals(row)):
-			i+=1
-
-		if(i < len(self.directList) and self.directList[i].equals(row)):
-			self.directList.insert(i, DirectIter(None, temp))
-			i+=1
-		else:
-			self.directList.append(DirectIter(row, temp))
-		if temp is True:
-			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18), '#FFCC00', '#000', '#000')
-		else:
-			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18))
-		row.get_model()[row.get_path()][1] = image
+		return queue
 
 
 	def ajouter_selection(self, selection): 
@@ -131,7 +115,7 @@ class QueueManager(gtk.Notebook):
 			@param selection : t de list content les informations des pistes à ajouter
 				rappel de l'ordre: police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
 		'''
-		liste = self.queue_visible
+		liste = self.visibleQueue
 		try:
 			iter_pos = liste.get_iter(self.dest_row[0])
 			pos_type = self.dest_row[1]
@@ -152,7 +136,7 @@ class QueueManager(gtk.Notebook):
 		self.dest_row = None
 		
 	def addQueue(self, button=None, label=None):
-		nb_pages = self.get_n_pages()
+		nb_pages = self.NoteBook.get_n_pages()
 		if(label != None):
 			#Cela veut dire qu'on a reçu une playlist du messager
 			nouvelleQueue = Playlist(self, label)
@@ -160,7 +144,7 @@ class QueueManager(gtk.Notebook):
 			label = _("List ") + str(nb_pages)
 			nouvelleQueue = Queue(self, label)
 			
-		self.set_current_page(nb_pages)
+		self.NoteBook.set_current_page(nb_pages)
 		return nouvelleQueue
 		
 		
@@ -220,7 +204,7 @@ class QueueManager(gtk.Notebook):
 					else:
 						next_iter = self.queue_jouee.iter_next(self.playing_iter)
 				else: # 3/ la première piste de la queue visible
-					self.queue_jouee = self.queue_visible
+					self.queue_jouee = self.visibleQueue
 					next_iter = self.queue_jouee.get_iter_first()
 					
 				
@@ -254,32 +238,14 @@ class QueueManager(gtk.Notebook):
 			if(di.queue.get_path(di.ligne) == None):
 				self.directList.remove(di)
 
-	def demarquer_piste(self, forward=False):
-		try:
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, None)
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, None)
-			self.temp_queue_jouee = None
-			self.temp_playing_iter = None
-		except:
-			logger.debug('No temporary jump track to unmark')
-		try:
-			print(self.queue_jouee.get_value(self.playing_iter, 5))
-			self.queue_jouee.set_value(self.playing_iter, 1, None)
-			self.queue_jouee.set_value(self.playing_iter, 0, None)
-		except:
-			logger.debug('No standard track to unmark')
-		#if(forward):
-				#if(self.numero + 1 < len(self.queue_jouee)):
-					#self.numero +=1
-
 	
-	def fermer_onglet(self, bouton=None, onglet=None):
+	def closeQueue(self, bouton=None, onglet=None):
 		if(bouton == None):
 			#La demande provient d'un raccourci clavier
-			numero_page = self.get_current_page()
+			numero_page = self.NoteBook.get_current_page()
 		else:
-			numero_page = self.page_num(onglet)
-		if(self.get_nth_page(numero_page).modified == True):
+			numero_page = self.NoteBook.page_num(onglet)
+		if(self.NoteBook.get_nth_page(numero_page).modified == True):
 			dialog = gtk.Dialog(title=_("Closing non-saved playlist"), buttons=(gtk.STOCK_NO, gtk.RESPONSE_REJECT,
                       gtk.STOCK_YES, gtk.RESPONSE_ACCEPT))
 			box = dialog.get_content_area()
@@ -289,25 +255,15 @@ class QueueManager(gtk.Notebook):
 			dialog.destroy()
 			if(reponse == -3): #Valider
 				self.get_nth_page(numero_page).save()
-		self.remove_page(numero_page)
+		self.NoteBook.remove_page(numero_page)
 		#Il n'y a plus d'onglet, on en crée un
-		if(self.get_n_pages() == 0):
+		if(self.NoteBook.get_n_pages() == 0):
 			self.addQueue()
-			
+
+		
+	def getDefaultTrack(self):
+		return self.visibleQueue.getTrackAt(0)
 	
-	def format_length(self, length):
-		minutes = 0
-		while length > 59:
-			length -= 60
-			minutes += 1
-		if length < 10:
-			length = "0" + str(length)
-		else:
-			length = str(length)
-		length = str(minutes) + ":" + length
-		
-		return length
-		
 	def incrementPlayedTrack(self):
 		self.playing_track.incrementPlayCount()
 		try:
@@ -319,7 +275,7 @@ class QueueManager(gtk.Notebook):
 		
 	def initialisation_raccourcis(self):
 		raccourcis = (
-			('<Control>W', lambda *e: self.fermer_onglet()),
+			('<Control>W', lambda *e: self.closeQueue()),
 			('<Control>T', lambda *e: self.addQueue()),
 		)
 		accel_group = gtk.AccelGroup()
@@ -347,11 +303,11 @@ class QueueManager(gtk.Notebook):
 					if type(key).__name__=='int':
 						self.addQueue()
 						for track_id in queues[key]:
-							self.ajouter_selection(bdd.get_tracks_data({'track_ID':track_id}))
+							self.addSelection(bdd.getTracks({'track_ID':track_id}))
 					else:
 						playlist = self.addQueue(key)
 						for track_id in queues[key]:
-							self.ajouter_selection(bdd.get_tracks_data({'track_ID':track_id}))
+							self.addSelection(bdd.getTracks({'track_ID':track_id}))
 						playlist.Liste.connect("row-changed", playlist.setModified)
 			else:
 				self.addQueue()
@@ -367,28 +323,7 @@ class QueueManager(gtk.Notebook):
 		except:
 			self.queue_jouee.set_value(self.playing_iter, 1, icon)
 			self.queue_jouee.set_value(self.playing_iter, 0, 'bold')
-		
-		
-	def on_zik_click(self, TreeView, i , c):
-		#W = TV_zik, c = colonne, i = numero de ligne
-		
-		#On vire le marquage de piste en cours si il y en a un
-		self.demarquer_piste()
-		self.numero = i[0]
-		self.queue_jouee = TreeView.get_model()
-		self.playing_iter = self.queue_jouee.get_iter(i)
-		#chemin = self.queue_jouee[i][4]
-		self.playing_track = Track(self.queue_jouee[i][3])
-		self.playerWidget.playTrack(self.playing_track, self.queue_jouee)
-		self.marquer_piste()
-		
-		
-	def on_tab_change(self, notebook, page, page_num):
-			#Je rechoppe la page car ici elle est de type GPointer, non exploitable en PyGtk
-			page = notebook.get_nth_page(page_num) # La page = le contenu = une liste de lecture = un TreeView
-			if self.queue_jouee == None:
-				self.queue_jouee = page.Liste
-				self.numero = 0
+
 		
 	def recule(self, data):
 		if self.numero > 0:
@@ -402,38 +337,47 @@ class QueueManager(gtk.Notebook):
 	def save_state(self):
 		i = 0
 		queues = {}
-		while( i < self.get_n_pages()):
+		while( i < self.NoteBook.get_n_pages()):
 			t = []
-			queue =  self.get_nth_page(i)
-			model = queue.Liste
+			queue =  self.NoteBook.get_nth_page(i)
+			model = queue.model
 			iter = model.get_iter_first()
 			while(iter is not None):
 				t.append(model.get_value(iter, 3))
 				iter = model.iter_next(iter)
 			if(type(queue).__name__=='Playlist'):
-				queues[self.get_nth_page(i).tab_label.get_text()] = t
+				queues[self.NoteBook.get_nth_page(i).tab_label.get_text()] = t
 			else:
 				queues[i] = t
 			i += 1
 		settings.set_option('session/queues', queues)
+		
+	def scrollToCurrent(self, button=None):
+		currentQueue, currentTrack = self.playerWidget.getCurrents()
+		index = currentQueue.tracks.index(currentTrack)
+		self.NoteBook.set_current_page(self.NoteBook.page_num(currentQueue))
+		currentQueue.TreeView.scroll_to_cell(index)
 			
 
 
 class Queue(gtk.ScrolledWindow):
 	'''
-		Représente une queue (onglet) d'un gestionnaire de queue.
+		Représente une queue (onglet) d'un manager de queue.
 	'''
-	def __init__(self, gestionnaire, label):
+	def __init__(self, manager, label):
 		self.modified = False #pour les playlists enregistrées
-		self.gestionnaire = gestionnaire
+		self.manager = manager
 		#police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
-		self.Liste = gtk.ListStore(str, gtk.gdk.Pixbuf, gtk.gdk.Pixbuf, int, str, str, str, str, str, int, gtk.gdk.Pixbuf, int, str)
-		self.TreeView = gtk.TreeView(self.Liste)
+		self.model = gtk.ListStore(str, gtk.gdk.Pixbuf, gtk.gdk.Pixbuf, int, str, str, str, str, str, int, gtk.gdk.Pixbuf, int, str)
+		self.TreeView = gtk.TreeView(self.model)
 		self.TreeView.set_rules_hint(True)
 		self.TreeView.set_reorderable(True)
-		self.TreeView.connect("row-activated", gestionnaire.on_zik_click)
-		self.TreeView.connect("button-press-event", self.surClicDroit)
+		self.TreeView.connect("row-activated", self.activated)
+		self.TreeView.connect("button-press-event", self.onButtonClick)
 		self.TreeView.connect("key-press-event", self.executerRaccourci)
+		self.model.connect('row-deleted', self.onRowDeleted)
+		self.model.connect('row-inserted', self.onRowInserted)
+		self.isMoving = False #Tell if there is currently a drag operation initiated by this TreeView
 		#On s'occupe du "label" de l'onglet
 		tab_label_box = gtk.EventBox()
 		tab_label_box.set_visible_window(False) #make event box don't change anything lookwise
@@ -450,7 +394,7 @@ class Queue(gtk.ScrolledWindow):
 		close_button.set_tooltip_text(_("Close Tab"))
 		close_button.add(close_icon)
 		close_button.set_size_request(24,24) # avoid big padding
-		close_button.connect('clicked', gestionnaire.fermer_onglet, self)
+		close_button.connect('clicked', manager.closeQueue, self)
 		hbox.pack_end(close_button, False, False)
 		tab_label_box.add(hbox)
 		tab_label_box.show_all()
@@ -483,6 +427,7 @@ class Queue(gtk.ScrolledWindow):
 		self.TreeView.enable_model_drag_dest([('text/plain', 0, 0), ('GTK_TREE_MODEL_ROW', 0, 0)],
                   gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
 		self.TreeView.connect("drag-data-received", self.on_drag_data_received)
+		self.TreeView.connect("drag-begin", self.on_drag_begin)
 		
 		Col_Titre.pack_start(pb, False)
 		Col_Titre.pack_start(pb2, False)
@@ -515,18 +460,50 @@ class Queue(gtk.ScrolledWindow):
 		#Col_Titre.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		#Col_Titre.set_fixed_width(40)
 		
-		messager.inscrire(self.refresh_view, 'track_data_changed')
+		messager.inscrire(self.updateView, 'track_data_changed')
+		
+		self.tracks = []
 		
 		
 		gtk.ScrolledWindow.__init__(self)
 		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		self.add(self.TreeView)
-		gestionnaire.append_page(self, tab_label_box)
-		gestionnaire.show_all()
+		manager.NoteBook.append_page(self, tab_label_box)
+		manager.show_all()
 		
-                  
-	def enlever_piste(self, button, ligne):
-		self.Liste.remove(ligne)
+	def activated(self, TreeView, i , c):
+		#W = TreeView, c = colonne, i = numero de ligne
+		self.manager.playerWidget.cleanPlayFlag()
+		self.manager.playerWidget.playTrack(self.tracks[i[0]], self)
+		
+	def addTracks(self, tracks):
+		if type(tracks).__name__!='list': # One track
+			tracks = [tracks,]
+			
+		self.tracks.extend(tracks)
+		
+		try:
+			iter_pos = liste.get_iter(self.dest_row[0])
+			pos_type = self.dest_row[1]
+		except:
+			iter_pos = None
+			pos_type = None
+			
+		for track in tracks:
+			length = self.format_length(track.length)
+			rating= self.manager.IM.rating_pixbufs[track.rating]
+			if(pos_type == gtk.TREE_VIEW_DROP_BEFORE or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
+				self.model.insert_before(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
+			elif(pos_type == gtk.TREE_VIEW_DROP_AFTER or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
+				self.model.insert_after(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
+			else:
+				self.model.append([None, None, None, int(track.ID), track.path, track.tags['title'], track.tags['album'], track.tags['artist'], length, track.playcount, rating, track.rating, None] )
+		
+		
+	def removeTrack(self, iter):
+		self.model.remove(iter)
+		path = self.model.get_path(iter)
+		self.tracks.remove(path[0])
 	
 		
 	def enregistrer(self, button):
@@ -559,13 +536,13 @@ class Queue(gtk.ScrolledWindow):
 				#if(next):
 					#selection.select_iter(next)
 				#liste.remove(iter)
-			self.gestionnaire.cleanDirectList()
+			self.manager.cleanDirectList()
 				
 		elif(event.keyval == gtk.gdk.keyval_from_name("s")):
 			selection = self.TreeView.get_selection()
 			liste, paths = selection.get_selected_rows()
 			for path in paths:
-				self.set_stop_track(liste.get_iter(path))
+				self.toggleStopFlag(self.tracks[path[0]])
 		
 	#def fermeture(self, widget):
 		#numero_page = widget.get_parent().get_parent().get_parent().page_num(self.TreeView)
@@ -574,26 +551,171 @@ class Queue(gtk.ScrolledWindow):
 		#if(self.NB.get_n_pages() == 0):
 			#self.NB.addQueue()
 		
+	def format_length(self, length):
+		minutes = 0
+		while length > 59:
+			length -= 60
+			minutes += 1
+		if length < 10:
+			length = "0" + str(length)
+		else:
+			length = str(length)
+		length = str(minutes) + ":" + length
 		
+		return length
 		
+	def getNextTrack(self, tr):
+		try:
+			return self.tracks[self.tracks.index(tr) + 1]
+		except IndexError:
+			return None
+			
+	def getTrackAt(self, i):
+		try:
+			return self.tracks[i]
+		except IndexError:
+			return None
+			
+			
+	def onButtonClick(self, TreeView, event):
+		# On vérifie que c'est bien un clic droit:
+		if event.button == 3:
+			from abstract.playerwidget import AbstractPlayerWidget
+			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
+			if(path != None):
+				queue = TreeView.get_model()
+				piste_ID = queue[path][3]
+				ligne = queue.get_iter(path)
+			if (path != None):
+				track = self.tracks[path[0]]
+				iter = queue.get_iter(path)
+				row = gtk.TreeRowReference(queue, path)
+				m = TrackMenu(piste_ID)
+				m.append(gtk.SeparatorMenuItem())
+				i = gtk.ImageMenuItem(_("Remove from queue"))
+				i.set_image(gtk.image_new_from_stock(gtk.STOCK_REMOVE, gtk.ICON_SIZE_MENU))
+				i.connect_object('activate', self.removeTrack, ligne)
+				m.append(i)
+				
+				i = gtk.ImageMenuItem(_("Set stop cursor"))
+				i.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_MENU))
+				i.connect_object('activate', self.toggleStopFlag, track)
+				m.append(i)
+				
+				jumpListSize = str(len(self.manager.playerWidget.jumpList))
+				i = gtk.ImageMenuItem(_("Add to perm jump list"))
+				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(jumpListSize, (18, 18))))
+				i.connect_object('activate', AbstractPlayerWidget.addToJumpList, self.manager.playerWidget, self, track)
+				m.append(i)
+				
+				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18), '#FFCC00', '#000', '#000')
+				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18))
+				i = gtk.ImageMenuItem(_("Add to temp jump list"))
+				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(jumpListSize, (18, 18), '#FFCC00', '#000', '#000')))
+				i.connect_object('activate', AbstractPlayerWidget.addToJumpList, self.manager.playerWidget, self, track, True)
+				m.append(i)
+				
+				
+				# *** BRIDGES ***
+				dic = self.manager.playerWidget.bridgesSrc
+				
+				if(track.bridgeSrc != None):
+					key = track.bridgeSrc
+					def remove_bridge_src(*args):
+						dic.pop(key)
+					i = gtk.ImageMenuItem(_("Unset bridge source"))
+					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
+					i.connect('activate', remove_bridge_src)
+				else:
+					def add_bridge_src(*args):
+						self.manager.bridges_src[letter] = gtk.TreeRowReference(self.model, path)
+						self.model[path][12] = letter
+						self.model[path][1] = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
+					
+					letter = chr(65 + len(dic))
+					icon = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
+					i = gtk.ImageMenuItem(_("Add bridge source"))
+					i.set_image(gtk.image_new_from_pixbuf(icon))
+					i.connect('activate', add_bridge_src)
+				m.append(i)
+				
+				j = 0
+				done = False
+				dic = self.manager.bridges_dest
+				
+				while(not done and j < len(dic.keys())):
+					
+					ref = dic[dic.keys()[j]]
+
+					if(ref.get_path() == path and ref.get_model() == self.model): 
+						done = True
+					else:
+						j += 1
+				if(done):
+					def remove_bridge_dest(*args):
+						self.manager.bridges_dest.pop(key)
+						self.model[path][1] = None
+						
+					key = dic.keys()[j]
+					i = gtk.ImageMenuItem(_("Unset bridge dest"))
+					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
+					i.connect('activate', remove_bridge_dest)
+				else:
+					def add_bridge_dest(*args):
+						self.manager.bridges_dest[letter] = gtk.TreeRowReference(self.model, path)
+						self.model[path][1] = icon
+					
+					letter = chr(65 + len(dic))
+					icon = icons.MANAGER.pixbuf_from_text('← ' + letter, (24, 18), '#CC2EFA')
+					i = gtk.ImageMenuItem(_("Add bridge dest"))
+					i.set_image(gtk.image_new_from_pixbuf(icon))
+					i.connect('activate', add_bridge_dest)
+					
+				
+					
+				#if(iter in self.manager.bridges_src.values):
+
+				#else:
+					#i = gtk.ImageMenuItem(_("Add to temp jump list"))
+					#i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text('A'), (18, 18), '#FFCC00', '#000', '#000')))
+					#i.connect('activate', self.manager.addToDirectList, queue, ligne, True)
+				m.append(i)
+				
+				m.show_all()
+				m.popup(None, None, None, event.button, event.time)
+				
+		elif event.button == 2:
+			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
+			if(path != None):
+				track = self.tracks[path[0]]
+				from gtk.gdk import CONTROL_MASK, SHIFT_MASK
+				if event.state & CONTROL_MASK:
+					self.manager.playerWidget.addToJumpList(self, track, False)
+				else:
+					self.manager.playerWidget.addToJumpList(self, track, True)
+					
+					
+					
 	def on_cell_rating_changed(self, widget, path, rating):
-		#self.Liste[path][10] = IM.pixbuf_from_rating(rating)
-		Track(self.Liste[path][3]).change_rating(widget, rating)
-		#messager.diffuser('modification_note', self, ["track", self.Liste[path][3], rating])
+		#self.model[path][10] = IM.pixbuf_from_rating(rating)
+		self.tracks[path[0]].change_rating(widget, rating)
+		#messager.diffuser('modification_note', self, ["track", self.model[path][3], rating])
 	
 	def on_column_clicked(self, column):
 		def disable_sorting_state():
 			time.sleep(2.0)
-			self.Liste.set_sort_column_id(-2, 0)
+			self.model.set_sort_column_id(-2, 0)
 			
 		a = threading.Thread(target=disable_sorting_state)
 		a.start()
 		
+	def on_drag_begin(self, treeview, dragcontext):
+		self.isMoving = True
 	
 	def on_drag_data_received(self, TV, drag_context, x, y, selection_data, info, timestamp):
 		if(selection_data.get_target() == 'text/plain'):
 			#fin d'un DND
-			self.gestionnaire.dest_row = self.TreeView.get_dest_row_at_pos(x, y)
+			self.manager.dest_row = self.TreeView.get_dest_row_at_pos(x, y)
 			
 			T = eval(selection_data.get_text()) # eval => permet de retransformer la chaîne de caractères en tableau de dictionnaires
 			#for dic in T:
@@ -609,192 +731,92 @@ class Queue(gtk.ScrolledWindow):
 				i.connect('activate', self.enregistrer)
 				m.append(i) 
 				i = gtk.MenuItem(_("Set all track to stop"))
-				i.connect('activate', self.on_stop_track_button_click, self.Liste, False)
+				i.connect('activate', self.on_stop_track_button_click, self.model, False)
 				m.append(i)
 				m.show_all()
 				m.popup(None, None, None, event.button, event.time)
 			elif(event.button == 2):
-				self.gestionnaire.fermer_onglet(None, self)
+				self.manager.closeQueue(None, self)
 			else:
 				return False
 			
+
+	def onRowDeleted(self, model, path):
+		if(self.isMoving):
+			previousPos = path[0]
+			trackMoved = self.tracks.pop(previousPos)
+			self.tracks.insert(self.newPos, trackMoved)
+			self.isMoving = False # Done moving
+		
+	def onRowInserted(self, mode, path, iter):
+		if(self.isMoving):
+			self.newPos = path[0] - 1
+	
+	def refreshView(self, track):
+		'''
+			Method called by PlayerWidget, mainly to update flags
+		'''
+		font = 'normal'
+		
+		if('play' in track.flags):
+			icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
+			font = 'bold'
+		elif 'permjump' in track.flags:
+			icon = icons.MANAGER.pixbuf_from_text(str(track.priority), (18, 18))
+		elif 'tempjump' in track.flags:
+			icon = icons.MANAGER.pixbuf_from_text(str(track.priority), (18, 18), '#FFCC00', '#000', '#000')
+		else :
+			icon = None
 			
-	def on_stop_track_button_click(self, button, queue, ligne):
-		#Ajoute ou enlève un marqueur sur la piste séléctionnée
-		self.set_stop_track(ligne)
-	
-	
-	def refresh_view(self, track):
-		"""
-			A track data has just changed. Checks if we have this track and update accordingly
-			#model order :police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note
-		"""
-		iter = self.Liste.get_iter_first()
-		while(iter is not None):
-			if(self.Liste.get_value(iter, 3) == int(track.ID)):
-				self.Liste.set(iter, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
-			iter = self.Liste.iter_next(iter)
+		if 'stop' in track.flags:
+			stop_icon = gtk.ToolButton()
+			stop_icon = stop_icon.render_icon(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_BUTTON, detail=None)
+			font = 'italic'
+		else:
+			stop_icon = None
+		
+		index = self.tracks.index(track)
+		iter = self.model.get_iter(index)
+		self.model.set(iter, 0, font, 1, icon, 2, stop_icon, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
 		
 		
 	def save(self, name=None):
 		if(name == None):
 			name = self.tab_label.get_text()[1:]
 		fichier = open('playlists/' + name,'w')
-		for piste in self.Liste:
+		for piste in self.model:
 			print(piste[3])
 			fichier.write(str(piste[3]) + "\n")
 		fichier.close()
-		
 	
-	def set_stop_track(self, ligne):
-		icon = gtk.ToolButton()
-		icon = icon.render_icon(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_BUTTON, detail=None)
-		if(ligne != False):
-			if(self.Liste.get_value(ligne, 2) is None):
-				
-				self.Liste.set_value(ligne, 2, icon)
-				self.Liste.set_value(ligne, 0, 'italic')
-			else:
-				self.Liste.set_value(ligne, 2, None)
-				self.Liste.set_value(ligne, 0, 'normal')
+	
+	
+	
+	
+	def toggleStopFlag(self, track):
+		flags = track.flags
+		if 'stop' in flags:
+			flags.remove('stop')
 		else:
-			for i in xrange(len(self.Liste)):
-				ligne = self.Liste.get_iter(i)
-				self.Liste.set_value(ligne, 2, icon)
-				self.Liste.set_value(ligne, 0, 'italic')
-					
+			flags.add('stop')
+		self.refreshView(track)
 	
-	def surClicDroit(self, TreeView, event):
-		print event
-		# On vérifie que c'est bien un clic droit:
-		if event.button == 3:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(path != None):
-				queue = TreeView.get_model()
-				piste_ID = queue[path][3]
-				ligne = queue.get_iter(path)
-			if (path != None):
-				iter = queue.get_iter(path)
-				row = gtk.TreeRowReference(queue, path)
-				m = TrackMenu(piste_ID)
-				m.append(gtk.SeparatorMenuItem())
-				i = gtk.ImageMenuItem(_("Remove from queue"))
-				i.set_image(gtk.image_new_from_stock(gtk.STOCK_REMOVE, gtk.ICON_SIZE_MENU))
-				i.connect('activate', self.enlever_piste, ligne)
-				m.append(i)
-				
-				i = gtk.ImageMenuItem(_("Set stop cursor"))
-				i.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_MENU))
-				i.connect('activate', self.on_stop_track_button_click, queue, ligne)
-				m.append(i)
-				
-				i = gtk.ImageMenuItem(_("Add to perm jump list"))
-				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18))))
-				i.connect('activate', self.gestionnaire.addToDirectList, row)
-				m.append(i)
-				
-				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18), '#FFCC00', '#000', '#000')
-				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18))
-				i = gtk.ImageMenuItem(_("Add to temp jump list"))
-				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18), '#FFCC00', '#000', '#000')))
-				i.connect('activate', self.gestionnaire.addToDirectList, row, True)
-				m.append(i)
-				
-				
-				# *** BRIDGES ***
-				j = 0
-				done = False
-				dic = self.gestionnaire.bridges_src
-				
-				while(not done and j < len(dic.keys())):
-					
-					ref = dic[dic.keys()[j]]
-
-					if(ref.get_path() == path and ref.get_model() == self.Liste): 
-						done = True
-					else:
-						j += 1
-				if(done):
-					def remove_bridge_src(*args):
-						self.gestionnaire.bridges_src.pop(key)
-						self.Liste[path][12] = None
-						self.Liste[path][1] = None
-					key = dic.keys()[j]
-					i = gtk.ImageMenuItem(_("Unset bridge source"))
-					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
-					i.connect('activate', remove_bridge_src)
-				else:
-					def add_bridge_src(*args):
-						self.gestionnaire.bridges_src[letter] = gtk.TreeRowReference(self.Liste, path)
-						self.Liste[path][12] = letter
-						self.Liste[path][1] = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
-					
-					letter = chr(65 + len(dic))
-					icon = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
-					i = gtk.ImageMenuItem(_("Add bridge source"))
-					i.set_image(gtk.image_new_from_pixbuf(icon))
-					i.connect('activate', add_bridge_src)
-				m.append(i)
-				
-				j = 0
-				done = False
-				dic = self.gestionnaire.bridges_dest
-				
-				while(not done and j < len(dic.keys())):
-					
-					ref = dic[dic.keys()[j]]
-
-					if(ref.get_path() == path and ref.get_model() == self.Liste): 
-						done = True
-					else:
-						j += 1
-				if(done):
-					def remove_bridge_dest(*args):
-						self.gestionnaire.bridges_dest.pop(key)
-						self.Liste[path][1] = None
-						
-					key = dic.keys()[j]
-					i = gtk.ImageMenuItem(_("Unset bridge dest"))
-					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
-					i.connect('activate', remove_bridge_dest)
-				else:
-					def add_bridge_dest(*args):
-						self.gestionnaire.bridges_dest[letter] = gtk.TreeRowReference(self.Liste, path)
-						self.Liste[path][1] = icon
-					
-					letter = chr(65 + len(dic))
-					icon = icons.MANAGER.pixbuf_from_text('← ' + letter, (24, 18), '#CC2EFA')
-					i = gtk.ImageMenuItem(_("Add bridge dest"))
-					i.set_image(gtk.image_new_from_pixbuf(icon))
-					i.connect('activate', add_bridge_dest)
-					
-				
-					
-				#if(iter in self.gestionnaire.bridges_src.values):
-
-				#else:
-					#i = gtk.ImageMenuItem(_("Add to temp jump list"))
-					#i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text('A'), (18, 18), '#FFCC00', '#000', '#000')))
-					#i.connect('activate', self.gestionnaire.addToDirectList, queue, ligne, True)
-				m.append(i)
-				
-				m.show_all()
-				m.popup(None, None, None, event.button, event.time)
-		elif event.button == 2:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(path != None):
-				queue = TreeView.get_model()
-				row = gtk.TreeRowReference(queue, path)
-				from gtk.gdk import CONTROL_MASK, SHIFT_MASK
-				if event.state & CONTROL_MASK:
-					self.gestionnaire.addToDirectList(None, row, False)
-				else:
-					self.gestionnaire.addToDirectList(None, row, True)
+	
+	def updateView(self, track):
+		"""
+			A track data has just changed in the whole system. Checks if we have this track and update accordingly
+			#model order :police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note
+		"""
+		iter = self.model.get_iter_first()
+		while(iter is not None):
+			if(self.model.get_value(iter, 3) == int(track.ID)):
+				self.model.set(iter, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
+			iter = self.model.iter_next(iter)
 
 
 class Playlist(Queue):
-	def __init__(self, gestionnaire, label):
-		Queue.__init__(self, gestionnaire, label)
+	def __init__(self, manager, label):
+		Queue.__init__(self, manager, label)
 		
 	def setModified(self, model, path, i):
 		if(self.modified == False):

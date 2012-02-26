@@ -7,13 +7,15 @@ class AbstractPlayerWidget(object):
 	def __init__(self, player):
 		# ------- Data attributes ---------
 		self.jumpList = []
+		self.bridgesSrc = {}
+		self.bridgesDest = {}
 		self.currentTrack = None
 		self.currentQueue = None
 		self.currentJumpTrack = None
 		self.player = player
 		self.player.addConnectedWidget(self)
 		
-	def addToJumpList(self, queue, track, temp):
+	def addToJumpList(self, queue, track, temp=False):
 		# First we check that the jumpTrack is not already here
 		jt = JumpTrack(queue, track, temp)
 		i = 0
@@ -30,7 +32,9 @@ class AbstractPlayerWidget(object):
 				track.flags.add('permjump')
 			
 		track.priority = i+1
-				
+		queue.refreshView(track)
+
+		
 	def cleanPlayFlag(self):
 		if self.currentJumpTrack != None and self.currentJumpTrack.temp:
 			self.currentJumpTrack.track.flags.remove('play')
@@ -42,7 +46,8 @@ class AbstractPlayerWidget(object):
 			except KeyError:
 				pass
 		
-
+	def getCurrents(self):
+		return (self.currentQueue, self.currentTrack)
 
 	def play(self):
 		if self.currentJumpTrack == None:
@@ -96,13 +101,14 @@ class AbstractPlayerWidget(object):
 			if 'stop' not in self.currentTrack.flags:
 				# First, process potential jump track
 				if not self.playJumpTrack(): # No jump track, just play next track under this one 
-					self.currentTrack = self.currentQueue.model.getNextTrack(self.currentTrack)
+					self.currentTrack = self.currentQueue.getNextTrack(self.currentTrack)
 					if self.currentTrack is None:
 						self.stop()
 					else:
 						self.play()
 			else:
 				self.currentTrack.flags.remove('stop');
+				self.currentQueue.refreshView(self.currentTrack)
 				self.stop()
 	
 	def playPreviousTrack(self):

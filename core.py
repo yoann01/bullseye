@@ -11,6 +11,10 @@ class Core(gobject.GObject):
 		TODO setting is maximised
 		TODO verifier l'existence des fichiers
 		TODO possibilité de supprimer les fichiers
+		
+		TODO scroll to current
+		TODO filter
+		TODO stop flag when temp
 	"""
 	
 	__gsignals__ = { "module-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str,))
@@ -252,7 +256,7 @@ class Core(gobject.GObject):
 		self.queueManager = QueueManager(playerWidget)
 		
 		NB_PanelM = gtk.Notebook()
-		self.library_panel = LibraryPanel(self.BDD)
+		self.library_panel = LibraryPanel(self.BDD, self.queueManager)
 		self.playlists_panel = Playlists_Panel()
 		NB_PanelM.append_page(self.library_panel, gtk.Label(_("Library")))
 		NB_PanelM.append_page(self.playlists_panel, gtk.Label(_("Playlists")))
