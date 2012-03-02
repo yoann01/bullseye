@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import logging
 import threading
-from common import messager
+from common import messager, xdg
 from data.bdd import BDD
 
 logger = logging.getLogger(__name__)
@@ -137,25 +137,42 @@ class QueuedTrack(Track):
 class Container():
 	"""
 		Either a category or a universe
+		Categories are "form container" whereas universes are "content container"
+		container_type (universe, container)
+		type = module (images, videos, etc...)
 		TODO delete recursive
 	"""
-	def __init__(self, container_type, type, ID):
-		ID = str(ID)
-		query = "SELECT * FROM " + container_type + "_" + type + "s WHERE " + container_type + "_ID = " + ID
-		data = bdd.execute_and_return(query)
+	def __init__(self, data, container_type, module):
+		if(type(data).__name__ == 'int'):
+			ID = str(data)
+			query = "SELECT * FROM " + container_type + "_" + module + "s WHERE " + container_type + "_ID = " + ID
+			data = bdd.execute_and_return(query)
 		
 		self.ID = data[0]
 		self.label = data[1]
 		self.parent_ID = data[2]
 		self.thumbnail_ID = data[3]
-		self.type = type
+		self.module = module
 		self.container_type = container_type
+		
+	def __str__(self):
+		return self.label + ' (' + self.container_type + ')'
+	
 	
 	def delete(self):
-		bdd.execute('DELETE FROM ' + self.container_type + '_' + self.type + 's WHERE ' + self.container_type + '_ID = ?', (self.ID,))
+		bdd.execute('DELETE FROM ' + self.container_type + '_' + self.module + 's WHERE ' + self.container_type + '_ID = ?', (self.ID,))
 		
+	
+	def getThumbnailPath(self, size='128'):
+		if(self.thumbnail_ID != 0):
+			thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
+			path = thumbnail_path + str(self.thumbnail_ID) + '.jpg'
+		else:
+			path = 'icons/artist.png'
+		return path
+	
 	def set_thumbnail_ID(self, element_ID):
-		query = 'UPDATE ' + self.container_type + '_' + self.type + 's SET thumbnail_ID = ? WHERE ' + self.container_type + '_ID = ?'
+		query = 'UPDATE ' + self.container_type + '_' + self.module + 's SET thumbnail_ID = ? WHERE ' + self.container_type + '_ID = ?'
 		t = (element_ID, self.ID)
 		bdd.execute(query, t)
 		

@@ -97,7 +97,7 @@ class MenuSpecialItem(gtk.Menu):
 			container_ID = self.element.c_ID
 		else:
 			container_ID = self.element.u_ID
-		container = elements.Container(container_type, self.type_fichier, container_ID)
+		container = elements.Container(container_ID, container_type, self.type_fichier)
 		container.set_thumbnail_ID(self.element.ID)
 	
 	def move(self, *args):
@@ -121,7 +121,7 @@ class MenuCU(gtk.Menu):
 		elif(container_type == 'c'):
 			container_type = 'categorie'
 		if(container_type != 'unknown'):
-			self.container = elements.Container(container_type, self.type_fichier, id)
+			self.container = elements.Container(id, container_type, self.type_fichier)
 		gtk.Menu.__init__(self)
 		
 		i = gtk.ImageMenuItem(_("Add an universe"))

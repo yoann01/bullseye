@@ -35,7 +35,7 @@ class QueueManager(QtGui.QTabWidget):
 		# *** Visual features ***
 		self.setTabsClosable(True)
 		self.tabCloseRequested.connect(self.removeQueue)
-		addTabButton = QtGui.QPushButton('+')
+		addTabButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('list-add'), None)
 		addTabButton.setFlat(True)
 		addTabButton.released.connect(self.addQueue)
 		self.setCornerWidget(addTabButton)
@@ -284,6 +284,7 @@ class Queue(QtGui.QTableView):
 		
 		
 		
+		
 		# *** Data attributes ***
 		self.modified = False #pour les playlists enregistrées
 		self.gestionnaire = gestionnaire
@@ -303,7 +304,7 @@ class Queue(QtGui.QTableView):
 				header.moveSection(current, self.columnsPos[logical])
 				self.columnsPos[logical] = current
 			logical += 1
-		#self.setContextMenuPolicy(Qt.CustomContextMenu)
+		#self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		#self.customContextMenuRequested.connect(self.showContextMenu)
 		
 		# Column tweaks - need to be done after model is setted
@@ -320,7 +321,7 @@ class Queue(QtGui.QTableView):
 		header.setResizeMode(6, QtGui.QHeaderView.Fixed)
 		
 		self.activated.connect(self.onActivated)
-		
+		self.model.rowsMoved.connect(self.onReorder)
 			
 	def addTracks(self, tracks):
 		self.model.append(tracks)
@@ -373,6 +374,8 @@ class Queue(QtGui.QTableView):
 		# Must reimplement this otherwise the drag event is not spread
 		# But at this point the event has already been checked by dragEnterEvent
 		
+	def rowMoved(self, row, oldIndex, newIndex):
+		QtGui.QTableView.rowMoved(self, row, oldIndex, newIndex)
 		
 	def dropEvent(self, e):
 		print "DROP EVENT"
@@ -384,6 +387,30 @@ class Queue(QtGui.QTableView):
 			dic = eval(str(data.data('bullseye/library.items')))
 			bdd = BDD()
 			tracks = bdd.getTracks(dic)
+			self.model.insert(tracks, self.rowAt(e.pos().y()))
+		elif(data.hasFormat('bullseye/queue.items')):
+			indexes = self.selectedIndexes()
+			print indexes
+			movedTracks = []
+			if len(indexes) > 0:
+				targetedTrack = self.getTrackAt(self.rowAt(e.pos().y()))
+				print targetedTrack
+				first = indexes[0]
+				last = indexes[-1]
+				
+				row = -1
+				for index in indexes:
+					if(index.row() != row):
+						track = self.getTrackAt(index)
+						if(targetedTrack == track):
+							return
+						movedTracks.append(track)
+						self.model.removeTrack(track)
+						row = index.row()
+				
+				self.model.insertAfter(movedTracks, targetedTrack)
+			QtGui.QTableView.dropEvent(self, e)
+			
 		elif data.hasUrls():
 			tracks = []
 			for url in data.urls():
@@ -392,8 +419,7 @@ class Queue(QtGui.QTableView):
 				
 				if track is not None:
 					tracks.append(track)
-		
-		self.model.insert(tracks, self.rowAt(e.pos().y()))
+			self.model.insert(tracks, self.rowAt(e.pos().y()))
 		
 	
 	def enregistrer(self, button):
@@ -523,6 +549,9 @@ class Queue(QtGui.QTableView):
 	def on_stop_track_button_click(self, button, queue, ligne):
 		#Ajoute ou enlève un marqueur sur la piste séléctionnée
 		self.set_stop_track(ligne)
+		
+	def onReorder(self, sourceParent, sourceStart, sourceEnd, destinationParent, destinationRow):
+		print('ok')
 	
 	def refreshView(self, track):
 		self.model.refreshView(track)
@@ -757,6 +786,11 @@ class QueueModel(QtCore.QAbstractTableModel):
 		self.endInsertRows()
 		#self.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
 		
+	def insertAfter(self, data, track):
+		if(track != None):
+			self.insert(data, self.tracks.index(track) +1)
+		else:
+			self.append(data)
 		
 	def rowCount(self, parent):
 		return len(self.tracks)
@@ -843,6 +877,10 @@ class QueueModel(QtCore.QAbstractTableModel):
 		self.beginRemoveRows(index, 0, 1)
 		self.tracks.remove(track)
 		self.endRemoveRows()
+		
+	def remove(self, indexes):
+		self.beginRemoveRows(indexes[0], 0, len(indexes))
+		#self.tracks.
 	
 	def setData(self, index, value, role=QtCore.Qt.EditRole):
 		if(index.column() == 6):

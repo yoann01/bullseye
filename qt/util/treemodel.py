@@ -42,6 +42,12 @@ class TreeModel(QtCore.QAbstractItemModel):
         self.rootItem = TreeItem(("Title", "Summary"))
         #self.setupModelData(data.split('\n'), self.rootItem)
 
+    def append(self, parentNode, item):
+	    rowCount = self.rowCount(QtCore.QModelIndex())
+	    self.beginInsertRows(QtCore.QModelIndex(), rowCount, rowCount + 1)
+	    self.endInsertRows()
+	    return parentNode.append(item)
+    
     def columnCount(self, parent):
         if parent.isValid():
             return parent.internalPointer().columnCount()
@@ -110,7 +116,12 @@ class TreeModel(QtCore.QAbstractItemModel):
         return parentItem.childCount()
         
     def reset(self):
+	self.beginResetModel()
+	#self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
 	self.rootItem = TreeItem(("Title", "Summary"))
+	#self.endRemoveRows()
+	self.endResetModel()
+	
 
     def setupModelData(self, lines, parent):
         parents = [parent]

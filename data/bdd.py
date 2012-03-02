@@ -171,10 +171,13 @@ class BDD():
 			
 	@staticmethod
 	def saveCache():
-		f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'w')
-		for e in BDD.network_cache:
-			f.write(str(e) + "\n")
-		f.close()
+		try:
+			f = open(os.path.join(xdg.get_data_home(), 'network_cache.txt'), 'w')
+			for e in BDD.network_cache:
+				f.write(str(e) + "\n")
+			f.close()
+		except:
+			logger.debug('Error saving scrobbling cache')
 
 
 class MainBDD():
@@ -204,7 +207,7 @@ class MainBDD():
 			
 			
 		
-		BDD.initNetwork()
+		#BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')

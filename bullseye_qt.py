@@ -63,11 +63,11 @@ class Frame(QtGui.QMainWindow):
 		
 		self.setMenuBar(MenuBar())
 		self.setCentralWidget(self.NB_Main)
-		
-		self.destroyed.connect(self.onWindowDestroyed)
+
 	
 	def closeEvent(self, e):
-		self.BDD.quit()
+		from data.bdd import BDD
+		BDD.saveCache()
 		settings.MANAGER.save()
 		print 'Good bye'
 		
@@ -110,13 +110,18 @@ class Frame(QtGui.QMainWindow):
 	def loadModule(self, moduleKey):
 		self.NB_Main.removeTab(self.NB_Main.currentIndex())
 		if(moduleKey == 'pictures'):
+			from qt.uc_sections.iconselector import IconSelector
 			from qt.uc_sections.pictures.imagewidget import ImageWidget
-			self.NB_Main.addTab(ImageWidget(), _('Pictures'))
-		
-	def onWindowDestroyed(self):
-		self.BDD.quit()
-		settings.MANAGER.save()
-		print 'Good bye'
+			from qt.uc_sections.panel import UC_Panel
+			mainLayout = QtGui.QVBoxLayout()
+			layout = QtGui.QHBoxLayout()
+			layout.addWidget(UC_Panel('image', None))
+			layout.addWidget(ImageWidget())
+			mainLayout.addLayout(layout)
+			mainLayout.addWidget(IconSelector())
+			widget = QtGui.QWidget()
+			widget.setLayout(mainLayout)
+			self.NB_Main.addTab(widget, _('Pictures'))
         
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.
