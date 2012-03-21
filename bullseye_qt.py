@@ -75,7 +75,8 @@ class Frame(QtGui.QMainWindow):
 	def loadMusic(self):
 		from qt.music.musicpanel import LibraryPanel
 		from qt.music.playerwidget import PlayerWidget
-		from media.player import Player
+		#from media.player import Player
+		from media.phononplayer import Player
 		#, Playlists_Panel
 		from qt.music.queue import QueueManager
 		player = Player()
@@ -126,6 +127,7 @@ class Frame(QtGui.QMainWindow):
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.
 app = QtGui.QApplication(sys.argv)
+app.setApplicationName('Bullseye');
 print sys.argv
 gobject.threads_init()
 frame = Frame()

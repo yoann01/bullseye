@@ -7,6 +7,8 @@ import gobject
 import gettext
 import logging
 
+from operator import attrgetter
+
 
 from common import messager, settings
 
@@ -65,10 +67,9 @@ class QueueManager(gtk.VBox):
 		
 		self.pack_start(self.NoteBook)
 		self.pack_start(actionBox, False)
-		
-		
+			
 		self.NoteBook.connect('expose-event', self.redrawAddTabButton)
-		self.connect('button-release-event', self.onButtonRelease)
+		self.NoteBook.connect('button-release-event', self.onButtonRelease)
 		
 
 	def addSelection(self, tracks):
@@ -377,6 +378,7 @@ class Queue(gtk.ScrolledWindow):
 		self.TreeView.connect("key-press-event", self.executerRaccourci)
 		self.model.connect('row-deleted', self.onRowDeleted)
 		self.model.connect('row-inserted', self.onRowInserted)
+		self.model.connect('rows-reordered', self.onRowsReordered)
 		self.isMoving = False #Tell if there is currently a drag operation initiated by this TreeView
 		#On s'occupe du "label" de l'onglet
 		tab_label_box = gtk.EventBox()
@@ -450,6 +452,7 @@ class Queue(gtk.ScrolledWindow):
 		Col_Note.set_sort_column_id(11)
 
 		
+		self.columnsFields = {5:'title', 6:'album', 7:'artist', 9:'playcount', 11:'rating'}
 		
 		cols = [Col_Titre, Col_Artiste, Col_Album, Col_Count, Col_Note]
 		
@@ -748,9 +751,17 @@ class Queue(gtk.ScrolledWindow):
 			self.tracks.insert(self.newPos, trackMoved)
 			self.isMoving = False # Done moving
 		
-	def onRowInserted(self, mode, path, iter):
+	def onRowInserted(self, model, path, iter):
 		if(self.isMoving):
 			self.newPos = path[0] - 1
+			
+	def onRowsReordered(self, model, path, iter, newOrder):
+		column, order = self.model.get_sort_column_id()
+		if(order == gtk.SORT_ASCENDING):
+			reverse = False
+		else:
+			reverse = True
+		self.tracks = sorted(self.tracks, key=attrgetter(self.columnsFields[column]), reverse=reverse)
 	
 	def refreshView(self, track):
 		'''

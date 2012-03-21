@@ -1278,6 +1278,9 @@ class MainBDD():
 		task.start()
 		
 	def retrieveFromSave(self, file_path, dic):
+		'''
+			Retrieve rating from another Bullseye base
+		'''
 		query = ''
 		params = []
 		for param in dic['criterions']:
@@ -1291,4 +1294,4 @@ class MainBDD():
 		for row in c:
 			t = [row[3], row[0], row[1], row[2]]
 			t.extend(params)
-			self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?', t)
+			self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, t)

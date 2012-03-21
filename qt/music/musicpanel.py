@@ -78,9 +78,13 @@ class LibraryPanel(QtGui.QWidget):
 		modLayout.addWidget(self.modeCB, 1)
 		modLayout.addWidget(refreshButton)
 		
+		searchLine = QtGui.QLineEdit()
+		searchLine.returnPressed.connect(lambda: self.restreindre(searchLine))
+		
 		layout = QtGui.QVBoxLayout()
 		layout.addLayout(modLayout)
 		layout.addWidget(self.TreeView)
+		layout.addWidget(searchLine, 1)
 		
 		
 
@@ -286,7 +290,7 @@ class LibraryPanel(QtGui.QWidget):
 				if(niveau < len(mode)-1):
 					if ligne in self.expand[niveau]:
 						print('expand : ' + str(ligne) + ' - ' + getValueOfLevel(tracks[ligne], niveau))
-						self.expand_paths.append(self.model.get_path(child_node))
+						self.expand_paths.append(self.model.createIndex(child_node.row(), 0, child_node))
 						#self.TreeView.expand_row(self.model.get_path(fils), False)
 					ajouter_selection(child_node, niveau+1, child)
 			#if(niveau == 1):
@@ -297,10 +301,10 @@ class LibraryPanel(QtGui.QWidget):
 		
 		def expand():
 			for path in self.expand_paths:
-				self.TreeView.expand_row(path, False)
+				self.TreeView.expand(path)
 
 		def traiter_tous_les_conteneurs():
-			time.sleep(1)
+			#time.sleep(1)
 			
 			self.notLoading.wait()
 			self.notLoading.clear()
@@ -348,6 +352,8 @@ class LibraryPanel(QtGui.QWidget):
 	def mouseReleaseEvent(self, e):
 		if e.button() == Qt.MidButton:
 			i = self.TreeView.indexAt(QtCore.QPoint(e.x(), e.y()))
+			if(i.column() != 0):
+				i= i.sibling(i.row(), 0)
 			self.TreeView.setExpanded(i, not self.TreeView.isExpanded(i))
 		else:
 			QtGui.QTreeView.mouseReleaseEvent(self.TreeView, e)
@@ -422,9 +428,7 @@ class LibraryPanel(QtGui.QWidget):
 
 		
 	def restreindre(self, entry):
-		word = entry.get_text()
-		mode = self.CB.get_active_text()
-		e = threading.Event()
+		word = entry.text()
 		self.fill_model(mot=word)
 		
 		#self.model = self.BDD.fill_library_browser([self.model, mode], e)
