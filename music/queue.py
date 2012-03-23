@@ -644,7 +644,7 @@ class Queue(gtk.ScrolledWindow):
 				
 				j = 0
 				done = False
-				dic = self.manager.bridges_dest
+				dic = self.manager.playerWidget.bridgesDest
 				
 				while(not done and j < len(dic.keys())):
 					
@@ -765,7 +765,7 @@ class Queue(gtk.ScrolledWindow):
 	
 	def refreshView(self, track):
 		'''
-			Method called by PlayerWidget, mainly to update flags
+			Method called by PlayerWidget, mainly to update flags icons
 		'''
 		font = 'normal'
 		
@@ -788,7 +788,7 @@ class Queue(gtk.ScrolledWindow):
 		
 		index = self.tracks.index(track)
 		iter = self.model.get_iter(index)
-		self.model.set(iter, 0, font, 1, icon, 2, stop_icon, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
+		self.model.set(iter, 0, font, 1, icon, 2, stop_icon, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 9, track.playcount, 10, IM.pixbuf_from_rating(track.rating))
 		
 		
 	def save(self, name=None):

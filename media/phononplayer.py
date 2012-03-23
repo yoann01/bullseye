@@ -20,6 +20,12 @@ class Player(QtCore.QObject):
 		Phonon.createPath(self.player, self.audioOuptut)
 		
 		self.connectedWidgets = []
+		self.aboutToFinish.connect(self.onPlaybackEnded)
+		
+	@property
+	def percentage(self):
+		value = float(self.player.currentTime()) / float(self.player.totalTime())
+		return value
 		
 	
 	def addConnectedWidget(self, playerWidget):
@@ -61,3 +67,8 @@ class Player(QtCore.QObject):
 	
 	def is_playing(self):
 		return self.player.state() == Phonon.PlayingState
+		
+		
+	def onPlaybackEnded(self):
+		for pwidget in self.connectedWidgets:
+			pwidget.playNextTrack(True)

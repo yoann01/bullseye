@@ -48,6 +48,11 @@ class IconSelector(gtk.IconView):
 		
 		self.openElement = None
 		
+		self.oneRow = True
+		if(self.oneRow):
+			self.set_columns(999)
+			self.connect('scroll-event', self.onScroll)
+			self.connect('set-scroll-adjustments', self.onSetAdj)
 		
 	
 	def append_element(self, tuple):
@@ -94,6 +99,24 @@ class IconSelector(gtk.IconView):
 	def on_thumbnail_click(self, widget, i):
 		print("Vous devez redéfinir la fonction on_thumbnail_click dans la classe fille (polymorphisme)")
 	
+	
+	def onScroll(self, widget, event):
+		currentValue = self.hAdjustement.get_value()
+		if event.direction == gtk.gdk.SCROLL_UP:
+			step = -50#self.hAdjustement.get_page_increment()
+		else:
+			step = 50 #self.hAdjustement.get_page_increment()
+		newVal = currentValue + step
+
+		maxVal = self.hAdjustement.get_upper() - self.hAdjustement.get_page_size()
+		if(newVal > maxVal):
+			newVal = maxVal
+		self.hAdjustement.set_value(newVal)
+		return True
+		
+	def onSetAdj(self, widget, hadj, vadj):
+		# Used to retrieve horizontal scroll bar adjustement upon initialisation
+		self.hAdjustement = hadj
 		
 	def explication(self, widget, drag_context):
 		#Début d'un DND

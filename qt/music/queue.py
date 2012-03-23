@@ -6,6 +6,7 @@ import time
 import gobject
 import gettext
 import logging
+from operator import attrgetter
 
 
 from common import messager, settings
@@ -767,6 +768,7 @@ class QueueModel(QtCore.QAbstractTableModel):
 		QtCore.QAbstractTableModel.__init__(self, parent, *args)
 		self.setSupportedDragActions(QtCore.Qt.MoveAction)
 		self.tracks = []
+		self.columnsFields = {1:'title', 6:'album', 7:'artist', 9:'playcount', 11:'rating'}
 
 	def append(self, data):
 		self.insert(data, len(self.tracks))
@@ -887,6 +889,15 @@ class QueueModel(QtCore.QAbstractTableModel):
 			self.tracks[index.row()].rating = value
 		return True
 		print 'TODO';
+		
+	def sort(self, columnIndex, order):
+		self.layoutAboutToBeChanged.emit()
+		if(order == Qt.AscendingOrder):
+			reverse = False
+		else:
+			reverse = True
+		self.tracks = sorted(self.tracks, key=attrgetter(self.columnsFields[columnIndex]), reverse=reverse)
+		self.layoutChanged.emit()
 		
 	def supportedDropActions(self):
 		return Qt.CopyAction | Qt.MoveAction

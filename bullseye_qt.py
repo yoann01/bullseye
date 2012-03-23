@@ -73,16 +73,19 @@ class Frame(QtGui.QMainWindow):
 		
 	
 	def loadMusic(self):
+		
 		from qt.music.musicpanel import LibraryPanel
 		from qt.music.playerwidget import PlayerWidget
-		#from media.player import Player
-		from media.phononplayer import Player
+		from media.player import Player
+		#from media.phononplayer import Player
 		#, Playlists_Panel
 		from qt.music.queue import QueueManager
 		player = Player()
 		playerWidget = PlayerWidget(player)
 		
-		self.NB_Main.removeTab(self.NB_Main.currentIndex())
+		index = self.NB_Main.currentIndex()
+		self.NB_Main.removeTab(index)
+		
 		self.HPaned_Music = QtGui.QSplitter(self)
 
 		self.queueManager = QueueManager(playerWidget)
@@ -106,23 +109,29 @@ class Frame(QtGui.QMainWindow):
 		self.HPaned_Music.setStretchFactor(0,0)
 		self.HPaned_Music.setStretchFactor(1,1)
 		
-		self.NB_Main.addTab(self.HPaned_Music, _('Music'))
+		self.NB_Main.insertTab(index, self.HPaned_Music, _('Music'))
+		self.NB_Main.setCurrentIndex(index)
 		
 	def loadModule(self, moduleKey):
-		self.NB_Main.removeTab(self.NB_Main.currentIndex())
+		index = self.NB_Main.currentIndex()
+		self.NB_Main.removeTab(index)
 		if(moduleKey == 'pictures'):
-			from qt.uc_sections.iconselector import IconSelector
-			from qt.uc_sections.pictures.imagewidget import ImageWidget
+			from qt.uc_sections.iconselector import ImageSelector
+			from qt.uc_sections.pictures.imagewidget import SimpleImageWidget
 			from qt.uc_sections.panel import UC_Panel
 			mainLayout = QtGui.QVBoxLayout()
 			layout = QtGui.QHBoxLayout()
-			layout.addWidget(UC_Panel('image', None))
-			layout.addWidget(ImageWidget())
+			imageWidget = SimpleImageWidget()
+			iconSelector = ImageSelector(imageWidget)
+			layout.addWidget(UC_Panel('image', iconSelector))
+			layout.addWidget(imageWidget)
 			mainLayout.addLayout(layout)
-			mainLayout.addWidget(IconSelector())
+			mainLayout.addWidget(iconSelector)
 			widget = QtGui.QWidget()
 			widget.setLayout(mainLayout)
 			self.NB_Main.addTab(widget, _('Pictures'))
+			#self.NB_Main.insertTab(index, widget, _('Pictures'))
+			#self.NB_Main.setCurrentIndex(index)
         
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.

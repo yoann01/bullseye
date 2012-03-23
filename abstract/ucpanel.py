@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
+import os
+
 from common import messager, settings, util, xdg
 from data.bdd import BDD
-from data.elements import Container
+from data.elements import Container, SpecialElement
+
+logger = logging.getLogger(__name__)
 
 class UCPanelInterface(object):
 	'''
@@ -12,6 +17,137 @@ class UCPanelInterface(object):
 		#self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
+		
+	def enqueue(self, parameters):
+	
+		bdd = BDD()
+		mode = self.mode
+		
+		# DEPRECATED STUFF
+		#level = len(i)
+		#if(level == 2):
+			#if(section == "universe"):
+				#path_category = i[0]
+				#ID_category = self.model[path_category][0]
+				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID_category, ID])
+			#elif(section == "category"):
+				#path_universe = i[0]
+				#ID_universe = self.model[path_universe][0]
+				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID, ID_universe])
+		#else: #level = 1
+		#messager.diffuser('need_data_of', self, [self.data_type, section, ID])
+		type = self.data_type
+		#mode = data[1] # category, universe, category_and_universe or folder
+		#critere = data[2] # category_ID, universe_ID or folder path
+		
+		#def fill_selector
+		dig = True
+		condition = ' = ? '
+		
+		t = []
+		
+		query = "SELECT " + type + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + type + "s "
+
+		def dig_in(ID, query):
+			for c_ID in dic[ID]['children']:
+				query += ' OR ' + column + ' = ?'
+				t.append(c_ID)
+				dig_in(c_ID, query)
+			return query
+
+		
+		
+		if(mode == "folder"):
+			dig = False
+			condition = ' LIKE ? '
+			column = 'dossier'
+			#t = (unicode(critere),)
+			#query += "WHERE dossier LIKE ? ORDER BY fichier"
+		elif(mode == "category"):
+			dic = self.categories
+			column = 'categorie_ID'
+		elif(mode == "universe"):
+			dic = self.universes
+			column = 'univers_ID'
+			
+		
+		first = True
+		if(parameters[column] != 0): #No need to process this if ID = 0, which means select all
+			
+			for param in parameters.iterkeys():
+				t.append(parameters[param])
+				print parameters[param]
+				if(first == True):
+					query += "WHERE (" + param + condition
+					first = False
+				else:
+					query += ' AND ' + param + condition 
+			if(dig is True and parameters[column] != 0): 
+				query = dig_in(parameters[column], query)
+			query += ')'
+		
+		# DELETE
+		#print self.filters
+		#for key in self.filters.iterkeys():
+			#t.append(self.filters[key])
+			#if(first == True):
+				#query += "WHERE " + key + condition
+				#first = False
+			#else:
+				#query += ' AND ' + key + condition 
+		query += " ORDER BY fichier"
+		
+		
+		#elif(mode == "category_and_universe"):
+			#universe_ID = data[3]
+			#t = (int(critere), universe_ID,)
+			#query += "WHERE categorie_ID = ? AND univers_ID = ? ORDER BY fichier"
+		#else:
+			#t = (unicode(critere),)
+			#query += "ORDER BY fichier"
+		
+		logger.debug(query)
+		print(t)
+		bdd.c.execute(query, t)
+		#table = []
+		thumbnail_dir = xdg.get_thumbnail_dir(self.data_type + '/128/')
+		for row in bdd.c:
+			path = unicode(row[2] + "/" + row[1])
+			print(path)
+			ID = str(row[0])
+			thumbnail_path = thumbnail_dir + ID + ".jpg"
+			
+			if not os.path.exists(thumbnail_path):
+				if(type == "image"):
+					try:
+						im = Image.open(path)
+						im.thumbnail((128, 128), Image.ANTIALIAS)
+						im.save(thumbnail_path, "JPEG")
+					except IOError:
+						thumbnail_path = 'icons/none.jpg'
+						logger.debug('IOError on thumbnail ' + path)
+				elif(type == "video"):
+					if(os.path.isfile(path)):
+						cmd = ['totem-video-thumbnailer', path, thumbnail_path]
+						ret = subprocess.call(cmd)
+					else:
+						thumbnail_path = "thumbnails/none.jpg"
+				else:
+					thumbnail_path = "thumbnails/none.jpg"
+					
+			#if os.path.exists(thumbnail_path):
+				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
+			#else:
+			# TODO thumbnail loading in selector class
+			#try:
+				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
+			#except:
+				#thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
+			#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
+			#table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
+			#self.elementSelector.append_element((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
+			self.elementSelector.append(SpecialElement(row, self.data_type, thumbnail_path))
+			#glib.idle_add(self.elementSelector.append_element, (row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
 		
 	
 	def moveToUCStructure(self, *args):

@@ -6,10 +6,15 @@ class ImageWidget(QtGui.QGraphicsView):
 		QtGui.QGraphicsView.__init__(self)
 		
 		self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
+		self.setInteractive(False)
+		self.setOptimizationFlags(QtGui.QGraphicsView.DontSavePainterState | QtGui.QGraphicsView.DontAdjustForAntialiasing)
+		print self.optimizationFlags()
+
 		scene = QtGui.QGraphicsScene(self)
 		self.pic = QtGui.QPixmap('icons/8.jpg')
 		#scene.addItem(QtGui.QGraphicsPixmapItem(pic))
 		self.image = QtGui.QGraphicsPixmapItem(self.pic)
+		#scene.addPixmap(self.pic)
 		scene.addItem(self.image)
 		self.setScene(scene)
 		self.show()
@@ -17,6 +22,12 @@ class ImageWidget(QtGui.QGraphicsView):
 		# Data attributes
 		self.zoom = 1
 		self.scaleFactor = 1.0
+		
+	def loadFile(self, path):
+		image= QtGui.QPixmap(path)
+		self.scene().setSceneRect(0, 0, image.width(), image.height())
+		self.image.setPixmap(image)
+		
 		
 	def wheelEvent(self, e):
 		#scene.addItem(QtGui.QGraphicsPixmapItem(pic))
@@ -63,6 +74,29 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		
 		self.setWidget(self.image)
 		self.scaleFactor = 1.0
+		
+	def dragEnterEvent(self, e):
+		print e
+	def dragMoveEvent(self, e):
+		print e
+		
+	def mousePressEvent(self, e):
+		self.x = e.x()
+		self.y = e.y()
+		self.vadjustment_value = self.verticalScrollBar().sliderPosition()
+		self.hadjustment_value = self.horizontalScrollBar().sliderPosition()
+		
+		QtGui.QScrollArea.mousePressEvent(self, e)
+		#drag = QtGui.QDrag(self)
+		#mimeData = QtCore.QMimeData()
+		#mimeData.setText('image/jpg')
+		#drag.setMimeData(mimeData)
+		#drag.exec_()
+		#print drag
+		
+	def mouseMoveEvent(self, e):
+		self.horizontalScrollBar().setSliderPosition(self.hadjustment_value + self.x - e.x())
+		self.verticalScrollBar().setSliderPosition(self.vadjustment_value + self.y - e.y())
 		
 	def wheelEvent(self, e):
 		print e.delta()

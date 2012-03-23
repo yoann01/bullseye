@@ -437,7 +437,7 @@ class AbstractPanel(UCPanelInterface):
 			dic[parent_node_column] = model[container_path[0:-1]][0]
 		
 		
-		dic.update(self.filters) # Update before [filters may say we're in category 2]...
+		dic.update(self.filters) # Update/Append current filters before [filters may say we're in category 2]...
 		dic[columns[type]] = ID  # ...to potentially erase after [but if we drag on category 1 then we want 1 and not 2, thus updating with filters before the final destination]
 		
 		

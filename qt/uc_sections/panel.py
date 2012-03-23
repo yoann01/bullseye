@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 icon_size = settings.get_option('pictures/panel_icon_size', 32)
 
+#class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 class AbstractPanel():
 	"""
 		TODO multi-panneaux
@@ -434,10 +435,15 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		self.universes = {}
 		
 		TreeView = QtGui.QTreeView()
+		self.TreeView = TreeView
+		self.TreeView.setAnimated(True)
+		TreeView.setExpandsOnDoubleClick(False)
+		TreeView.mouseReleaseEvent = self.mouseReleaseEvent
 		TreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		TreeView.customContextMenuRequested.connect(self.showContextMenu)
 		self.model = UCModel()
 		TreeView.setModel(self.model)
+		TreeView.activated.connect(self.onContainerActivated)
 		
 		self.modesCB = QtGui.QComboBox()
 		modesModel = QtGui.QStandardItemModel()
@@ -459,6 +465,7 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		layout.addLayout(modeBox)
 		layout.addWidget(TreeView)
 		self.setLayout(layout)
+		self.setMinimumWidth(300)
 		
 	def append(self, model, parentNode, container):
 		if(parentNode == None):
@@ -486,6 +493,21 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		print mode
 		self.processLoading(mode, self.model)
 		
+	def mouseReleaseEvent(self, e):
+		if e.button() == QtCore.Qt.MidButton:
+			i = self.TreeView.indexAt(QtCore.QPoint(e.x(), e.y()))
+			if(i.column() != 0):
+				i= i.sibling(i.row(), 0)
+			self.TreeView.setExpanded(i, not self.TreeView.isExpanded(i))
+		else:
+			QtGui.QTreeView.mouseReleaseEvent(self.TreeView, e)
+		
+	def onContainerActivated(self, index):
+		dic = index.internalPointer().getFilter()
+		self.enqueue(dic)
+		print dic
+		
+	
 	def showContextMenu(self, point):
 		TreeView = self.sender()
 		parent = TreeView.indexAt(point).internalPointer().container
@@ -775,7 +797,9 @@ class UCItem(treemodel.TreeItem):
 		dic = {}
 		item = self
 		while(item.parent() != None): # Don't  eval rootItem 
-			dic[item.type] = item.label
+			fieldKey = item.container.container_type + '_ID'
+			if(not dic.has_key(fieldKey)):
+				dic[fieldKey] = item.container.ID
 			item = item.parent()
 		return dic
 

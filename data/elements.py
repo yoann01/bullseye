@@ -16,11 +16,13 @@ logger = logging.getLogger(__name__)
 			
 
 class SpecialElement():
-	def __init__(self, type, ID):
-		self.type = type
-		ID = str(ID)
-		query = "SELECT " + type + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + type + "s WHERE " + type + "_ID = " + ID
-		data = bdd.execute_and_return(query)
+	def __init__(self, data, module, thumbnail_path=None):
+		if(type(data).__name__=='int'):
+			ID = str(data)
+			query = "SELECT " + module + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + module + "s WHERE " + module + "_ID = " + ID
+			data = bdd.execute_and_return(query)
+			
+		self.type = module
 		self.ID = str(data[0])
 		self.folder = data[2]
 		self.file = data[1]
@@ -29,6 +31,8 @@ class SpecialElement():
 		self.c_ID = data[4]
 		self.u_ID = data[5]
 		self.size = data[6]
+		
+		self.thumbnail_path = thumbnail_path
 	
 	def change_rating(self, w, new_rating):
 		query = "UPDATE " + self.type + "s SET note = " + str(new_rating) + " WHERE " + self.type + "_ID = " + self.ID
