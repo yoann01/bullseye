@@ -11,7 +11,6 @@ from PIL import Image
 
 from common import messager, settings, util, xdg
 from data.bdd import BDD
-from gui import menus
 
 
 from PySide import QtGui, QtCore
@@ -25,6 +24,7 @@ class IconSelector(QtGui.QListView):
 		QtGui.QListView.__init__(self)
 		#self.setMovement(QtGui.QListView.Free)
 		self.setViewMode(QtGui.QListView.IconMode)
+		self.setUniformItemSizes(True)
 		self.model = ThumbnailModel()
 		self.setModel(self.model)
 
@@ -45,6 +45,12 @@ class IconSelector(QtGui.QListView):
 		self.setWrapping(False)
 		self.activated.connect(self.onActivated)
 		
+	def contextMenuEvent(self, event):
+		from qt.gui.menus import  SpecialEltMenu
+		elt = self.getEltAt(self.indexAt(event.pos()).row())
+		menu = SpecialEltMenu(elt)
+		menu.show(self.mapToGlobal(event.pos()))
+		
 	def onActivated(self, index):
 		self.openElement(self.getEltAt(index.row()))
 		
@@ -56,6 +62,12 @@ class IconSelector(QtGui.QListView):
 	def getEltAt(self, i):
 		return self.model.items[i]
 		
+	def wheelEvent(self, e):
+		if e.delta() > 0:
+			self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - self.horizontalScrollBar().singleStep())
+		else:
+			self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())
+			
 class ImageSelector(IconSelector):
 	"""
 		TODO intégrer Box_Controls
@@ -84,7 +96,7 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 		if not index.isValid():
 			return None
 		elif role == QtCore.Qt.DisplayRole:
-			return item.file
+			return item.file[:20] + (item.file[20:] and '..')
 			if index.column() == 1:
 				return self.tracks[index.row()].title
 			elif index.column() == 2:

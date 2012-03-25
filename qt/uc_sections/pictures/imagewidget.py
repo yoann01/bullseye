@@ -68,8 +68,11 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		QtGui.QScrollArea.__init__(self)
 		pic = QtGui.QPixmap('icons/8.jpg')
 		self.image = QtGui.QLabel()
+		self.image.setBackgroundRole(QtGui.QPalette.Base)
+		self.setBackgroundRole(QtGui.QPalette.Dark);
 		self.image.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
-		self.image.setScaledContents(True)
+		#self.image.setScaledContents(True)
+		self.setWidgetResizable(True);
 		self.image.setPixmap(pic)
 		
 		self.setWidget(self.image)
@@ -79,6 +82,14 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		print e
 	def dragMoveEvent(self, e):
 		print e
+		
+	def loadFile(self, path):
+		pic = QtGui.QPixmap(path)
+		w = self.image.width()
+		h = self.image.height()
+		pic = pic.scaled(w, h, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+		self.image.setPixmap(pic)
+		#self.image.adjustSize()
 		
 	def mousePressEvent(self, e):
 		self.x = e.x()

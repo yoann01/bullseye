@@ -207,7 +207,7 @@ class MainBDD():
 			
 			
 		
-		#BDD.initNetwork()
+		BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
@@ -1291,7 +1291,12 @@ class MainBDD():
 		conn.row_factory = sqlite3.Row
 		c = conn.cursor()
 		c.execute('SELECT artist, album, title, note, compteur FROM tracks')
+		bigParamsArray = []
 		for row in c:
 			t = [row[3], row[0], row[1], row[2]]
 			t.extend(params)
-			self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, t)
+			bigParamsArray.append(t)
+			#self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, t)
+		self.c.executemany('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, bigParamsArray)
+		self.conn.commit()
+		conn.close()

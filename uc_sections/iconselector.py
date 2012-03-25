@@ -262,7 +262,7 @@ class ImageSelector(IconSelector):
 	
 		
 	def on_thumbnail_click(self, widget, i):
-		self.openElement = SpecialElement(self.data_type, self.liste[i][0])
+		self.openElement = SpecialElement(self.liste[i][0], self.data_type)
 		self.index = i[0]
 		try:
 			self.afficher_image()
