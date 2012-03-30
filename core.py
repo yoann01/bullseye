@@ -15,6 +15,7 @@ class Core(gobject.GObject):
 		TODO scroll to current
 		TODO filter
 		TODO stop flag when temp
+		TODO add a tableview for UC Sections + playlists
 	"""
 	
 	__gsignals__ = { "module-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str,))
@@ -114,7 +115,7 @@ class Core(gobject.GObject):
 		#Vidéo
 		if(settings.get_option('videos/enabled', False) == True):
 			Box_Video = gtk.VBox()
-			if(settings.get_option('pictures/preload', False)):
+			if(settings.get_option('videos/preload', False)):
 				self.loadModule('videos')
 			else:
 				B_loadVideos = gtk.Button(_('Load'))
@@ -203,18 +204,20 @@ class Core(gobject.GObject):
 			button.destroy()
 			backend = settings.get_option('music/playback_lib', 'GStreamer')
 			
-			if(backend == 'VLC'):
+			from uc_sections.videos.videoplayerwidget import VideoPlayerWidget
+			if(backend != 'VLC'):
 				from media import vlcplayer
-				self.videoPlayer = vlcplayer.VideoPlayer(Box_Video)
+				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
 			elif(backend == 'MPlayer'):
 				from media import mplayers
-				self.videoPlayer = mplayers.VideoPlayer(Box_Video)
+				self.videoPlayerWidget = VideoPlayerWidget(mplayers.Player())
 				#Right_music_box.pack_start(self.player, False)
 			else:
 				from media import player
-				self.videoPlayer = player.VideoPlayer(Box_Video)
+				self.videoPlayerWidget = VideoPlayerWidget(player.Player())
+				
 			#ZoneVideo = self.interface.get_object("DA_Video")
-			self._videoSelector = iconselector.VideoSelector()
+			self._videoSelector = iconselector.VideoSelector(self.videoPlayerWidget)
 			SW_IconsV = gtk.ScrolledWindow()
 			SW_IconsV.set_size_request(-1, 170)
 			SW_IconsV.add(self._videoSelector)
@@ -223,6 +226,7 @@ class Core(gobject.GObject):
 			HPaned_Video = gtk.HPaned()
 			HPaned_Video.pack1(self._videoPanel)
 			HPaned_Video.pack2(SW_IconsV)
+			Box_Video.pack_start(self.videoPlayerWidget)
 			Box_Video.pack_start(HPaned_Video, False)
 			Box_Video.show_all()
 			

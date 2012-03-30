@@ -43,6 +43,8 @@ class TreeModel(QtCore.QAbstractItemModel):
         #self.setupModelData(data.split('\n'), self.rootItem)
 
     def append(self, parentNode, item):
+	    if(parentNode is None):
+		    parentNode = self.rootItem
 	    rowCount = self.rowCount(QtCore.QModelIndex())
 	    self.beginInsertRows(QtCore.QModelIndex(), rowCount, rowCount + 1)
 	    self.endInsertRows()
@@ -159,3 +161,67 @@ class TreeModel(QtCore.QAbstractItemModel):
                 parents[-1].appendChild(TreeItem(columnData, parents[-1]))
 
             number += 1
+            
+            
+            
+            
+            
+            
+class SimpleTreeItem(TreeItem):
+	def __init__(self, parent, key, icon, label):
+		TreeItem.__init__(self, label, parent)
+		self.key = key
+		self.label = label
+		self.iconPath = icon
+		self.icon = None
+		self.subelements = []
+		
+	def __str__( self ):
+		return self.label
+		
+	def __repr__(self):
+		return self.label
+
+
+
+class SimpleTreeModel(TreeModel):
+	def __init__(self):
+		TreeModel.__init__(self)
+
+
+	def columnCount(self, parent):
+		return 1
+
+	def data(self, index, role):
+		if not index.isValid():
+			return None
+		item = index.internalPointer()
+		if role == Qt.DisplayRole:
+			if index.column() == 0:
+				return item.label
+		elif role == Qt.DecorationRole and index.column() == 0:
+			if(item.icon is None):
+				try:
+					path = self.iconPath
+					item.icon = QtGui.QPixmap(path)
+					#item.icon = item.icon.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation) #scaledToHeight(icon_size)
+						
+				except:
+					item.icon = None
+				
+			return item.icon
+		return None
+
+	#def flags(self, index):
+		#return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled
+	
+	#def headerData(self, section, orientation, role):
+		#if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+			#if section == 0:
+				#return 'Icon'
+			#elif section == 1:
+				#return 'Label'
+			#elif section == 2:
+				#return _('Count')
+			
+		#return None

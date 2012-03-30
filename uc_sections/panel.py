@@ -37,7 +37,7 @@ class AbstractPanel(UCPanelInterface):
 		UCPanelInterface.__init__(self, module)
 	
 	
-	def append(self, model, parentNode, container):
+	def append(self, model, container, parentNode):
 		def get_icon(ID, default):
 			if(ID != 0):
 				try:
@@ -396,17 +396,23 @@ class AbstractPanel(UCPanelInterface):
 				
 	def on_right_click(self, TreeView, event):
 		if event.button == 3:
+			model = TreeView.get_model()
 			try:
 				path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-				model = TreeView.get_model()
+				parentNode = model.get_iter(path)
 				id = model[path][0]
 				type = model[path][1]
 			except TypeError:
+				parentNode = None
 				id = 0
 				type = 'unknown'
 			
 			m = menus.MenuCU(type, self.data_type, id)
 			m.popup(None, None, None, event.button, event.time)
+			# WARNING connect_object remplace le premier premier user_param (ici model) par l'objet source du signal
+			#Ce sera donc le premier paramètre de la méthode appelée. Ensuite seront ajoutés les arguments classiques du signal PUIS
+			# viendra les VRAIS users params qui commencent ici avec parentNode
+			m.connect_object('container-added', self.append, model, parentNode)
 		elif event.button == 2:
 			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
 			if(TreeView.row_expanded(path)):

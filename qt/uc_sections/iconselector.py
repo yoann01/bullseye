@@ -2,10 +2,6 @@
 import threading
 import os
 import logging
-import gtk
-
-import glib
-import subprocess
 
 from PIL import Image
 
@@ -19,7 +15,7 @@ from qt.util import treemodel
 from abstract.ucpanel import UCPanelInterface 
 
 
-class IconSelector(QtGui.QListView):
+class IconViewer(QtGui.QListView):
 	def __init__(self, moduleType):
 		QtGui.QListView.__init__(self)
 		#self.setMovement(QtGui.QListView.Free)
@@ -29,7 +25,7 @@ class IconSelector(QtGui.QListView):
 		self.setModel(self.model)
 
 		self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-		self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+		#self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 		self.setHorizontalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
 		self.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
 		self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -48,16 +44,12 @@ class IconSelector(QtGui.QListView):
 	def contextMenuEvent(self, event):
 		from qt.gui.menus import  SpecialEltMenu
 		elt = self.getEltAt(self.indexAt(event.pos()).row())
-		menu = SpecialEltMenu(elt)
-		menu.show(self.mapToGlobal(event.pos()))
+		menu = SpecialEltMenu(elt, self.mapToGlobal(event.pos()))
+		
+	
 		
 	def onActivated(self, index):
-		self.openElement(self.getEltAt(index.row()))
-		
-	def append(self, elt):
-		self.model.append(elt)
-		print self.contentsSize().height()
-		print self.verticalScrollBar().sizeHint().height()
+		self.parent().openElement(self.getEltAt(index.row()))
 		
 	def getEltAt(self, i):
 		return self.model.items[i]
@@ -68,17 +60,72 @@ class IconSelector(QtGui.QListView):
 		else:
 			self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())
 			
-class ImageSelector(IconSelector):
-	"""
-		TODO intégrer Box_Controls
-	"""
+class AbstractIconSelector(QtGui.QWidget):
+	def __init__(self, module):
+		QtGui.QWidget.__init__(self)
+		layout = QtGui.QVBoxLayout()
+		self.iconViewer = IconViewer(module)
+		
+		buttonGroup = QtGui.QButtonGroup()
+		self.buttonBar = QtGui.QToolBar()
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('go-previous'), None, self.loadPrevious)
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('go-next'), None, self.loadNext)
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('edit-clear'), None, self.clear)
+		
+		layout.addWidget(self.iconViewer, 1)
+		layout.addWidget(self.buttonBar, 0)
+		self.setLayout(layout)
+		
+	def append(self, elt):
+		self.iconViewer.model.append(elt)
+		print self.iconViewer.contentsSize().height()
+		print self.iconViewer.verticalScrollBar().sizeHint().height()
+		
+	def clear(self):
+		self.iconViewer.model.reset()
+		
+	def loadNext(self):
+		cur = self.iconViewer.currentIndex()
+		if(cur.isValid()):
+			new = cur.sibling(cur.row()+1, cur.column())
+		else:
+			new = self.iconViewer.model.index(0, 0)
+		self.iconViewer.setCurrentIndex(new)
+		self.openElement(self.iconViewer.getEltAt(new.row()))
+		
+		
+	def loadPrevious(self):
+		cur = self.iconViewer.currentIndex()
+		if(cur.isValid()):
+			new = cur.sibling(cur.row()-1, cur.column())	
+		else:
+			new = self.iconViewer.model.lastIndex()
+		self.iconViewer.setCurrentIndex(new)
+		self.openElement(self.iconViewer.getEltAt(new.row()))
+
+		
+class ImageSelector(AbstractIconSelector):
 	def __init__(self, imageWidget):
-		IconSelector.__init__(self, 'image')
+		AbstractIconSelector.__init__(self, 'image')
 		self.imageWidget = imageWidget
+		
+		self.buttonBar.addSeparator()
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-original'), None, lambda: self.imageWidget.setMode('original'))
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-fit-best'), None, lambda: self.imageWidget.setMode('fit'))
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-in'), None)
+		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-out'), None)
 		
 	def openElement(self, elt):
 		self.imageWidget.loadFile(elt.path)
+	
+	
+class VideoSelector(AbstractIconSelector):
+	def __init__(self, playerWidget):
+		AbstractIconSelector.__init__(self, 'video')
+		self.playerWidget = playerWidget
 		
+	def openElement(self, elt):
+		self.playerWidget.player.playTrack(elt)
 		
 class ThumbnailModel(QtCore.QAbstractListModel):
 	def __init__(self):
@@ -120,6 +167,28 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 	
 	def flags(self, index):
 		return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+		
+	def lastIndex(self):
+		return self.index(len(self.items)-1, 0)
+
+	def mimeData(self, indexes):
+		'''
+			What is passed during drag operations
+		'''
+		data = QtCore.QMimeData()
+		selection = []
+		for i in indexes:
+			selection.append(self.items[i.row()].ID)
+		data.setData('bullseye/ucelements', str(selection))
+		return data
+		
+	def mimeTypes(self):
+		return ('bullseye/ucelements',)
 	
+	def reset(self):
+		self.beginResetModel()
+		self.items = []
+		self.endResetModel()
+		
 	def rowCount(self, parent):
 		return len(self.items)

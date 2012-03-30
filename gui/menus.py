@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import gobject
 import gtk
 import os
 
@@ -114,6 +115,9 @@ class MenuCU(gtk.Menu):
 	"""
 		menu popped on category or universe right click
 	"""
+	
+	__gsignals__ = { "container-added": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)) }
+	
 	def __init__(self, container_type, type_fichier, id):
 		self.type_fichier = type_fichier
 		if(container_type == 'u'):
@@ -127,12 +131,12 @@ class MenuCU(gtk.Menu):
 		i = gtk.ImageMenuItem(_("Add an universe"))
 		image = gtk.image_new_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_MENU)
 		i.set_image(image)
-		i.connect('activate', self.add_section, "universe", id)
+		i.connect_object('activate', self.add_section, "universe", id)
 		self.append(i)
 		i = gtk.ImageMenuItem(_("Add a category"))
 		image = gtk.image_new_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_MENU)
 		i.set_image(image)
-		i.connect('activate', self.add_section, "category", id)
+		i.connect_object('activate', self.add_section, "category", id)
 		self.append(i)
 		
 		i = gtk.ImageMenuItem(_("Remove"))
@@ -143,7 +147,7 @@ class MenuCU(gtk.Menu):
 		
 		self.show_all()
 		
-	def add_section(self, button, type, parent_id):
+	def add_section(self, type, parent_id):
 		dialog = gtk.Dialog(buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
                       gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 		box = dialog.get_content_area()
@@ -158,9 +162,12 @@ class MenuCU(gtk.Menu):
 		dialog.destroy()
 		if(reponse == -3): #Valider
 			if(type == "universe"):
-				messager.diffuser('new_universe', self, [self.type_fichier, section, parent_id])
+				newContainer = elements.Container.create('univers', self.type_fichier, section, parent_id)
+				#messager.diffuser('new_universe', self, [self.type_fichier, section, parent_id])
 			else:
-				messager.diffuser('new_category', self, [self.type_fichier, section, parent_id])
+				newContainer = elements.Container.create('categorie', self.type_fichier, section, parent_id)
+				#messager.diffuser('new_category', self, [self.type_fichier, section, parent_id])
+			self.emit('container-added', newContainer)
 		elif(reponse == -2): #Annuler
 			return False
 	

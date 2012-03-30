@@ -22,7 +22,7 @@ class SpecialElement():
 			query = "SELECT " + module + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + module + "s WHERE " + module + "_ID = " + ID
 			data = bdd.execute_and_return(query)
 			
-		self.type = module
+		self.module = module
 		self.ID = str(data[0])
 		self.folder = data[2]
 		self.file = data[1]
@@ -35,12 +35,12 @@ class SpecialElement():
 		self.thumbnail_path = thumbnail_path
 	
 	def change_rating(self, w, new_rating):
-		query = "UPDATE " + self.type + "s SET note = " + str(new_rating) + " WHERE " + self.type + "_ID = " + self.ID
+		query = "UPDATE " + self.module + "s SET note = " + str(new_rating) + " WHERE " + self.module + "_ID = " + self.ID
 		bdd.execute(query)
 		self.rating = new_rating
 	
 	def set_path(self, folder, file_name):
-		query = "UPDATE " + self.type + "s SET dossier = ?, fichier = ? WHERE " + self.type + "_ID = " + self.ID
+		query = "UPDATE " + self.module + "s SET dossier = ?, fichier = ? WHERE " + self.module + "_ID = " + self.ID
 		t = (folder, file_name)
 		bdd.execute(query, t)
 		self.path = folder + '/' + file_name
@@ -162,6 +162,20 @@ class Container():
 	def __str__(self):
 		return self.label + ' (' + self.container_type + ')'
 	
+	
+	def addElements(self, IDList):
+		bdd.conn.execute('UPDATE ' + self.module + 's SET ' + self.container_type + '_ID = ' + str(self.ID) + ' WHERE ' + self.module + '_ID IN (%s)' % ("?," * len(IDList))[:-1], IDList)
+		bdd.conn.commit()
+		
+	@staticmethod
+	def create(container_type, module, name, parent_ID=0):
+		t = (unicode(name), parent_ID,)
+		query = "INSERT INTO " + container_type + "_" + module + "s (" + container_type + "_L, parent_ID) VALUES(?, ?);"
+		#ex = INSERT INTO categorie_images (categorie_L) VALUES(?)
+		bdd.c.execute(query, t)
+		newID = bdd.execute_and_return("SELECT last_insert_rowid() FROM " + container_type + "_" + module + "s;")[0]
+		bdd.conn.commit()
+		return Container((newID, name, parent_ID, 0), container_type, module)
 	
 	def delete(self):
 		bdd.execute('DELETE FROM ' + self.container_type + '_' + self.module + 's WHERE ' + self.container_type + '_ID = ?', (self.ID,))

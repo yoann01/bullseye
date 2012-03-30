@@ -53,7 +53,12 @@ class Frame(QtGui.QMainWindow):
 			self.NB_Main.addTab(button, _('Pictures'))
 			
 		
-		
+		if(settings.get_option('videos/preload', False)):
+			self.loadSection('videos')
+		else:
+			button = QtGui.QPushButton('load')
+			button.clicked.connect(lambda: self.loadModule('videos'))
+			self.NB_Main.addTab(button, _('Videos'))
 		
 		
 		from qt.gui.menubar import MenuBar
@@ -118,20 +123,55 @@ class Frame(QtGui.QMainWindow):
 		if(moduleKey == 'pictures'):
 			from qt.uc_sections.iconselector import ImageSelector
 			from qt.uc_sections.pictures.imagewidget import SimpleImageWidget
-			from qt.uc_sections.panel import UC_Panel
+			from qt.uc_sections.panel import UC_Panel, UC_Panes
 			mainLayout = QtGui.QVBoxLayout()
 			layout = QtGui.QHBoxLayout()
 			imageWidget = SimpleImageWidget()
 			iconSelector = ImageSelector(imageWidget)
-			layout.addWidget(UC_Panel('image', iconSelector), 0)
+			layout.addWidget(UC_Panes('image', iconSelector), 0)
 			layout.addWidget(imageWidget, 1)
 			mainLayout.addLayout(layout, 1)
 			mainLayout.addWidget(iconSelector, 0)
+			
 			widget = QtGui.QWidget()
 			widget.setLayout(mainLayout)
-			self.NB_Main.addTab(widget, _('Pictures'))
+			#self.NB_Main.addTab(widget, _('Pictures'))
+			self.NB_Main.insertTab(index, widget, _('Pictures'))
+			self.NB_Main.setCurrentIndex(index)
+			
+		if(moduleKey == 'videos'):
+			from qt.uc_sections.iconselector import VideoSelector
+			
+			from qt.uc_sections.panel import UC_Panel
+			backend = settings.get_option('music/playback_lib', 'GStreamer')
+			
+			from qt.uc_sections.videos.videoplayerwidget import VideoPlayerWidget
+			if(backend == 'VLC'):
+				from media import vlcplayer
+				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
+			elif(backend == 'MPlayer'):
+				from media import mplayers
+				self.videoPlayerWidget = VideoPlayerWidget(mplayers.Player())
+			elif(backend == 'Phonon'):
+				from media import phononplayer
+				self.videoPlayerWidget = VideoPlayerWidget(phononplayer.Player())
+			else:
+				from media import player
+				self.videoPlayerWidget = VideoPlayerWidget(player.Player())
+				
+			mainLayout = QtGui.QVBoxLayout()
+			layout = QtGui.QHBoxLayout()
+			iconSelector = VideoSelector(self.videoPlayerWidget)
+			layout.addWidget(UC_Panel('video', iconSelector), 0)
+			layout.addWidget(self.videoPlayerWidget, 1)
+			mainLayout.addLayout(layout, 1)
+			mainLayout.addWidget(iconSelector, 0)
+			
+			widget = QtGui.QWidget()
+			widget.setLayout(mainLayout)
+			self.NB_Main.addTab(widget, _('Videos'))
 			#self.NB_Main.insertTab(index, widget, _('Pictures'))
-			#self.NB_Main.setCurrentIndex(index)
+			self.NB_Main.setCurrentIndex(index)
         
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.

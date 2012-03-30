@@ -9,9 +9,9 @@ import subprocess
 
 from PIL import Image
 
-from common import messager, settings, util, xdg
+from common import settings, util, xdg
+from data.elements import Container
 from data.bdd import BDD
-from gui import menus
 
 
 from PySide import QtGui, QtCore
@@ -24,8 +24,27 @@ logger = logging.getLogger(__name__)
 
 icon_size = settings.get_option('pictures/panel_icon_size', 32)
 
-#class AbstractPanel(UCPanelInterface, QtGui.QWidget):
-class AbstractPanel():
+class AbstractPanel(UCPanelInterface, QtGui.QWidget):
+	def __init__(self, moduleType):
+		UCPanelInterface.__init__(self, moduleType)
+		QtGui.QWidget.__init__(self)
+		
+		
+	def append(self, model, container, parentNode):
+		if(parentNode == None):
+			parentNode = model.rootItem
+		return model.append(parentNode, UCItem(parentNode, container))
+		return parentNode.append(UCItem(parentNode, container))
+		
+	def clear(self, model):
+		model.reset()
+		
+	def onContainerActivated(self, index):
+		dic = index.internalPointer().getFilter()
+		self.enqueue(dic)
+		print dic
+		
+class AbstractPlanel():
 	"""
 		TODO multi-panneaux
 		TODO rewrite folders management
@@ -33,150 +52,7 @@ class AbstractPanel():
 		INFO Categorie = forme, univers = fond
 	"""
 	
-	
-	
-		
-	@util.threaded
-	def loadFolders(self):
-		def get_parent(path, level):
-			"""
-				Ex get_parent('/home/piccolo/Downloads/Pictures/DBZ, 2) = /home/piccolo/Downloads
-			"""
-			parts = path.split('/')
-			parent = ''
-			for i in xrange(len(parts) - level):
-				parent += parts[i] + '/'
-				
-			return parent[:-1] # remove last slash
-			
-		def add_node(path):
-			"""
-				Add a folder node, and all parent folder nodes if needed
-			"""
-			parts = path.split('/')
-			s = ''
-			node = None
-			for part in parts:
-				s += part + '/'
-				if(s not in nodes.keys()):
-					nodes[s] = self.liste_dossiers.append(node, [s, part])
-				node = nodes[s]
-		
-		bdd = BDD()
-		bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.data_type + 's ORDER BY dossier')
-		
-		folders = bdd.c.fetchall()
-		#i = 0
-		#node = None
-		#parent = ''
-		nodes = {}
-		i = 0
-		#node = self.liste_dossiers.append(None, [folders[0][0], folders[0][0]])
-		#parent = folders[0][0]
-		
-		
-		while(i < len(folders)):
-			#print parent
-			#print folders[i][0]
-			#print folders[i][0].find(parent)
-			
-			# Recherche du plus proche dossier parent
-			#j = 0
-			#while(get_parent(folders[i][0], j) != get_parent(parent, j)):
-				#j += 1
-			
-			#print(get_parent(folders[i][0], j))
-			#if(folders[i][0].find(parent) != -1):
-				#self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
-			#else:
-				#parent = folders[i][0]
-				#node = self.liste_dossiers.append(None, [folders[i][0], folders[i][0]])
-			#while(i < len(folders) and folders[i][0].find(parent) != -1):
-				#self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
-				#i += 1
-			#parent = folders[i][0]
-			#node = self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
-			
-			add_node(folders[i][0])
-			i += 1
-		
-	def moveToUCStructure(self, *args):
-		"""
-			Move all indexed files to structured folders
-		"""
-		default_path = '/home/piccolo/Images/Bullseye/'
-		mode = 'category'
-		bdd = BDD()
-		type = self.data_type
-		
-		show_antagonistic = True
 
-
-		if(mode == 'category'):
-			container = 'categorie'
-			dic = self.categories
-			antagonist = 'univers'
-		elif(mode == 'universe'):
-			container = 'univers'
-			dic = self.universes
-			antagonist = 'categorie'
-		
-
-		
-		def processContainer(container_ID, root_path):
-			print root_path
-			query = 'SELECT ' + type + '_ID, dossier, fichier, size FROM ' + type + 's WHERE ' + container + '_ID = ?'
-			if(show_antagonistic):
-				query += ' AND ' + antagonist + '_ID = 1'
-			bdd.c.execute(query, (container_ID,))
-			directChildren = bdd.c.fetchall()
-			for child in directChildren:
-				new_name = child[2]
-				if((child[1] + '/' + child[2]) != (root_path + '/' + new_name)): #Do not move if paths are the same
-					i = 2
-					same = False;
-					while(os.path.isfile(root_path + '/' + new_name) and not same):
-						if(not os.path.isfile(child[1] + '/' + child[2]) and os.path.getsize(root_path + '/' + new_name) != child[3]): # Same size, assume database is not up to date, so lets move on the same place thus the database will update correctly
-							(shortname, extension) = os.path.splitext(child[2])
-							new_name = shortname + '_' + str(i) + extension
-							i += 1
-						else:
-							same = True
-					logger.debug('OLD path -> ' + child[1] + '/' + child[2] + ' | NEW path -> ' + root_path + '/' + new_name)
-					try:
-						os.renames(child[1] + '/' + child[2], root_path + '/' + new_name)
-					except OSError:
-						pass
-					bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
-			
-			if(show_antagonistic): #Elements of this container which are antagonist-setted (if category -> universe, if universe->category) will be placed in a subfolder
-				bdd.c.execute('SELECT t.' + type + '_ID, dossier, fichier, ' + antagonist + '_L, t.' + antagonist + '_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ? AND t.' + antagonist + '_ID != 1', (container_ID,))
-				children = bdd.c.fetchall()
-				for child in children:
-					new_name = child[2]
-					if((child[1] + '/' + child[2]) != (root_path + '/' + child[3] + '/' + new_name)): #move only if paths are different
-						i = 2
-						while(os.path.isfile(root_path + '/' + child[3] + '/' + new_name)):
-							(shortname, extension) = os.path.splitext(child[2])
-							new_name = shortname + '_' + str(i) + extension
-							i += 1
-						os.renames(child[1] + '/' + child[2], root_path + '/' + child[3] + '/' + new_name)
-						bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path + '/' + child[3], new_name, child[0]))
-			
-			for subContainerID in dic[container_ID]['children']:
-				bdd.c.execute('SELECT ' + container + '_L FROM ' + container + '_' + type + 's WHERE ' + container + '_ID = ?', (subContainerID,))
-				label = bdd.c.fetchone()[0]
-				processContainer(subContainerID, root_path + '/' + label)
-		
-		
-		bdd.c.execute('SELECT ' + container +'_ID, ' + container + '_L FROM ' + container + '_' + type + 's WHERE parent_ID = 0')
-		rootContainers = bdd.c.fetchall()
-		
-		for cont in rootContainers:
-			processContainer(cont[0], default_path + cont[1])
-			
-		bdd.conn.commit()
-				
 
 	@util.threaded
 	def on_container_click(self, w, i, c):
@@ -418,7 +294,7 @@ class AbstractPanel():
 		
 		return dic
 	
-class UC_Panel(UCPanelInterface, QtGui.QWidget):
+class UC_Panel(AbstractPanel):
 	"""
 		TODO multi-paneaux
 		TODO init = hotSwap(obj) [delete, init]
@@ -427,23 +303,22 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		INFO Categorie = forme, univers = fond
 	"""
 	def __init__(self, type, elementSelector):
-		QtGui.QWidget.__init__(self)
-		UCPanelInterface.__init__(self, type)
+		AbstractPanel.__init__(self, type)
 		self.data_type = type
 		self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
 		
-		TreeView = QtGui.QTreeView()
+		TreeView = ContainerBrowser()
 		self.TreeView = TreeView
-		self.TreeView.setAnimated(True)
-		TreeView.setExpandsOnDoubleClick(False)
-		TreeView.mouseReleaseEvent = self.mouseReleaseEvent
+		
 		TreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		TreeView.customContextMenuRequested.connect(self.showContextMenu)
 		self.model = UCModel()
 		TreeView.setModel(self.model)
 		TreeView.activated.connect(self.onContainerActivated)
+
+		#TreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
 		
 		self.modesCB = QtGui.QComboBox()
 		modesModel = QtGui.QStandardItemModel()
@@ -467,7 +342,7 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		self.setLayout(layout)
 		self.setMinimumWidth(300)
 		
-	def append(self, model, parentNode, container):
+	def append(self, model, container, parentNode):
 		if(parentNode == None):
 			parentNode = model.rootItem
 		return model.append(parentNode, UCItem(parentNode, container))
@@ -475,6 +350,8 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		
 	def clear(self, model):
 		model.reset()
+		
+	
 		
 	@property
 	def mode(self):
@@ -493,24 +370,21 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		print mode
 		self.processLoading(mode, self.model)
 		
-	def mouseReleaseEvent(self, e):
-		if e.button() == QtCore.Qt.MidButton:
-			i = self.TreeView.indexAt(QtCore.QPoint(e.x(), e.y()))
-			if(i.column() != 0):
-				i= i.sibling(i.row(), 0)
-			self.TreeView.setExpanded(i, not self.TreeView.isExpanded(i))
-		else:
-			QtGui.QTreeView.mouseReleaseEvent(self.TreeView, e)
+	
 		
-	def onContainerActivated(self, index):
-		dic = index.internalPointer().getFilter()
-		self.enqueue(dic)
-		print dic
+	
 		
 	
 	def showContextMenu(self, point):
 		TreeView = self.sender()
-		parent = TreeView.indexAt(point).internalPointer().container
+		index =  TreeView.indexAt(point)
+		if(index.isValid()):
+			parentNode = index.internalPointer()
+			parent = parentNode.container
+		else:
+			parentNode = self.model.rootItem
+			parent = Container([0, _('All'), 0, 0], 'category', self.data_type)
+
 		popupMenu = QtGui.QMenu( self )
 		addCategory = popupMenu.addAction(QtGui.QIcon.fromTheme('list-add'), _('Add a category'))
 		deleteContainer = popupMenu.addAction(QtGui.QIcon.fromTheme('edit-delete'), _('Delete container'))
@@ -518,158 +392,64 @@ class UC_Panel(UCPanelInterface, QtGui.QWidget):
 		if action == addCategory:
 			answer = QtGui.QInputDialog.getText(self, _('Add new container'), _('Name') + ' : ')
 			if(answer[1] is True):
-				messager.diffuser('new_category', self, [self.data_type, answer[0], parent.ID])
+				newContainer = Container.create('categorie', self.data_type, answer[0], parent.ID)
+				self.append(TreeView.model(), newContainer, parentNode)
+				self.categories[newContainer.ID] = {'label':newContainer.label, 'children':[], 'parent':newContainer.parent_ID}
 		elif action == deleteContainer:
 			answer = QtGui.QMessageBox.question(self, _('Dele container'), _('Are you sure you want to delete') + ' ' + str(parent) + '?', QtGui.QMessageBox.StandardButton.Yes | QtGui.QMessageBox.StandardButton.No)
 			if(answer == QtGui.QMessageBox.StandardButton.Yes):
 				parent.delete()
-				
-class UC_Panes(AbstractPanel, gtk.HBox):
+				self.load()
+		
+		
+
+	
+
+	
+class UC_Panes(AbstractPanel):
 	"""
-		TODO multi-paneaux
-		TODO rewrite folders management
-		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
-		INFO Categorie = forme, univers = fond
+		NOTE Categorie = forme, univers = fond
 	"""
 	def __init__(self, type, elementSelector):
+		AbstractPanel.__init__(self, type)
 		self.data_type = type
 		self.elementSelector = elementSelector
-		self.categories = {}
-		self.universes = {}
 		
-		TreeView = gtk.TreeView()
-		TreeView.set_headers_visible(False)
+		TV_folders = ContainerBrowser()
+		TV_universes = ContainerBrowser('universe')
+		TV_categories = ContainerBrowser('category')
 		
-		TV_universes = gtk.TreeView()
-		TV_categories = gtk.TreeView()
-		CB = gtk.ComboBox()
+		self.categoriesModel = UCModel()
+		self.universesModel = UCModel()
 		
-		#Ini panel dossiers
-		self.liste_dossiers = gtk.TreeStore(str, str)
-		self.loadFolders()
-		#messager.diffuser('liste_sections', self, [self.data_type, "dossier", self.liste_dossiers])
-		TreeView.set_model(self.liste_dossiers)
-		colonne = gtk.TreeViewColumn('Column 0')
-		TreeView.append_column(colonne)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		pb.set_property('stock-id', gtk.STOCK_DIRECTORY)
-		colonne.pack_start(pb, True)
-		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 1)
-		TreeView.connect("row-activated", self.on_folder_activated)
-		TreeView.connect("button-press-event", self.on_folder_click)
+		TV_categories.setModel(self.categoriesModel)
+		TV_universes.setModel(self.universesModel)
+
+
+		#self.loadFolders()
 		
-		#Ini panel catégories : container_ID, container_type, container_label, container_icon, background, foreground
-		self.categories_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		self.universes_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		#messager.diffuser('liste_sections', self, [self.data_type, "category", self.liste_sections])
+
+
 		
+		TV_categories.activated.connect(self.onContainerActivated)
+		TV_universes.activated.connect(self.onContainerActivated)
+		#TV_universes.activated.connect(lambada: self.on_container_click('universe'))
 		
-		TV_universes.set_model(self.universes_model)
-		TV_categories.set_model(self.categories_model)
-		
-		col = gtk.TreeViewColumn(_('Categories'))
-		TV_categories.append_column(col)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		col.pack_start(pb, False)
-		col.pack_start(cell, True)
-		col.add_attribute(cell, 'text', 2)
-		col.add_attribute(cell, 'cell-background', 4)
-		col.add_attribute(pb, 'cell-background', 4)
-		col.add_attribute(cell, 'foreground', 5)
-		col.add_attribute(pb, 'pixbuf', 3)
-		
-		self.columns = {}
-		self.columns["universe"] = col
-		
-		col = gtk.TreeViewColumn(_('Universes'))
-		TV_universes.append_column(col)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		col.pack_start(pb, False)
-		col.pack_start(cell, True)
-		col.add_attribute(cell, 'text', 2)
-		col.add_attribute(pb, 'pixbuf', 3)
-		col.add_attribute(cell, 'cell-background', 4)
-		col.add_attribute(pb, 'cell-background', 4)
-		
-		self.columns["category"] = col
-		
-		TV_categories.connect("row-activated", self.on_container_click, 'category')
-		TV_universes.connect("row-activated", self.on_container_click, 'universe')
-		
-		
-		TV_categories.connect("drag-data-received", self.on_drag_data_receive)
-		TV_universes.connect("drag-data-received", self.on_drag_data_receive)
-		
-		TV_categories.connect("button-press-event", self.on_right_click, 'category')
-		TV_universes.connect("button-press-event", self.on_right_click, 'universe')
-		
-		#Le TreeView sera la destination à toucher avec la souris
-		TV_categories.enable_model_drag_dest([('text/plain', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-                  
-		TV_universes.enable_model_drag_dest([('text/plain', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-		
-                  
-		#Ini panel univers
-		#liste_univers = gtk.ListStore(int, str)
-		#messager.diffuser('liste_universI', self, liste_univers)
-		#messager.inscrire(self.reload_sections, 'nouvelle_categorieI')
-		
-		LS_CB = gtk.ListStore(str, str)
-		LS_CB.append(["category", "Categories"])
-		LS_CB.append(["universe", _("Universes")])
-		LS_CB.append(["folder", _("Folders")])
-		cell = gtk.CellRendererText()
-		CB.pack_start(cell)
-		CB.add_attribute(cell, "text", 1)
-		CB.set_model(LS_CB)
-		CB.set_active(0)
-		CB.connect("changed", self.changer_mode)
-		self.CB = CB
-		
+		#TV_categories.connect("button-press-event", self.on_right_click, 'category')
+		#TV_universes.connect("button-press-event", self.on_right_click, 'universe')
+	
+	
 		self.load()
-		messager.inscrire(self.reload_sections, "new_category")
-		messager.inscrire(self.reload_sections, "new_universe")
 		
-		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
-		B_refresh.connect('clicked', self.load)
+		# --- On assemble tout graphiquement ---
+		layout = QtGui.QHBoxLayout()
 		
-		#On assemble tout graphiquement
-		gtk.HBox.__init__(self)
-		SW = gtk.ScrolledWindow()
-		SW.add(TreeView)
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		label = gtk.Label(_("Folders"))
-		self.pack_start(SW)
-		Box = gtk.VBox()
-		Box_mode = gtk.HBox()
-		Box_mode.pack_start(CB)
-		Box_mode.pack_start(B_refresh, False)
-		Box.pack_start(Box_mode, False)
+		layout.addWidget(TV_folders)
+		layout.addWidget(TV_categories)
+		layout.addWidget(TV_universes)
 		
-		Box = gtk.VBox()
-		SW = gtk.ScrolledWindow()
-		B = gtk.ToggleButton('Left')
-		B.connect('clicked', self.changeFilter)
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(TV_categories)
-		Box.pack_start(SW)
-		Box.pack_start(B, False)
-		self.pack_start(Box)
+		self.setLayout(layout)
 		
-		SW = gtk.ScrolledWindow()
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(TV_universes)
-		self.pack_start(SW)
-		
-		self.set_size_request(600, -1)
-		label = gtk.Label(_("Sections"))
-		#self.append_page(Box, label)
 		self.toggled = {'category': True, 'universe': False}
 		self.filters = {}
 		
@@ -677,11 +457,16 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		self.toggled['category'] = not self.toggled['category']
 		self.toggled['universe'] = not self.toggled['universe']
 		
+
+		
 	
 	def load(self, *args):
-		self.processLoading('category', self.categories_model, False)
-		self.processLoading('universe', self.universes_model, False)
+		self.processLoading('category', self.categoriesModel, False)
+		self.processLoading('universe', self.universesModel, False)
 		
+	def onContainerActivated(self, index):
+		self.mode = self.sender().mode
+		AbstractPanel.onContainerActivated(self, index)
 	def on_container_click(self, w, i, c, mode):
 		self.mode = mode
 		AbstractPanel.on_container_click(self, w, i, c)
@@ -776,6 +561,56 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 						nodes[row[0]] = model.append(nodes[row[2]], [row[0], antagonist[0], row[1], icon, None, None])
 
 
+class ContainerBrowser(QtGui.QTreeView):
+	def __init__(self, mode='Melted'):
+		QtGui.QTreeView.__init__(self)
+		self.setAcceptDrops(True)
+		self.setDropIndicatorShown(True)
+		self.setAnimated(True)
+		self.setExpandsOnDoubleClick(False)
+		
+		self.mode = mode
+		
+	def dragEnterEvent(self, e):
+		QtGui.QTreeView.dragEnterEvent(self, e)
+		data = e.mimeData()
+		print data.formats()
+		if data.hasFormat('bullseye/ucelements'):
+			e.accept()
+
+		
+	def dragLeaveEvent(self, e):
+		self.clearFocus()
+		
+	def dragMoveEvent(self, e):
+		QtGui.QTreeView.dragMoveEvent(self, e)
+		index = self.indexAt(e.pos())
+		if(index.isValid()):
+			self.setFocus(QtCore.Qt.MouseFocusReason)
+			self.setCurrentIndex(index)
+		e.accept()
+		#e.acceptProposedAction()
+		# Must reimplement this otherwise the drag event is not spread
+		# But at this point the event has already been checked by dragEnterEvent
+		
+	def dropEvent(self, e):
+		print "DROP EVENT"
+		data = e.mimeData()
+		print data.formats()
+		
+		if data.hasFormat('bullseye/ucelements'):
+			dic = eval(str(data.data('bullseye/ucelements')))
+			self.indexAt(e.pos()).internalPointer().container.addElements(dic)
+			
+	
+	def mouseReleaseEvent(self, e):
+		if e.button() == QtCore.Qt.MidButton:
+			i = self.indexAt(QtCore.QPoint(e.x(), e.y()))
+			if(i.column() != 0):
+				i= i.sibling(i.row(), 0)
+			self.setExpanded(i, not self.isExpanded(i))
+		else:
+			QtGui.QTreeView.mouseReleaseEvent(self, e)
 
 class UCItem(treemodel.TreeItem):
 	def __init__(self, parent, container):
@@ -828,8 +663,11 @@ class UCModel(treemodel.TreeModel):
 			return item.icon
 		return None
 
+	def dropMimeData(self, data, action, row, column, parent):
+		print 'ERIA'
+                  
 	def flags(self, index):
-		return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled
+		return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 	
 	def headerData(self, section, orientation, role):
 		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
@@ -858,3 +696,6 @@ class UCModel(treemodel.TreeModel):
 			FIXME Not used, didn't manage to find out how to automatically serialize items (thus overrided mimeData instead)
 		'''
 		return ('bullseye/library.items',)
+		
+	def supportedDropActions(self):
+		return QtCore.Qt.CopyAction | QtCore.Qt.MoveAction

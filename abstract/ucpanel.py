@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import subprocess
 
 from common import messager, settings, util, xdg
 from data.bdd import BDD
@@ -257,11 +258,11 @@ class UCPanelInterface(object):
 			nodes = {0:None}
 			
 			#  ID, letter, label, iconID
-			self.append(liste, None, Container([0, _('All'), 0, 0], container, type))
+			self.append(liste, Container([0, _('All'), 0, 0], container, type), None)
 			
 			dic[0] = {'label':None, 'children':[], 'parent':-1}
 			for cont in containers:
-				pere = self.append(liste, nodes[cont[2]], Container(cont, container, type))
+				pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
 				nodes[cont[0]] = pere
 				
 				dic[cont[0]] = {'label':cont[1], 'children':[], 'parent':cont[2]}
@@ -272,7 +273,7 @@ class UCPanelInterface(object):
 					#Add matching antagonistic (if category universe, if universe category) to node
 					query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ' + str(cont[0])
 					for row in bdd.conn.execute(query):
-						self.append(liste, pere, Container(row, antagonist, type))
+						self.append(liste, Container(row, antagonist, type), pere)
 			
 			#elif(mode == "dossier"):
 				#self.c.execute('SELECT DISTINCT dossier FROM ' + type + 's ORDER BY dossier')

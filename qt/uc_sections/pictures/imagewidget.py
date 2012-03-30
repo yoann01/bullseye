@@ -66,16 +66,17 @@ class ImageWidget(QtGui.QGraphicsView):
 class SimpleImageWidget(QtGui.QScrollArea):
 	def __init__(self):
 		QtGui.QScrollArea.__init__(self)
-		pic = QtGui.QPixmap('icons/8.jpg')
+		self.pic = QtGui.QPixmap('icons/8.jpg')
 		self.image = QtGui.QLabel()
 		self.image.setBackgroundRole(QtGui.QPalette.Base)
 		self.setBackgroundRole(QtGui.QPalette.Dark);
-		self.image.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
-		#self.image.setScaledContents(True)
-		self.setWidgetResizable(True);
-		self.image.setPixmap(pic)
+		
+		###self.image.setScaledContents(True)
+		self.setWidgetResizable(True)
+		self.image.setPixmap(self.pic)
 		
 		self.setWidget(self.image)
+		self.mode = 'zoom'
 		self.scaleFactor = 1.0
 		
 	def dragEnterEvent(self, e):
@@ -83,12 +84,19 @@ class SimpleImageWidget(QtGui.QScrollArea):
 	def dragMoveEvent(self, e):
 		print e
 		
-	def loadFile(self, path):
-		pic = QtGui.QPixmap(path)
+	def fitCurrentMode(self):
+		pic = self.pic
 		w = self.image.width()
 		h = self.image.height()
-		pic = pic.scaled(w, h, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+		if(self.mode == 'fit'):
+			pic = pic.scaled(w, h, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+		elif(self.scaleFactor != 1.0):
+			pic = pic.scaled(pic.size() * self.scaleFactor, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 		self.image.setPixmap(pic)
+		
+	def loadFile(self, path):
+		self.pic = QtGui.QPixmap(path)
+		self.fitCurrentMode()
 		#self.image.adjustSize()
 		
 	def mousePressEvent(self, e):
@@ -108,6 +116,16 @@ class SimpleImageWidget(QtGui.QScrollArea):
 	def mouseMoveEvent(self, e):
 		self.horizontalScrollBar().setSliderPosition(self.hadjustment_value + self.x - e.x())
 		self.verticalScrollBar().setSliderPosition(self.vadjustment_value + self.y - e.y())
+		
+	def setMode(self, mode):
+		if(mode == 'original'):
+			self.mode = 'zoom'
+			self.scaleFactor = 1.0
+			self.image.setSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+		else:
+			self.image.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+			self.mode = mode
+		self.fitCurrentMode()
 		
 	def wheelEvent(self, e):
 		print e.delta()
@@ -132,7 +150,9 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		
 	def scaleImage(self, factor):
 		self.scaleFactor *= factor
-		self.image.resize(self.scaleFactor * self.image.pixmap().size())
+		print self.scaleFactor
+		self.fitCurrentMode()
+		#self.image.resize(self.scaleFactor * self.image.pixmap().size())
 		#self.adjustScrollBar(self.scrollArea.horizontalScrollBar(), factor)
 		#self.adjustScrollBar(self.scrollArea.verticalScrollBar(), factor)
 		#self.zoomInAct.setEnabled(self.scaleFactor < 3.0)

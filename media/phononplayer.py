@@ -20,7 +20,7 @@ class Player(QtCore.QObject):
 		Phonon.createPath(self.player, self.audioOuptut)
 		
 		self.connectedWidgets = []
-		self.aboutToFinish.connect(self.onPlaybackEnded)
+		#self.aboutToFinish.connect(self.onPlaybackEnded)
 		
 	@property
 	def percentage(self):
@@ -72,3 +72,8 @@ class Player(QtCore.QObject):
 	def onPlaybackEnded(self):
 		for pwidget in self.connectedWidgets:
 			pwidget.playNextTrack(True)
+			
+	def getVideoWidget(self):
+		videoArea = Phonon.VideoWidget()
+		Phonon.createPath(self.player, videoArea)
+		return videoArea

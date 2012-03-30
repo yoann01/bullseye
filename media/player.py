@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import gtk
 import gst
 import os
 
@@ -133,6 +134,20 @@ class Player(object):
 			self.stop()
 			err, debug = message.parse_error()
 			print "Error: %s" % err, debug
+			
+	def on_sync_message(self, bus, message):
+		'''
+			Only used by VideoPlayers
+		'''
+		if message.structure is None:
+			return
+		message_name = message.structure.get_name()
+		if message_name == "prepare-xwindow-id":
+			imagesink = message.src
+			imagesink.set_property("force-aspect-ratio", True)
+			gtk.gdk.threads_enter()
+			imagesink.set_xwindow_id(self.xid)
+			gtk.gdk.threads_leave()
 	
 	def on_volume_change(self, widget, value):
 		self.volume = value
@@ -156,6 +171,17 @@ class Player(object):
 		self.position = int(self.duration * (float(pos) / float(100)))
 		#self._player.seek_simple(self._format, gst.SEEK_FLAG_FLUSH, )
 		
+	def setUpGtkVideo(self, widget):
+		self.xid = widget.window.xid
+		self.bus.enable_sync_message_emission()
+		self.bus.connect("sync-message::element", self.on_sync_message)
+		
+	def setUpQtVideo(self, widget):
+		self.xid = widget.winId()
+		
+		self.bus.enable_sync_message_emission()
+		self.bus.connect("sync-message::element", self.on_sync_message)
+	
 	def togglePause(self):
 		if self.is_paused():
 			self.play()

@@ -133,14 +133,17 @@ class IconSelector(gtk.IconView):
 		
 
 class VideoSelector(IconSelector):
-	def __init__(self):
+	def __init__(self, player):
 		IconSelector.__init__(self, "video")
 		self.set_text_column(2)
+		self.player = player
 			
 	def on_thumbnail_click(self, widget, i):
-		element = SpecialElement('video', self.liste[i][0])
+		element = SpecialElement(self.liste[i][0], 'video')
 		path = self.liste[i][1]
-		messager.diffuser('video_a_lire', self, element)
+		self.player.player.setUpGtkVideo(self.player.movie_window)
+		self.player.player.playTrack(element)
+
 		
 		
 		

@@ -270,7 +270,7 @@ class Queue(QtGui.QTableView):
 		
 		self.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.SelectedClicked)
 		# Visual tweaks
-		self.setAlternatingRowColors(True);
+		self.setAlternatingRowColors(True)
 		
 		
 		
@@ -868,7 +868,7 @@ class QueueModel(QtCore.QAbstractTableModel):
 			#return _('Rating')
 
 	def mimeTypes(self):
-		return ('bullseye/queue.items',)	
+		return ('bullseye/queue.items',)
 	
 	def refreshView(self, track):
 		index = self.createIndex(self.tracks.index(track), 0)

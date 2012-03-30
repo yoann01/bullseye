@@ -9,23 +9,19 @@ import sys
 from common import messager
 #gobject.threads_init()
 
+#instance = vlc.Instance()
 class Player(object):
 	
-	def __init__(self, ProgressBar, Button):
+	def __init__(self):
+		#self._player = instance.media_player_new()
 		self._player = vlc.MediaPlayer()
 		#Ne fonctionne pas, va savoir pourquoi. Bypass = trick sur le get pourcentage
 		#self._player.event_manager().event_attach(vlc.EventType.MediaPlayerEndReached, self.on_message)
 		
-		self.Button = Button
-		self.PBar = ProgressBar
 		
 		#On met en route la barre de progression
-		self.PBar = ProgressBar
-		self.PBar.add_events(gtk.gdk.BUTTON_PRESS_MASK)
-		self.PBar.add_events(gtk.gdk.BUTTON_RELEASE_MASK)
-		self.PBar.set_sensitive(False)
-		self.PBar.set_text(_("Pending..."))
-		self.PBar.connect('button-release-event', self.seek_end)
+
+		#self.PBar.connect('button-release-event', self.seek_end)
 		
 		def update_position():
 			self.PBar.set_fraction(self.pourcentage)
@@ -88,13 +84,10 @@ class Player(object):
 	position = property(fset=set_position, fget=get_position)
 		
 	
-	def lire_fichier(self, element):
-		self.PBar.set_fraction(0.0)
-		self.PBar.set_text("0:00")
-		#chemin.encode('latin-1')
-		self.load(element.path)
+	def playTrack(self, element):
+		#element.path.encode('latin-1')
+		self.load(str(element.path))
 		self.play()
-		self.Button.set_stock_id(gtk.STOCK_MEDIA_PAUSE)
 
 	def load(self, filename):
 		self._player.set_mrl(filename)
@@ -143,6 +136,22 @@ class Player(object):
 
 		self.position = value
 		self.PBar.set_fraction(value)
+		
+	def setUpGtkVideo(self, widget):
+		self.movie_window = widget
+		if sys.platform == 'win32':
+			self._player.set_hwnd(self.movie_window.window.handle)
+		else:
+			self._player.set_xwindow(self.movie_window.window.xid)
+		return True
+		
+	def setUpQtVideo(self, widget):
+		if sys.platform == "linux2": # for Linux using the X Server
+			self._player.set_xwindow(widget.winId())
+		elif sys.platform == "win32": # for Windows
+			self._player.set_hwnd(widget.winId())
+		elif sys.platform == "darwin": # for MacOS
+			self._player.set_agl(widget.windId())
 		
 	def toggle_pause(self, button):
 		if self.is_paused():
