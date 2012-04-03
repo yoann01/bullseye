@@ -1,8 +1,8 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 import sys
-from PySide import QtGui
-from common import messager, settings
+from PySide import QtCore, QtGui
+from common import settings
 from data.elements import Track
 
 #Init translation
@@ -12,6 +12,8 @@ gettext.install("bullseye")
 import gobject
 
 class Frame(QtGui.QMainWindow):
+	moduleLoaded = QtCore.Signal(str)
+	
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
 		
@@ -66,8 +68,10 @@ class Frame(QtGui.QMainWindow):
 		#layout.addWidget(self.NB_Main)
 		#self.setLayout(layout)
 		
-		self.setMenuBar(MenuBar())
+		self.setMenuBar(MenuBar(self))
 		self.setCentralWidget(self.NB_Main)
+		
+		self.managers = {} # Managers are the big widget representing a module
 
 	
 	def closeEvent(self, e):
@@ -103,10 +107,10 @@ class Frame(QtGui.QMainWindow):
 		rightLayout = QtGui.QVBoxLayout()
 		rightLayout.addWidget(self.queueManager)
 		
-		dockPlayer = QtGui.QDockWidget('Player')
-		dockPlayer.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetMovable)
-		dockPlayer.setWidget(playerWidget)
-		rightLayout.addWidget(dockPlayer)
+		#dockPlayer = QtGui.QDockWidget('Player')
+		#dockPlayer.setFeatures(QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetMovable)
+		#dockPlayer.setWidget(playerWidget)
+		rightLayout.addWidget(playerWidget)
 		rightWidget = QtGui.QWidget()
 		rightWidget.setLayout(rightLayout)
 		self.HPaned_Music.addWidget(rightWidget)
@@ -117,61 +121,25 @@ class Frame(QtGui.QMainWindow):
 		self.NB_Main.insertTab(index, self.HPaned_Music, _('Music'))
 		self.NB_Main.setCurrentIndex(index)
 		
+		self.moduleLoaded.emit('music')
+		
 	def loadModule(self, moduleKey):
+		from qt.uc_sections.manager import UCManager
+		widget = UCManager(moduleKey)
+		self.managers[moduleKey] = widget
+		
 		index = self.NB_Main.currentIndex()
 		self.NB_Main.removeTab(index)
+		
 		if(moduleKey == 'pictures'):
-			from qt.uc_sections.iconselector import ImageSelector
-			from qt.uc_sections.pictures.imagewidget import SimpleImageWidget
-			from qt.uc_sections.panel import UC_Panel, UC_Panes
-			mainLayout = QtGui.QVBoxLayout()
-			layout = QtGui.QHBoxLayout()
-			imageWidget = SimpleImageWidget()
-			iconSelector = ImageSelector(imageWidget)
-			layout.addWidget(UC_Panes('image', iconSelector), 0)
-			layout.addWidget(imageWidget, 1)
-			mainLayout.addLayout(layout, 1)
-			mainLayout.addWidget(iconSelector, 0)
-			
-			widget = QtGui.QWidget()
-			widget.setLayout(mainLayout)
-			#self.NB_Main.addTab(widget, _('Pictures'))
 			self.NB_Main.insertTab(index, widget, _('Pictures'))
 			self.NB_Main.setCurrentIndex(index)
-			
-		if(moduleKey == 'videos'):
-			from qt.uc_sections.iconselector import VideoSelector
-			
-			from qt.uc_sections.panel import UC_Panel
-			backend = settings.get_option('music/playback_lib', 'GStreamer')
-			
-			from qt.uc_sections.videos.videoplayerwidget import VideoPlayerWidget
-			if(backend == 'VLC'):
-				from media import vlcplayer
-				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
-			elif(backend == 'MPlayer'):
-				from media import mplayers
-				self.videoPlayerWidget = VideoPlayerWidget(mplayers.Player())
-			elif(backend == 'Phonon'):
-				from media import phononplayer
-				self.videoPlayerWidget = VideoPlayerWidget(phononplayer.Player())
-			else:
-				from media import player
-				self.videoPlayerWidget = VideoPlayerWidget(player.Player())
-				
-			mainLayout = QtGui.QVBoxLayout()
-			layout = QtGui.QHBoxLayout()
-			iconSelector = VideoSelector(self.videoPlayerWidget)
-			layout.addWidget(UC_Panel('video', iconSelector), 0)
-			layout.addWidget(self.videoPlayerWidget, 1)
-			mainLayout.addLayout(layout, 1)
-			mainLayout.addWidget(iconSelector, 0)
-			
-			widget = QtGui.QWidget()
-			widget.setLayout(mainLayout)
+		elif(moduleKey == 'videos'):
 			self.NB_Main.addTab(widget, _('Videos'))
 			#self.NB_Main.insertTab(index, widget, _('Pictures'))
 			self.NB_Main.setCurrentIndex(index)
+			
+		self.moduleLoaded.emit(moduleKey)
         
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.

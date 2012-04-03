@@ -34,7 +34,7 @@ class IconViewer(QtGui.QListView):
 		#self.setLayoutMode(QtGui.QListView.Batched)
 		
 		self.setSpacing(10)
-		self.setStyleSheet(' QListView::item::selected::active {border-radius:5px; background-color: palette(highlight)}')
+		self.setStyleSheet('QListView::item::selected::active {border-radius:5px; background-color: palette(highlight)}')
 		#self.setStyleSheet('QListView::icon { border-radius:10px; background-color:orange;}');
 		self.setMinimumHeight(170)
 

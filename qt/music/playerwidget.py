@@ -18,6 +18,7 @@ class PlayerWidget(AbstractPlayerWidget, QtGui.QWidget):
 		self.progressBar = QtGui.QSlider(QtCore.Qt.Horizontal)
 		self.progressBar.setTracking(False)
 		self.progressBar.valueChanged.connect(self.seekTo)
+		self.progressBar.setEnabled(False)
 		
 		self.timer = QtCore.QTimer()
 		self.timer.setInterval(1000)
@@ -42,6 +43,7 @@ class PlayerWidget(AbstractPlayerWidget, QtGui.QWidget):
 
 	def startUpdatingProgress(self):
 		self.timer.start()
+		self.progressBar.setEnabled(True)
 		self.playButton.setIcon(self.PAUSE_ICON)
 	
 	def stopUpdatingProgress(self, resetProgress=False):
@@ -49,11 +51,10 @@ class PlayerWidget(AbstractPlayerWidget, QtGui.QWidget):
 		self.playButton.setIcon(self.PLAY_ICON)
 		if resetProgress:
 			self.progressBar.setSliderPosition(0)
+			self.progressBar.setEnabled(False)
 
 	def seekTo(self, pos):
 		self.player.seekTo(pos)
 		
 	def showProgress(self):
-		self.progressBar.setSliderPosition(self.player.percentage * 100)	
-	
-			
+		self.progressBar.setSliderPosition(self.player.percentage * 100)

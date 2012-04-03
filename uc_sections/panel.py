@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import threading
 import os
 import logging
 import gtk
@@ -68,14 +67,14 @@ class AbstractPanel(UCPanelInterface):
 		
 
 		#bdd = BDD()
-		#type = self.data_type
+		#type = self.module
 		#liste.clear()
 		#if(mode != 'folder'):
 			#icon_universe = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
 			#icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
 			#icon_size = settings.get_option('pictures/panel_icon_size', 32)
 			#icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-			#thumbnail_path = xdg.get_thumbnail_dir(self.data_type + '/128/')
+			#thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
 			
 			#def get_icon(ID, default):
 				#if(ID != 0):
@@ -148,7 +147,7 @@ class AbstractPanel(UCPanelInterface):
 					#s += '/'
 					
 			#icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
-			#bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.data_type + 's ORDER BY dossier')
+			#bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
 			#folders = bdd.c.fetchall()
 			#nodes = {}
 			#i = 0
@@ -184,7 +183,7 @@ class AbstractPanel(UCPanelInterface):
 				node = nodes[s]
 		
 		bdd = BDD()
-		bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.data_type + 's ORDER BY dossier')
+		bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
 		
 		folders = bdd.c.fetchall()
 		#i = 0
@@ -242,14 +241,14 @@ class AbstractPanel(UCPanelInterface):
 			#if(section == "universe"):
 				#path_category = i[0]
 				#ID_category = self.model[path_category][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID_category, ID])
+				#messager.diffuser('need_data_of', self, [self.module, "category_and_universe", ID_category, ID])
 			#elif(section == "category"):
 				#path_universe = i[0]
 				#ID_universe = self.model[path_universe][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID, ID_universe])
+				#messager.diffuser('need_data_of', self, [self.module, "category_and_universe", ID, ID_universe])
 		#else: #level = 1
-		#messager.diffuser('need_data_of', self, [self.data_type, section, ID])
-		type = self.data_type
+		#messager.diffuser('need_data_of', self, [self.module, section, ID])
+		type = self.module
 		#mode = data[1] # category, universe, category_and_universe or folder
 		#critere = data[2] # category_ID, universe_ID or folder path
 		
@@ -324,7 +323,7 @@ class AbstractPanel(UCPanelInterface):
 		print(t)
 		bdd.c.execute(query, t)
 		#table = []
-		thumbnail_dir = xdg.get_thumbnail_dir(self.data_type + '/128/')
+		thumbnail_dir = xdg.get_thumbnail_dir(self.module + '/128/')
 		for row in bdd.c:
 			path = unicode(row[2] + "/" + row[1])
 			print(path)
@@ -368,7 +367,7 @@ class AbstractPanel(UCPanelInterface):
 
 	
 	def changer_mode(self, CB):
-		#messager.diffuser('liste_sections', CB, [self.data_type, CB.get_active_text(), self.model])
+		#messager.diffuser('liste_sections', CB, [self.module, CB.get_active_text(), self.model])
 		self.load()
 		
 	
@@ -379,12 +378,12 @@ class AbstractPanel(UCPanelInterface):
 		dic = self.what_is(numero_tuple, TreeView.get_model())
 		
 		for key in dic.iterkeys():
-			messager.diffuser('fileIN', self, [self.data_type, T_elements_ID, key, dic[key]])
+			messager.diffuser('fileIN', self, [self.module, T_elements_ID, key, dic[key]])
 
 	
 	def on_folder_activated(self, w, i, c):
 		dossier = self.liste_dossiers[i][0]
-		messager.diffuser("need_data_of", self, [self.data_type, "dossier", dossier])
+		messager.diffuser("need_data_of", self, [self.module, "dossier", dossier])
 		
 	def on_folder_click(self, TreeView, event):
 		if(event.button == 2):
@@ -407,7 +406,7 @@ class AbstractPanel(UCPanelInterface):
 				id = 0
 				type = 'unknown'
 			
-			m = menus.MenuCU(type, self.data_type, id)
+			m = menus.MenuCU(type, self.module, id)
 			m.popup(None, None, None, event.button, event.time)
 			# WARNING connect_object remplace le premier premier user_param (ici model) par l'objet source du signal
 			#Ce sera donc le premier paramètre de la méthode appelée. Ensuite seront ajoutés les arguments classiques du signal PUIS
@@ -422,7 +421,7 @@ class AbstractPanel(UCPanelInterface):
 			
 	def reload_sections(self, new_section=None):
 		self.load()
-		#messager.diffuser('liste_sections', self, [self.data_type, self.CB.get_active_text(), self.model])
+		#messager.diffuser('liste_sections', self, [self.module, self.CB.get_active_text(), self.model])
 		
 		
 	def what_is(self, container_path, model):
@@ -480,7 +479,7 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 	"""
 	def __init__(self, type, elementSelector):
 		AbstractPanel.__init__(self, type)
-		self.data_type = type
+		self.module = type
 		self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
@@ -494,7 +493,7 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		#Ini panel dossiers
 		self.liste_dossiers = gtk.TreeStore(str, str)
 		self.loadFolders()
-		#messager.diffuser('liste_sections', self, [self.data_type, "dossier", self.liste_dossiers])
+		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.liste_dossiers])
 		TreeView.set_model(self.liste_dossiers)
 		colonne = gtk.TreeViewColumn('Column 0')
 		TreeView.append_column(colonne)
@@ -509,7 +508,7 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		
 		#Ini panel catégories : container_ID, container_type, container_label, container_icon
 		self.model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		#messager.diffuser('liste_sections', self, [self.data_type, "category", self.model])
+		#messager.diffuser('liste_sections', self, [self.module, "category", self.model])
 		
 		
 		TVI.set_model(self.model)
@@ -599,9 +598,9 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
 		INFO Categorie = forme, univers = fond
 	"""
-	def __init__(self, type, elementSelector):
-		AbstractPanel.__init__(self, type)
-		self.data_type = type
+	def __init__(self, module, elementSelector):
+		AbstractPanel.__init__(self, module)
+		self.module = module
 		self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
@@ -616,7 +615,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		#Ini panel dossiers
 		self.liste_dossiers = gtk.TreeStore(str, str)
 		self.loadFolders()
-		#messager.diffuser('liste_sections', self, [self.data_type, "dossier", self.liste_dossiers])
+		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.liste_dossiers])
 		TreeView.set_model(self.liste_dossiers)
 		colonne = gtk.TreeViewColumn('Column 0')
 		TreeView.append_column(colonne)
@@ -632,7 +631,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		#Ini panel catégories : container_ID, container_type, container_label, container_icon, background, foreground
 		self.categories_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
 		self.universes_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		#messager.diffuser('liste_sections', self, [self.data_type, "category", self.model])
+		#messager.diffuser('liste_sections', self, [self.module, "category", self.model])
 		
 		
 		TV_universes.set_model(self.universes_model)
@@ -781,7 +780,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 				icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
 				icon_size = settings.get_option('pictures/panel_icon_size', 32)
 				icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-				thumbnail_path = xdg.get_thumbnail_dir(self.data_type + '/128/')
+				thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
 				
 				def get_icon(ID, default):
 					if(ID != 0):
@@ -819,7 +818,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 				
 				model.append(None, [0, antagonist[0], _('All'), None, None, None])
 				
-				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.data_type + 's t JOIN ' + antagonist + '_' + self.data_type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
+				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
 				if(id != 0):
 					query += ' WHERE ' + container + '_ID = ' + str(id)
 					self.filters[container + '_ID'] = id

@@ -147,6 +147,9 @@ class Container():
 		TODO delete recursive
 	"""
 	def __init__(self, data, container_type, module):
+		# First we make sure container_type is the right SQL word
+		container_type = self.getTrueContainerType(container_type)
+			
 		if(type(data).__name__ == 'int'):
 			ID = str(data)
 			query = "SELECT * FROM " + container_type + "_" + module + "s WHERE " + container_type + "_ID = " + ID
@@ -169,6 +172,7 @@ class Container():
 		
 	@staticmethod
 	def create(container_type, module, name, parent_ID=0):
+		container_type = Container.getTrueContainerType(container_type)
 		t = (unicode(name), parent_ID,)
 		query = "INSERT INTO " + container_type + "_" + module + "s (" + container_type + "_L, parent_ID) VALUES(?, ?);"
 		#ex = INSERT INTO categorie_images (categorie_L) VALUES(?)
@@ -188,6 +192,15 @@ class Container():
 		else:
 			path = 'icons/artist.png'
 		return path
+	
+	@staticmethod
+	def getTrueContainerType(container_type):
+		if(container_type == 'category' or container_type == 'c'):
+			container_type = 'categorie'
+		elif(container_type == 'universe' or container_type == 'u'):
+			container_type = 'univers'
+			
+		return container_type
 	
 	def set_thumbnail_ID(self, element_ID):
 		query = 'UPDATE ' + self.container_type + '_' + self.module + 's SET thumbnail_ID = ? WHERE ' + self.container_type + '_ID = ?'

@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
-import threading
 import os
 import logging
-import gtk
 
-import glib
-import subprocess
 
-from PIL import Image
 
 from common import settings, util, xdg
 from data.elements import Container
@@ -30,269 +25,55 @@ class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 		QtGui.QWidget.__init__(self)
 		
 		
-	def append(self, model, container, parentNode):
+	def append(self, model, container, parentNode=None, backgroundColor='white'):
 		if(parentNode == None):
 			parentNode = model.rootItem
-		return model.append(parentNode, UCItem(parentNode, container))
+		return model.append(parentNode, UCItem(parentNode, container, backgroundColor))
 		return parentNode.append(UCItem(parentNode, container))
 		
 	def clear(self, model):
 		model.reset()
 		
 	def onContainerActivated(self, index):
-		dic = index.internalPointer().getFilter()
+		dic = self.filters.copy()
+		dic.update(index.internalPointer().getFilter())
 		self.enqueue(dic)
 		print dic
 		
-class AbstractPlanel():
-	"""
-		TODO multi-panneaux
-		TODO rewrite folders management
-		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
-		INFO Categorie = forme, univers = fond
-	"""
-	
-
-
-	@util.threaded
-	def on_container_click(self, w, i, c):
-		'''
-			Séléctionne toutes les infos sur les fichiers du type donné (image ou video) et appartenant au conteneur data[1] (categorie_ID, univers_ID, dossier)
+	def showContextMenu(self, point):
+		TreeView = self.sender()
+		index =  TreeView.indexAt(point)
+		if(TreeView.mode == 'Melted'):
+			mode = self.mode
+		else:
+			mode = TreeView.mode
 			
-			Data[0] contient le type de données et définit donc les tables sur lesquelles on va s'appuyer
-			Data[1] contient une chaîne permettant de savoir quelle(s) section(s) est (sont) visée(s)
-		'''
-		#def process():
-		bdd = BDD()
-		parameters = self.what_is(i, w.get_model()) #section, ID
-		mode = self.mode
-		
-		level = len(i)
-		#if(level == 2):
-			#if(section == "universe"):
-				#path_category = i[0]
-				#ID_category = self.liste_sections[path_category][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID_category, ID])
-			#elif(section == "category"):
-				#path_universe = i[0]
-				#ID_universe = self.liste_sections[path_universe][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID, ID_universe])
-		#else: #level = 1
-		#messager.diffuser('need_data_of', self, [self.data_type, section, ID])
-		type = self.data_type
-		#mode = data[1] # category, universe, category_and_universe or folder
-		#critere = data[2] # category_ID, universe_ID or folder path
-		
-		#def fill_selector
-		dig = True
-		condition = ' = ? '
-		
-		t = []
-		
-		query = "SELECT " + type + "_ID, fichier, dossier, note, categorie_ID, univers_ID FROM " + type + "s "
+		if(index.isValid()):
+			parentNode = index.internalPointer()
+			parent = parentNode.container
+		else:
+			parentNode = TreeView.model().rootItem
+			parent = Container([0, _('All'), 0, 0], mode, self.module)
 
-		def dig_in(ID, query):
-			for c_ID in dic[ID]['children']:
-				query += ' OR ' + column + ' = ?'
-				t.append(c_ID)
-				dig_in(c_ID, query)
-			return query
-				
-		
-		
-		
-		if(mode == "folder"):
-			dig = False
-			condition = ' LIKE ? '
-			column = 'dossier'
-			#t = (unicode(critere),)
-			#query += "WHERE dossier LIKE ? ORDER BY fichier"
-		elif(mode == "category"):
-			dic = self.categories
-			column = 'categorie_ID'
-		elif(mode == "universe"):
-			dic = self.universes
-			column = 'univers_ID'
-			
-		
-		first = True
-		if(parameters[column] != 0): #No need to process this if ID = 0, which means select all
-			
-			for param in parameters.iterkeys():
-				t.append(parameters[param])
-				print parameters[param]
-				if(first == True):
-					query += "WHERE (" + param + condition
-					first = False
+		popupMenu = QtGui.QMenu( self )
+		addCategory = popupMenu.addAction(QtGui.QIcon.fromTheme('list-add'), _('Add a ' + mode))
+		deleteContainer = popupMenu.addAction(QtGui.QIcon.fromTheme('edit-delete'), _('Delete container'))
+		action = popupMenu.exec_(TreeView.mapToGlobal(point))
+		if action == addCategory:
+			answer = QtGui.QInputDialog.getText(self, _('Add new container'), _('Name') + ' : ')
+			if(answer[1] is True):
+				newContainer = Container.create(mode, self.module, answer[0], parent.ID)
+				self.append(TreeView.model(), newContainer, parentNode)
+				if(mode == 'category'):
+					self.categories[newContainer.ID] = {'label':newContainer.label, 'children':[], 'parent':newContainer.parent_ID}
 				else:
-					query += ' AND ' + param + condition 
-			if(dig is True and parameters[column] != 0): 
-				query = dig_in(parameters[column], query)
-			query += ')'
-		
-		# DELETE
-		#print self.filters
-		#for key in self.filters.iterkeys():
-			#t.append(self.filters[key])
-			#if(first == True):
-				#query += "WHERE " + key + condition
-				#first = False
-			#else:
-				#query += ' AND ' + key + condition 
-		query += " ORDER BY fichier"
-		
-		
-		#elif(mode == "category_and_universe"):
-			#universe_ID = data[3]
-			#t = (int(critere), universe_ID,)
-			#query += "WHERE categorie_ID = ? AND univers_ID = ? ORDER BY fichier"
-		#else:
-			#t = (unicode(critere),)
-			#query += "ORDER BY fichier"
-		
-		logger.debug(query)
-		print(t)
-		bdd.c.execute(query, t)
-		#table = []
-		thumbnail_dir = xdg.get_thumbnail_dir(self.data_type + '/128/')
-		for row in bdd.c:
-			path = unicode(row[2] + "/" + row[1])
-			print(path)
-			ID = str(row[0])
-			thumbnail_path = thumbnail_dir + ID + ".jpg"
-			
-			if not os.path.exists(thumbnail_path):
-				if(type == "image"):
-					try:
-						im = Image.open(path)
-						im.thumbnail((128, 128), Image.ANTIALIAS)
-						im.save(thumbnail_path, "JPEG")
-					except IOError:
-						thumbnail_path = 'icons/none.jpg'
-						logger.debug('IOError on thumbnail ' + path)
-				elif(type == "video"):
-					if(os.path.isfile(path)):
-						cmd = ['totem-video-thumbnailer', path, thumbnail_path]
-						ret = subprocess.call(cmd)
-					else:
-						thumbnail_path = "thumbnails/none.jpg"
-				else:
-					thumbnail_path = "thumbnails/none.jpg"
-					
-			#if os.path.exists(thumbnail_path):
-				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-			#else:
-			try:
-				thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-			except:
-				thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
-			#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
-			#table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-			#self.elementSelector.append_element((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-			glib.idle_add(self.elementSelector.append_element, (row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-		
-		#task = threading.Thread(target=process)
-		#task.start()
-		#messager.diffuser("des_" + type +"s", self, table)
-		#return table	
+					self.universes[newContainer.ID] = {'label':newContainer.label, 'children':[], 'parent':newContainer.parent_ID}
+		elif action == deleteContainer:
+			answer = QtGui.QMessageBox.question(self, _('Dele container'), _('Are you sure you want to delete') + ' ' + str(parent) + '?', QtGui.QMessageBox.StandardButton.Yes | QtGui.QMessageBox.StandardButton.No)
+			if(answer == QtGui.QMessageBox.StandardButton.Yes):
+				parent.delete()
+				self.load()
 
-	
-	def changer_mode(self, CB):
-		#messager.diffuser('liste_sections', CB, [self.data_type, CB.get_active_text(), self.liste_sections])
-		self.load()
-		
-	
-	def on_drag_data_receive(self, TreeView, drag_context, x, y, selection_data, info, timestamp):
-		#fin d'un DND
-		T_elements_ID = eval(selection_data.get_text()) # eval => permet de retransformer la chaîne de caractères en tableau
-		numero_tuple = TreeView.get_dest_row_at_pos(x, y)[0]
-		dic = self.what_is(numero_tuple, TreeView.get_model())
-		
-		for key in dic.iterkeys():
-			messager.diffuser('fileIN', self, [self.data_type, T_elements_ID, key, dic[key]])
-
-	
-	def on_folder_activated(self, w, i, c):
-		dossier = self.liste_dossiers[i][0]
-		messager.diffuser("need_data_of", self, [self.data_type, "dossier", dossier])
-		
-	def on_folder_click(self, TreeView, event):
-		if(event.button == 2):
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(TreeView.row_expanded(path)):
-				TreeView.collapse_row(path)
-			else:
-				TreeView.expand_row(path, False)
-				
-	def on_right_click(self, TreeView, event):
-		if event.button == 3:
-			try:
-				path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-				model = TreeView.get_model()
-				id = model[path][0]
-				type = model[path][1]
-			except TypeError:
-				id = 0
-				type = 'unknown'
-			
-			m = menus.MenuCU(type, self.data_type, id)
-			m.popup(None, None, None, event.button, event.time)
-		elif event.button == 2:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(TreeView.row_expanded(path)):
-				TreeView.collapse_row(path)
-			else:
-				TreeView.expand_row(path, False)
-			
-	def reload_sections(self, new_section=None):
-		self.load()
-		#messager.diffuser('liste_sections', self, [self.data_type, self.CB.get_active_text(), self.liste_sections])
-		
-		
-	def what_is(self, container_path, model):
-		#Détermine le type de section (category ou universe) d'un chemin de l'arbre des sections, ainsi que son identifiant
-		columns = {'c':'categorie_ID', 'u':'univers_ID', 'f':'dossier'}
-
-		level = len(container_path)
-		ID = model[container_path][0]
-		print model[container_path][0]
-		type = model[container_path][1][0] # A letter u, c, f
-		
-		if(type == 'f'):
-			ID = model[container_path][1][1:] + '%'
-		dic = {}
-		
-		if(len(container_path) > 1 and model[container_path[0:-1]][1][0] != type): # EX : universes matching category in same treeview
-			parent_node_column = columns[model[container_path[0:-1]][1]]
-			dic[parent_node_column] = model[container_path[0:-1]][0]
-		
-		
-		dic.update(self.filters) # Update before [filters may say we're in category 2]...
-		dic[columns[type]] = ID  # ...to potentially erase after [but if we drag on category 1 then we want 1 and not 2, thus updating with filters before the final destination]
-		
-		
-		
-		print dic
-		
-		# DEPRECATED
-		#if(mode == "category"):
-			#if(type == 'u'):
-				#dic['univers_ID'] = ID
-				#dic['categorie_ID'] = model[container_path[0:-1]][0]
-			#else:
-				#dic['categorie_ID'] = ID
-			
-		#elif(mode == "universe"):
-			#if(type == 'c'):
-				#dic['categorie_ID'] = ID
-				#dic['univers_ID'] = model[container_path[0:-1]][0]
-			#else:
-				#dic['univers_ID'] = ID
-		#elif(mode == "folder"):
-			#ID = model[container_path][1] + '%'
-			#dic['dossier'] = ID
-		
-		return dic
 	
 class UC_Panel(AbstractPanel):
 	"""
@@ -304,7 +85,7 @@ class UC_Panel(AbstractPanel):
 	"""
 	def __init__(self, type, elementSelector):
 		AbstractPanel.__init__(self, type)
-		self.data_type = type
+		self.module = type
 		self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
@@ -370,38 +151,6 @@ class UC_Panel(AbstractPanel):
 		print mode
 		self.processLoading(mode, self.model)
 		
-	
-		
-	
-		
-	
-	def showContextMenu(self, point):
-		TreeView = self.sender()
-		index =  TreeView.indexAt(point)
-		if(index.isValid()):
-			parentNode = index.internalPointer()
-			parent = parentNode.container
-		else:
-			parentNode = self.model.rootItem
-			parent = Container([0, _('All'), 0, 0], 'category', self.data_type)
-
-		popupMenu = QtGui.QMenu( self )
-		addCategory = popupMenu.addAction(QtGui.QIcon.fromTheme('list-add'), _('Add a category'))
-		deleteContainer = popupMenu.addAction(QtGui.QIcon.fromTheme('edit-delete'), _('Delete container'))
-		action = popupMenu.exec_(TreeView.mapToGlobal(point))
-		if action == addCategory:
-			answer = QtGui.QInputDialog.getText(self, _('Add new container'), _('Name') + ' : ')
-			if(answer[1] is True):
-				newContainer = Container.create('categorie', self.data_type, answer[0], parent.ID)
-				self.append(TreeView.model(), newContainer, parentNode)
-				self.categories[newContainer.ID] = {'label':newContainer.label, 'children':[], 'parent':newContainer.parent_ID}
-		elif action == deleteContainer:
-			answer = QtGui.QMessageBox.question(self, _('Dele container'), _('Are you sure you want to delete') + ' ' + str(parent) + '?', QtGui.QMessageBox.StandardButton.Yes | QtGui.QMessageBox.StandardButton.No)
-			if(answer == QtGui.QMessageBox.StandardButton.Yes):
-				parent.delete()
-				self.load()
-		
-		
 
 	
 
@@ -410,14 +159,15 @@ class UC_Panes(AbstractPanel):
 	"""
 		NOTE Categorie = forme, univers = fond
 	"""
-	def __init__(self, type, elementSelector):
-		AbstractPanel.__init__(self, type)
-		self.data_type = type
+	def __init__(self, module, elementSelector):
+		AbstractPanel.__init__(self, module)
+		self.module = module
 		self.elementSelector = elementSelector
 		
 		TV_folders = ContainerBrowser()
 		TV_universes = ContainerBrowser('universe')
 		TV_categories = ContainerBrowser('category')
+		self.TV_universes = TV_universes # FIXME
 		
 		self.categoriesModel = UCModel()
 		self.universesModel = UCModel()
@@ -429,10 +179,17 @@ class UC_Panes(AbstractPanel):
 		#self.loadFolders()
 		
 
-
+		TV_categories.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		TV_categories.customContextMenuRequested.connect(self.showContextMenu)
+		
+		TV_universes.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		TV_universes.customContextMenuRequested.connect(self.showContextMenu)
 		
 		TV_categories.activated.connect(self.onContainerActivated)
 		TV_universes.activated.connect(self.onContainerActivated)
+		
+		
+		TV_categories.clicked.connect(self.onContainerClicked)
 		#TV_universes.activated.connect(lambada: self.on_container_click('universe'))
 		
 		#TV_categories.connect("button-press-event", self.on_right_click, 'category')
@@ -448,10 +205,17 @@ class UC_Panes(AbstractPanel):
 		layout.addWidget(TV_categories)
 		layout.addWidget(TV_universes)
 		
-		self.setLayout(layout)
+		mainLayout = QtGui.QVBoxLayout()
+		
+		buttonBar = QtGui.QToolBar()
+		buttonBar.addAction(QtGui.QIcon.fromTheme('view-refresh'), None, self.load)
+		
+		mainLayout.addWidget(buttonBar, 0)
+		mainLayout.addLayout(layout, 1)
+		
+		self.setLayout(mainLayout)
 		
 		self.toggled = {'category': True, 'universe': False}
-		self.filters = {}
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
@@ -467,9 +231,16 @@ class UC_Panes(AbstractPanel):
 	def onContainerActivated(self, index):
 		self.mode = self.sender().mode
 		AbstractPanel.onContainerActivated(self, index)
-	def on_container_click(self, w, i, c, mode):
-		self.mode = mode
-		AbstractPanel.on_container_click(self, w, i, c)
+	
+	
+	def onContainerClicked(self, index):
+		self.mode = self.sender().mode
+		#AbstractPlanel.onContainerClicked(self, index)
+		if self.toggled[self.mode]:
+			index.internalPointer().background = 'yellow'
+			self.TV_universes.setStyleSheet("background-color:#A9E2F3;");
+			self.filter(index.internalPointer().container)
+		
 		
 	def on_right_click(self, TreeView, event, mode):
 		self.mode = mode
@@ -496,7 +267,7 @@ class UC_Panes(AbstractPanel):
 				icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
 				icon_size = settings.get_option('pictures/panel_icon_size', 32)
 				icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-				thumbnail_path = xdg.get_thumbnail_dir(self.data_type + '/128/')
+				thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
 				
 				def get_icon(ID, default):
 					if(ID != 0):
@@ -534,7 +305,7 @@ class UC_Panes(AbstractPanel):
 				
 				model.append(None, [0, antagonist[0], _('All'), None, None, None])
 				
-				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.data_type + 's t JOIN ' + antagonist + '_' + self.data_type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
+				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
 				if(id != 0):
 					query += ' WHERE ' + container + '_ID = ' + str(id)
 					self.filters[container + '_ID'] = id
@@ -613,11 +384,12 @@ class ContainerBrowser(QtGui.QTreeView):
 			QtGui.QTreeView.mouseReleaseEvent(self, e)
 
 class UCItem(treemodel.TreeItem):
-	def __init__(self, parent, container):
+	def __init__(self, parent, container, background='white'):
 		treemodel.TreeItem.__init__(self, container.label, parent)
 		self.container = container
 		self.subelements = []
 		self.icon = None
+		self.background = background
 		
 	def __str__( self ):
 		return self.label
@@ -630,6 +402,7 @@ class UCItem(treemodel.TreeItem):
 			ex : {"artist":"AC/DC", "album":"Back In Black", "title":"You Shook Me All Night Long"}
 		'''
 		dic = {}
+
 		item = self
 		while(item.parent() != None): # Don't  eval rootItem 
 			fieldKey = item.container.container_type + '_ID'
@@ -661,6 +434,8 @@ class UCModel(treemodel.TreeModel):
 				item.icon = item.icon.scaled(icon_size, icon_size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation) #scaledToHeight(icon_size)
 				
 			return item.icon
+		elif role == QtCore.Qt.BackgroundColorRole:
+			return QtGui.QColor(item.background)
 		return None
 
 	def dropMimeData(self, data, action, row, column, parent):

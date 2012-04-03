@@ -100,9 +100,9 @@ class BullseyeMenuBar(gtk.MenuBar):
 			box = obj.get_parent()
 			
 			if(mode == "panel"):
-				newObj = UC_Panel(obj.data_type, obj.elementSelector)
+				newObj = UC_Panel(obj.module, obj.elementSelector)
 			else:
-				newObj = UC_Panes(obj.data_type, obj.elementSelector)
+				newObj = UC_Panes(obj.module, obj.elementSelector)
 			obj.destroy()
 			box.pack_start(newObj, False)
 			newObj.show_all()

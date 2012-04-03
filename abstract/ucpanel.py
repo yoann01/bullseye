@@ -13,11 +13,12 @@ class UCPanelInterface(object):
 	'''
 		A base class inherited by both Qt & Gtk U(niverses)C(ategories)Panels classes
 	'''
-	def __init__(self, type):
-		self.data_type = type
+	def __init__(self, module):
+		self.module = module
 		#self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
+		self.filters = {}
 		
 	def enqueue(self, parameters):
 	
@@ -30,14 +31,14 @@ class UCPanelInterface(object):
 			#if(section == "universe"):
 				#path_category = i[0]
 				#ID_category = self.model[path_category][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID_category, ID])
+				#messager.diffuser('need_data_of', self, [self.module, "category_and_universe", ID_category, ID])
 			#elif(section == "category"):
 				#path_universe = i[0]
 				#ID_universe = self.model[path_universe][0]
-				#messager.diffuser('need_data_of', self, [self.data_type, "category_and_universe", ID, ID_universe])
+				#messager.diffuser('need_data_of', self, [self.module, "category_and_universe", ID, ID_universe])
 		#else: #level = 1
-		#messager.diffuser('need_data_of', self, [self.data_type, section, ID])
-		type = self.data_type
+		#messager.diffuser('need_data_of', self, [self.module, section, ID])
+		type = self.module
 		#mode = data[1] # category, universe, category_and_universe or folder
 		#critere = data[2] # category_ID, universe_ID or folder path
 		
@@ -111,7 +112,7 @@ class UCPanelInterface(object):
 		print(t)
 		bdd.c.execute(query, t)
 		#table = []
-		thumbnail_dir = xdg.get_thumbnail_dir(self.data_type + '/128/')
+		thumbnail_dir = xdg.get_thumbnail_dir(self.module + '/128/')
 		for row in bdd.c:
 			path = unicode(row[2] + "/" + row[1])
 			print(path)
@@ -147,8 +148,59 @@ class UCPanelInterface(object):
 			#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
 			#table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
 			#self.elementSelector.append_element((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-			self.elementSelector.append(SpecialElement(row, self.data_type, thumbnail_path))
+			self.elementSelector.append(SpecialElement(row, self.module, thumbnail_path))
 			#glib.idle_add(self.elementSelector.append_element, (row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
+			
+			
+	def filter(self, container):
+		'''
+			Used by Panes to filter antagonist pane with clicked pane selection
+		'''
+		backgroundColor = '#A9E2F3'
+		mode = self.mode
+		bdd = BDD()
+		self.filters.clear()
+		if(mode == 'category'):
+			containerType = 'categorie'
+			dic = self.universes
+			antagonist = 'univers'
+			model = self.universesModel
+		elif(mode == 'universe'):
+			containerType = 'univers'
+			dic = self.categories
+			antagonist = 'categorie'
+			model = self.categoriesModel
+		
+		
+		self.clear(model)
+		nodes = {0:None}
+		
+		self.append(model, Container((0, _('All'), 0, 0), antagonist, self.module), None, backgroundColor)
+		
+		query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
+		if(container.ID != 0):
+			query += ' WHERE ' + containerType + '_ID = ' + str(container.ID)
+			self.filters[containerType + '_ID'] = container.ID
+		query += ' ORDER BY parent_ID'
+		for row in bdd.conn.execute(query):
+
+			try:
+				nodes[row[0]] = self.append(model, Container(row, antagonist, self.module), nodes[row[2]], backgroundColor)
+			except KeyError:
+				# parent node missing
+				parent = row[2]
+				parents = []
+				while(parent != 0):
+					parents.append(parent)
+					parent = dic[parent]['parent']
+				
+				parents.reverse() # Sort them in the right order
+				for parent in parents:
+					# TODO icon in dic (thumbnail_ID)
+					if(parent not in nodes.keys()):
+						nodes[parent] = self.append(model, Container((parent, dic[parent]['label'], dic[parent]['parent'], 0),  antagonist, self.module), nodes[dic[parent]['parent']])
+				# Now we can add the node that caused the exception
+				nodes[row[0]] = self.append(model, Container(row, antagonist, self.module), nodes[row[2]], backgroundColor)
 		
 	
 	def moveToUCStructure(self, *args):
@@ -158,7 +210,7 @@ class UCPanelInterface(object):
 		default_path = '/home/piccolo/Images/Bullseye/'
 		mode = 'category'
 		bdd = BDD()
-		type = self.data_type
+		type = self.module
 		
 		show_antagonistic = True
 
@@ -240,7 +292,7 @@ class UCPanelInterface(object):
 		'''
 
 		bdd = BDD()
-		type = self.data_type
+		type = self.module
 		self.clear(liste)
 		
 		if(mode != 'folder'):
@@ -296,7 +348,7 @@ class UCPanelInterface(object):
 					s += '/'
 					
 			icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
-			bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.data_type + 's ORDER BY dossier')
+			bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
 			folders = bdd.c.fetchall()
 			nodes = {}
 			i = 0

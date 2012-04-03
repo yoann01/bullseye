@@ -262,7 +262,7 @@ class Queue(QtGui.QTableView):
 	'''
 		Représente une queue (onglet) d'un gestionnaire de queue.
 	'''
-	def __init__(self, gestionnaire, label):
+	def __init__(self, manager, label):
 		QtGui.QTableView.__init__(self)
 		
 		#self.setItemDelegate(StarDelegate())
@@ -288,7 +288,7 @@ class Queue(QtGui.QTableView):
 		
 		# *** Data attributes ***
 		self.modified = False #pour les playlists enregistrées
-		self.gestionnaire = gestionnaire
+		self.manager = manager
 		
 		#police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
 		self.model = QueueModel()
@@ -337,7 +337,7 @@ class Queue(QtGui.QTableView):
 	
 	def contextMenuEvent(self, event):
 		track = self.getTrackAt(self.rowAt(event.y()))
-		jumpListSize = str(len(self.gestionnaire.playerWidget.jumpList))
+		jumpListSize = str(len(self.manager.playerWidget.jumpList))
 		self.popMenu = QtGui.QMenu( self )
 		removeAction = self.popMenu.addAction(QtGui.QIcon.fromTheme('list-remove'), _('Remove from queue'))
 		stopAction = self.popMenu.addAction(QtGui.QIcon.fromTheme('media-playback-stop'), _('Set stop cursor'))
@@ -345,15 +345,57 @@ class Queue(QtGui.QTableView):
 		tempAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18), '#FFCC00', '#000', '#000')), _('Add to temp jump list'))
 		self.popMenu.addSeparator()
 		self.popMenu.addAction('José Long')
+		
+		# --- BRIDGES SOURCES ---
+		dic = self.manager.playerWidget.bridgesSrc
+		if(track.bridgeSrc != None):
+			def remove_bridge_src(*args):
+				dic.pop(track.bridgeSrc)
+				track.bridgeSrc = None
+				self.refreshView(track)
+				
+			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(track.bridgeSrc, (18, 18), '#FF0000')), _("Unset bridge source"), remove_bridge_src)
+		else:
+			def add_bridge_src(*args):
+				self.manager.playerWidget.bridgesSrc[letter] = track
+				track.bridgeSrc = letter
+				self.refreshView(track)
+			
+			letter = chr(65 + len(dic))
+			bridgeSrcAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letter + ' →', (24, 18), '#58FA58', '#000', '#000')), _("Add bridge source"), add_bridge_src)
+		
+		
+		
+		# --- BRIDGES DESTINATIONS --- 
+		dic = self.manager.playerWidget.bridgesDest
+		
+		if(track.bridgeDest != None):
+			def remove_bridge_dest(*args):
+				self.manager.playerWidget.bridgesDest.pop(track.bridgeDest)
+				track.bridgeDest = None
+				self.refreshView(track)
+				
+			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(track.bridgeDest, (18, 18), '#FF0000')), _("Unset bridge dest"), remove_bridge_dest)
+
+		else:
+			def add_bridge_dest(*args):
+				self.manager.playerWidget.bridgesDest[letter] = track
+				track.bridgeDest = letter
+				self.refreshView(track)
+			
+			letter = chr(65 + len(dic))
+			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letter, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
+			
+			
 		action = self.popMenu.exec_(self.mapToGlobal(event.pos()))
 		if action == removeAction:
 			self.model.removeTrack(track)
 		elif action == stopAction:
 			self.toggleStopFlag(track)
 		elif action == permAction:
-			self.gestionnaire.playerWidget.addToJumpList(self, track, False)
+			self.manager.playerWidget.addToJumpList(self, track, False)
 		elif action == tempAction:
-			self.gestionnaire.playerWidget.addToJumpList(self, track, True)
+			self.manager.playerWidget.addToJumpList(self, track, True)
 			
 	def dragEnterEvent(self, e):
 		data = e.mimeData()
@@ -453,7 +495,7 @@ class Queue(QtGui.QTableView):
 				#if(next):
 					#selection.select_iter(next)
 				#liste.remove(iter)
-			self.gestionnaire.cleanDirectList()
+			self.manager.cleanDirectList()
 				
 		elif(event.keyval == gtk.gdk.keyval_from_name("s")):
 			selection = self.TreeView.get_selection()
@@ -496,13 +538,13 @@ class Queue(QtGui.QTableView):
 		if e.button() == Qt.MidButton:
 			track = self.getTrackAt(self.rowAt(e.y()))
 			if Qt.ControlModifier and e.modifiers():
-				self.gestionnaire.playerWidget.addToJumpList(self, track, False)
+				self.manager.playerWidget.addToJumpList(self, track, False)
 			else:
-				self.gestionnaire.playerWidget.addToJumpList(self, track, True)
+				self.manager.playerWidget.addToJumpList(self, track, True)
 				
 	
 	def onActivated(self, i):
-		self.gestionnaire.playerWidget.playTrack(self.getTrackAt(i), self)
+		self.manager.playerWidget.playTrack(self.getTrackAt(i), self)
 	
 	def on_cell_rating_changed(self, widget, path, rating):
 		#self.Liste[path][10] = IM.pixbuf_from_rating(rating)
@@ -521,7 +563,7 @@ class Queue(QtGui.QTableView):
 	def on_drag_data_received(self, TV, drag_context, x, y, selection_data, info, timestamp):
 		if(selection_data.get_target() == 'text/plain'):
 			#fin d'un DND
-			self.gestionnaire.dest_row = self.TreeView.get_dest_row_at_pos(x, y)
+			self.manager.dest_row = self.TreeView.get_dest_row_at_pos(x, y)
 			
 			T = eval(selection_data.get_text()) # eval => permet de retransformer la chaîne de caractères en tableau de dictionnaires
 			#for dic in T:
@@ -542,7 +584,7 @@ class Queue(QtGui.QTableView):
 				m.show_all()
 				m.popup(None, None, None, event.button, event.time)
 			elif(event.button == 2):
-				self.gestionnaire.fermer_onglet(None, self)
+				self.manager.fermer_onglet(None, self)
 			else:
 				return False
 			
@@ -584,156 +626,14 @@ class Queue(QtGui.QTableView):
 			flags.remove('stop')
 		else:
 			flags.add('stop')
-		
-	def set_stop_track(self, ligne):
-		icon = gtk.ToolButton()
-		icon = icon.render_icon(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_BUTTON, detail=None)
-		if(ligne != False):
-			if(self.Liste.get_value(ligne, 2) is None):
-				
-				self.Liste.set_value(ligne, 2, icon)
-				self.Liste.set_value(ligne, 0, 'italic')
-			else:
-				self.Liste.set_value(ligne, 2, None)
-				self.Liste.set_value(ligne, 0, 'normal')
-		else:
-			for i in xrange(len(self.Liste)):
-				ligne = self.Liste.get_iter(i)
-				self.Liste.set_value(ligne, 2, icon)
-				self.Liste.set_value(ligne, 0, 'italic')
-					
+
 	
-	def surClicDroit(self, TreeView, event):
-		print event
-		# On vérifie que c'est bien un clic droit:
-		if event.button == 3:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(path != None):
-				queue = TreeView.get_model()
-				piste_ID = queue[path][3]
-				ligne = queue.get_iter(path)
-			if (path != None):
-				iter = queue.get_iter(path)
-				row = gtk.TreeRowReference(queue, path)
-				m = TrackMenu(piste_ID)
-				m.append(gtk.SeparatorMenuItem())
-				i = gtk.ImageMenuItem(_("Remove from queue"))
-				i.set_image(gtk.image_new_from_stock(gtk.STOCK_REMOVE, gtk.ICON_SIZE_MENU))
-				i.connect('activate', self.enlever_piste, ligne)
-				m.append(i)
-				
-				i = gtk.ImageMenuItem(_("Set stop cursor"))
-				i.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_MENU))
-				i.connect('activate', self.on_stop_track_button_click, queue, ligne)
-				m.append(i)
-				
-				i = gtk.ImageMenuItem(_("Add to perm jump list"))
-				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18))))
-				i.connect('activate', self.gestionnaire.addToDirectList, row)
-				m.append(i)
-				
-				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18), '#FFCC00', '#000', '#000')
-				#image = icons.MANAGER.pixbuf_from_text(str(len(self.directList)), (18, 18))
-				i = gtk.ImageMenuItem(_("Add to temp jump list"))
-				i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(str(len(self.gestionnaire.directList)), (18, 18), '#FFCC00', '#000', '#000')))
-				i.connect('activate', self.gestionnaire.addToDirectList, row, True)
-				m.append(i)
-				
-				
-				# *** BRIDGES ***
-				j = 0
-				done = False
-				dic = self.gestionnaire.bridges_src
-				
-				while(not done and j < len(dic.keys())):
-					
-					ref = dic[dic.keys()[j]]
 
-					if(ref.get_path() == path and ref.get_model() == self.Liste): 
-						done = True
-					else:
-						j += 1
-				if(done):
-					def remove_bridge_src(*args):
-						self.gestionnaire.bridges_src.pop(key)
-						self.Liste[path][12] = None
-						self.Liste[path][1] = None
-					key = dic.keys()[j]
-					i = gtk.ImageMenuItem(_("Unset bridge source"))
-					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
-					i.connect('activate', remove_bridge_src)
-				else:
-					def add_bridge_src(*args):
-						self.gestionnaire.bridges_src[letter] = gtk.TreeRowReference(self.Liste, path)
-						self.Liste[path][12] = letter
-						self.Liste[path][1] = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
-					
-					letter = chr(65 + len(dic))
-					icon = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
-					i = gtk.ImageMenuItem(_("Add bridge source"))
-					i.set_image(gtk.image_new_from_pixbuf(icon))
-					i.connect('activate', add_bridge_src)
-				m.append(i)
-				
-				j = 0
-				done = False
-				dic = self.gestionnaire.bridges_dest
-				
-				while(not done and j < len(dic.keys())):
-					
-					ref = dic[dic.keys()[j]]
-
-					if(ref.get_path() == path and ref.get_model() == self.Liste): 
-						done = True
-					else:
-						j += 1
-				if(done):
-					def remove_bridge_dest(*args):
-						self.gestionnaire.bridges_dest.pop(key)
-						self.Liste[path][1] = None
-						
-					key = dic.keys()[j]
-					i = gtk.ImageMenuItem(_("Unset bridge dest"))
-					i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text(key, (18, 18), '#FF0000')))
-					i.connect('activate', remove_bridge_dest)
-				else:
-					def add_bridge_dest(*args):
-						self.gestionnaire.bridges_dest[letter] = gtk.TreeRowReference(self.Liste, path)
-						self.Liste[path][1] = icon
-					
-					letter = chr(65 + len(dic))
-					icon = icons.MANAGER.pixbuf_from_text('← ' + letter, (24, 18), '#CC2EFA')
-					i = gtk.ImageMenuItem(_("Add bridge dest"))
-					i.set_image(gtk.image_new_from_pixbuf(icon))
-					i.connect('activate', add_bridge_dest)
-					
-				
-					
-				#if(iter in self.gestionnaire.bridges_src.values):
-
-				#else:
-					#i = gtk.ImageMenuItem(_("Add to temp jump list"))
-					#i.set_image(gtk.image_new_from_pixbuf(icons.MANAGER.pixbuf_from_text('A'), (18, 18), '#FFCC00', '#000', '#000')))
-					#i.connect('activate', self.gestionnaire.addToDirectList, queue, ligne, True)
-				m.append(i)
-				
-				m.show_all()
-				m.popup(None, None, None, event.button, event.time)
-		elif event.button == 2:
-			path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(path != None):
-				queue = TreeView.get_model()
-				row = gtk.TreeRowReference(queue, path)
-				from gtk.gdk import CONTROL_MASK, SHIFT_MASK
-				if event.state & CONTROL_MASK:
-					self.gestionnaire.addToDirectList(None, row, False)
-				else:
-					self.gestionnaire.addToDirectList(None, row, True)
 
 
 class Playlist(Queue):
-	def __init__(self, gestionnaire, label):
-		Queue.__init__(self, gestionnaire, label)
+	def __init__(self, manager, label):
+		Queue.__init__(self, manager, label)
 		
 	def setModified(self, model, path, i):
 		if(self.modified == False):
@@ -804,7 +704,8 @@ class QueueModel(QtCore.QAbstractTableModel):
 	def data(self, index, role):
 		if not index.isValid():
 			return None
-		elif role == Qt.DisplayRole:
+		track = self.tracks[index.row()]
+		if role == Qt.DisplayRole:
 			if index.column() == 1:
 				return self.tracks[index.row()].title
 			elif index.column() == 2:
@@ -829,6 +730,13 @@ class QueueModel(QtCore.QAbstractTableModel):
 				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18)))
 			elif 'tempjump' in self.tracks[index.row()].flags:
 				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18), '#FFCC00', '#000', '#000'))
+			elif track.bridgeSrc != None:
+				if(track.bridgeDest != None):
+					return QtGui.QIcon(icons.pixmapFromText(u'← ' + track.bridgeDest + ' - ' + track.bridgeSrc + u' →', (36, 18), '#58FA58', '#000', '#000'))
+				else:
+					return QtGui.QIcon(icons.pixmapFromText(track.bridgeSrc + u' →', (24, 18), '#58FA58', '#000', '#000'))
+			elif track.bridgeDest != None:
+				return QtGui.QIcon(icons.pixmapFromText(u'← ' + track.bridgeDest, (24, 18), '#CC2EFA'))
 			elif 'stop' in self.tracks[index.row()].flags:
 				return QtGui.QIcon.fromTheme('media-playback-stop')
 		return None
