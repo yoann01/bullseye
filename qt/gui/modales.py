@@ -185,6 +185,9 @@ class CriterionManager(QtGui.QWidget):
 		for critere in self.Box_Criteres:
 			critere.destroy()
 
+
+
+
 class SettingsEditor(QtGui.QDialog):
 	def __init__(self):
 		QtGui.QDialog.__init__(self)
@@ -215,8 +218,7 @@ class SettingsEditor(QtGui.QDialog):
 		TreeView.setModel(self.sections)
 		#TreeView.header().setSectionHidden(1, True)
 		TreeView.activated.connect(self.sectionActivated)
-		layout.addWidget(TreeView)
-		layout.setStretchFactor(TreeView, 0)
+		layout.addWidget(TreeView, 0)
 		
 		
 		self.widgets = {}
@@ -236,14 +238,27 @@ class SettingsEditor(QtGui.QDialog):
 		self.widgets['general'] = generalWidget
 		self.activeWidget = generalWidget
 
-		layout.addWidget(generalWidget)
-		layout.setStretchFactor(generalWidget, 1)
+		layout.addWidget(generalWidget, 1)
 		
 		foldersLayout = QtGui.QVBoxLayout()
 		foldersView = QtGui.QTableView()
-		foldersView.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+		foldersView.setMinimumWidth(400)
+
+		foldersView.verticalHeader().hide()
 		self.foldersModel = QtGui.QStandardItemModel(0, 2)
+		self.foldersModel.setHorizontalHeaderLabels([_("Path"), _("Dig")])
+		for path, dig in settings.get_option('music/folders', []):
+				checkBox = QtGui.QStandardItem()
+				checkBox.setCheckable(True)
+				if dig:
+					checkBox.setCheckState(QtCore.Qt.Checked)
+				self.foldersModel.appendRow([QtGui.QStandardItem(path), checkBox])
+			
 		foldersView.setModel(self.foldersModel)
+		foldersView.horizontalHeader().setResizeMode (0, QtGui.QHeaderView.Stretch)
+		foldersView.horizontalHeader().setResizeMode (1, QtGui.QHeaderView.Fixed)
+		
+		
 		addFolderButton = QtGui.QPushButton(_('Add'))
 		def add_folder():
 				folderPath = QtGui.QFileDialog.getExistingDirectory(self)
@@ -253,6 +268,13 @@ class SettingsEditor(QtGui.QDialog):
 		addFolderButton.clicked.connect(add_folder)
 		
 		removeFolderButton = QtGui.QPushButton(_('Remove'))
+		def remove_folder():
+			selected = foldersView.selectedIndexes()
+			selected.reverse()
+			for index in selected:
+				self.foldersModel.removeRows(index.row(), 1)
+			
+		removeFolderButton.clicked.connect(remove_folder)
 		buttonsLayout = QtGui.QHBoxLayout()
 		buttonsLayout.addWidget(addFolderButton)
 		buttonsLayout.addWidget(removeFolderButton)
@@ -263,12 +285,17 @@ class SettingsEditor(QtGui.QDialog):
 		foldersWidget.setLayout(foldersLayout)
 		self.widgets['folders'] = foldersWidget
 		foldersWidget.hide()
-		layout.addWidget(foldersWidget)
+		layout.addWidget(foldersWidget, 1)
 		
 		self.setLayout(mainLayout)
 		
 	def accept(self):
 		print 'TODO'
+		folders = []
+		for i in range(self.foldersModel.rowCount()):
+			folders.append((self.foldersModel.item(i, 0).text(), self.foldersModel.item(i, 1).checkState() == QtCore.Qt.Checked))
+		settings.set_option('music/folders', folders)
+		
 		QtGui.QDialog.accept(self)
 		
 	def loadSection(self, section):

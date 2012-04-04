@@ -523,13 +523,13 @@ class Playlists_Panel(gtk.VBox):
 		
 		
 		pixbuf_dir = gtk.ToolButton().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_BUTTON)
-		self.pere = self.model.append(None, [pixbuf_dir, 0, "Personalised lists"])
+		self.pere = self.model.append(None, [pixbuf_dir, 0, "Static playlists"])
 		for f in os.listdir(dossier):
 			pixbuf = gtk.gdk.pixbuf_new_from_file('icons/playlist.png')
 			if os.path.isfile(os.path.join(dossier, f)):
 				self.model.append(self.pere, [pixbuf, 0, f])
 		
-		self.intelligent_pere = self.model.append(None, [pixbuf_dir, 0, _("Intelligents playlists")])
+		self.intelligent_pere = self.model.append(None, [pixbuf_dir, 0, _("Dynamic playlists")])
 		dossier = dossier + 'intelligents/'
 		for f in os.listdir(dossier):
 			if os.path.isfile(os.path.join(dossier, f)):

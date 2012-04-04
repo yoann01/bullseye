@@ -68,7 +68,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 		
 		
 	def loadModuleMenus(self, core, module):
-		if(module == 'pictures'):
+		if(module == 'pictures' or module == 'videos'):
 			pictures = gtk.MenuItem(_("Pictures"))
 			menu = gtk.Menu()
 			item = gtk.MenuItem(_("Check for doubloons"))
@@ -76,15 +76,15 @@ class BullseyeMenuBar(gtk.MenuBar):
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Move to UC structure"))
-			item.connect('activate', self.core._imagePanel.moveToUCStructure)
+			item.connect('activate', self.core.managers[module].containerBrowser.moveToUCStructure)
 			menu.append(item)
 			
 			panes = gtk.RadioMenuItem(None, _('Multi-panes'))
 			panes.set_active(True)
-			panes.connect('toggled', self.temp, "panes")
+			panes.connect_object('toggled', self.core.managers[module].setBrowserMode, 'panes')
 			panel = gtk.RadioMenuItem(panes, _('All in one panel'))
-			#panel.connect('activate', self.core.hot_swap_widget, 'imagePanel', 'panel')
-			panel.connect('toggled', self.temp, "panel")
+
+			panel.connect_object('toggled', self.core.managers[module].setBrowserMode, 'panel')
 			
 			menu.append(panes)
 			menu.append(panel)

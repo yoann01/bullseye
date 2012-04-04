@@ -39,6 +39,7 @@ class Core(gobject.GObject):
 		self.BDD = MainBDD()
 		
 		self.loadedModules = []
+		self.managers = {}
 		# **** PARTIE GRAPHIQUE ****
 		
 		self.F_Main = gtk.Window()
@@ -169,66 +170,12 @@ class Core(gobject.GObject):
 	
 	
 	def loadModule(self, button, section):
-		from uc_sections import iconselector
-		from uc_sections.panel import UC_Panel, UC_Panes
-		#from uc_sections.panes import UC_Panes
-		if(section == 'pictures'):
-			Box_PicturesMain = button.get_parent()
-			button.destroy()
-			from uc_sections.pictures.image_widget import ImageWidget
-				
-			Box_UpperP = gtk.HBox()
-			
-			display = self.F_Main.get_screen().get_display()
-			imageWidget = ImageWidget(display)
-			
-			Box_ControlsP = gtk.HBox()
-			self._imageSelector = iconselector.ImageSelector(imageWidget, Box_ControlsP)
-			SW_IconsP = gtk.ScrolledWindow()
-			SW_IconsP.set_size_request(-1, 170)
-			SW_IconsP.add(self._imageSelector)
-
-			#self._imagePanel = UC_Panel("image", self._imageSelector)
-			self._imagePanel = UC_Panes("image", self._imageSelector)
-
-			Box_UpperP.pack_start(self._imagePanel ,False)
-			Box_UpperP.pack_end(imageWidget)
-			
-			Box_PicturesMain.pack_start(Box_UpperP)
-			Box_PicturesMain.pack_start(SW_IconsP, False)
-			Box_PicturesMain.pack_start(Box_ControlsP, False)
-			
-			Box_PicturesMain.show_all()
-		elif(section == 'videos'):
-			Box_Video = button.get_parent()
-			button.destroy()
-			backend = settings.get_option('music/playback_lib', 'GStreamer')
-			
-			from uc_sections.videos.videoplayerwidget import VideoPlayerWidget
-			if(backend != 'VLC'):
-				from media import vlcplayer
-				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
-			elif(backend == 'MPlayer'):
-				from media import mplayers
-				self.videoPlayerWidget = VideoPlayerWidget(mplayers.Player())
-				#Right_music_box.pack_start(self.player, False)
-			else:
-				from media import player
-				self.videoPlayerWidget = VideoPlayerWidget(player.Player())
-				
-			#ZoneVideo = self.interface.get_object("DA_Video")
-			self._videoSelector = iconselector.VideoSelector(self.videoPlayerWidget)
-			SW_IconsV = gtk.ScrolledWindow()
-			SW_IconsV.set_size_request(-1, 170)
-			SW_IconsV.add(self._videoSelector)
-			self._videoPanel = UC_Panel("video", self._videoSelector)
-			
-			HPaned_Video = gtk.HPaned()
-			HPaned_Video.pack1(self._videoPanel)
-			HPaned_Video.pack2(SW_IconsV)
-			Box_Video.pack_start(self.videoPlayerWidget)
-			Box_Video.pack_start(HPaned_Video, False)
-			Box_Video.show_all()
+		from uc_sections.manager import UCManager
+		widget = UCManager(section, self.F_Main)
+		self.managers[section] = widget
+		parentBox = button.get_parent()
+		parentBox.pack_start(widget)
+		button.destroy()
 			
 		self.emit('module-loaded', section)
 			

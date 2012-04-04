@@ -287,7 +287,7 @@ class Queue(QtGui.QTableView):
 		
 		
 		# *** Data attributes ***
-		self.modified = False #pour les playlists enregistrées
+		self.modified = False # pour les playlists enregistrées
 		self.manager = manager
 		
 		#police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
@@ -727,16 +727,16 @@ class QueueModel(QtCore.QAbstractTableModel):
 			if 'play' in self.tracks[index.row()].flags:
 				return QtGui.QIcon.fromTheme('media-playback-start')
 			elif 'permjump' in self.tracks[index.row()].flags:
-				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18)))
+				return icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18))
 			elif 'tempjump' in self.tracks[index.row()].flags:
-				return QtGui.QIcon(icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18), '#FFCC00', '#000', '#000'))
+				return icons.pixmapFromText(str(self.tracks[index.row()].priority), (18, 18), '#FFCC00', '#000', '#000')
 			elif track.bridgeSrc != None:
 				if(track.bridgeDest != None):
-					return QtGui.QIcon(icons.pixmapFromText(u'← ' + track.bridgeDest + ' - ' + track.bridgeSrc + u' →', (36, 18), '#58FA58', '#000', '#000'))
+					return icons.pixmapFromText(u'← ' + track.bridgeDest + ' - ' + track.bridgeSrc + u' →', (64, 18), ('#58FA58', '#CC2EFA'), '#000', '#000')
 				else:
-					return QtGui.QIcon(icons.pixmapFromText(track.bridgeSrc + u' →', (24, 18), '#58FA58', '#000', '#000'))
+					return icons.pixmapFromText(track.bridgeSrc + u' →', (32, 18), '#58FA58', '#000', '#000')
 			elif track.bridgeDest != None:
-				return QtGui.QIcon(icons.pixmapFromText(u'← ' + track.bridgeDest, (24, 18), '#CC2EFA'))
+				return icons.pixmapFromText(u'← ' + track.bridgeDest, (32, 18), '#CC2EFA')
 			elif 'stop' in self.tracks[index.row()].flags:
 				return QtGui.QIcon.fromTheme('media-playback-stop')
 		return None

@@ -18,7 +18,13 @@ class Frame(QtGui.QMainWindow):
 		QtGui.QMainWindow.__init__(self, parent)
 		
 	#Redimensionnement de la fenêtre principale.
+		self.move(settings.get_option('gui/window_x', 50), settings.get_option('gui/window_y', 50))
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
+		if(settings.get_option('gui/maximized', False)):
+			self.maximized = True
+			self.showMaximized()
+		else:
+			self.maximized = False
 
 	#Application de la police d'écriture Verdana à la fenêtre mais aussi à tous les widgets enfants. 
 	#À noter que nous aurions aussi pu choisir la taille et la mise en forme (gras, italique...)
@@ -73,10 +79,18 @@ class Frame(QtGui.QMainWindow):
 		
 		self.managers = {} # Managers are the big widget representing a module
 
+
+	def changeEvent(self, e):
+		if e.type() == QtCore.QEvent.WindowStateChange:
+			if self.windowState() == QtCore.Qt.WindowMaximized:
+				self.maximized = True
+			elif self.windowState() == QtCore.Qt.WindowNoState:
+				self.maximized = False
 	
 	def closeEvent(self, e):
 		from data.bdd import BDD
 		BDD.saveCache()
+		settings.set_option('gui/maximized', self.maximized)
 		settings.MANAGER.save()
 		print 'Good bye'
 		
@@ -140,6 +154,14 @@ class Frame(QtGui.QMainWindow):
 			self.NB_Main.setCurrentIndex(index)
 			
 		self.moduleLoaded.emit(moduleKey)
+		
+	def resizeEvent(self, e):
+		if(not self.maximized):
+			#pos = self.mapToGlobal(self.pos())
+			settings.set_option('gui/window_x', self.pos().x())
+			settings.set_option('gui/window_y', self.pos().y())
+			settings.set_option('gui/window_width', e.size().width())
+			settings.set_option('gui/window_height', e.size().height())
         
 
 #Les quatre lignes ci-dessous sont impératives pour lancer l'application.
