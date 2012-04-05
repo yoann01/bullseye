@@ -101,7 +101,10 @@ class AbstractPlayerWidget(object):
 			if 'stop' not in self.currentTrack.flags:
 				# First, process potential jump track
 				if not self.playJumpTrack(): # No jump track, just play next track under this one 
-					self.currentTrack = self.currentQueue.getNextTrack(self.currentTrack)
+					if self.currentTrack.bridgeSrc != None:
+						self.currentTrack = self.bridgesDest[self.currentTrack.bridgeSrc]
+					else:
+						self.currentTrack = self.currentQueue.getNextTrack(self.currentTrack)
 					if self.currentTrack is None:
 						self.stop()
 					else:

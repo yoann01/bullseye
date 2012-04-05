@@ -646,7 +646,7 @@ class Queue(gtk.ScrolledWindow):
 				m.append(i)
 				
 				# --- BRIDGES DESTINATIONS --- 
-				dic = self.manager.playerWidget.bridgesDest
+				dicDest = self.manager.playerWidget.bridgesDest
 				
 
 				if(track.bridgeDest != None):
@@ -660,12 +660,12 @@ class Queue(gtk.ScrolledWindow):
 					i.connect('activate', remove_bridge_dest)
 				else:
 					def add_bridge_dest(*args):
-						self.manager.playerWidget.bridgesDest[letter] = track #gtk.TreeRowReference(self.model, path)
-						track.bridgeDest = letter
+						self.manager.playerWidget.bridgesDest[letterDest] = track #gtk.TreeRowReference(self.model, path)
+						track.bridgeDest = letterDest
 						self.refreshView(track)
 					
-					letter = chr(65 + len(dic))
-					icon = icons.MANAGER.pixbuf_from_text('← ' + letter, (24, 18), '#CC2EFA')
+					letterDest = chr(65 + len(dicDest))
+					icon = icons.MANAGER.pixbuf_from_text('← ' + letterDest, (24, 18), '#CC2EFA')
 					i = gtk.ImageMenuItem(_("Add bridge dest"))
 					i.set_image(gtk.image_new_from_pixbuf(icon))
 					i.connect('activate', add_bridge_dest)

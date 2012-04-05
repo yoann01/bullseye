@@ -367,7 +367,7 @@ class Queue(QtGui.QTableView):
 		
 		
 		# --- BRIDGES DESTINATIONS --- 
-		dic = self.manager.playerWidget.bridgesDest
+		dicDest = self.manager.playerWidget.bridgesDest
 		
 		if(track.bridgeDest != None):
 			def remove_bridge_dest(*args):
@@ -379,12 +379,12 @@ class Queue(QtGui.QTableView):
 
 		else:
 			def add_bridge_dest(*args):
-				self.manager.playerWidget.bridgesDest[letter] = track
-				track.bridgeDest = letter
+				self.manager.playerWidget.bridgesDest[letterDest] = track
+				track.bridgeDest = letterDest
 				self.refreshView(track)
 			
-			letter = chr(65 + len(dic))
-			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letter, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
+			letterDest = chr(65 + len(dicDest))
+			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letterDest, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
 			
 			
 		action = self.popMenu.exec_(self.mapToGlobal(event.pos()))

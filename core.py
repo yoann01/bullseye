@@ -16,10 +16,10 @@ class Core(gobject.GObject):
 		TODO filter
 		TODO stop flag when temp
 		TODO add a tableview for UC Sections + playlists
+		TODO moveToUCStrucutre : filter
 	"""
 	
-	__gsignals__ = { "module-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str,))
-	}
+	__gsignals__ = { "module-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str,)) }
 	
 	def __init__(self):
 		gobject.GObject.__init__(self)
@@ -173,7 +173,7 @@ class Core(gobject.GObject):
 		from uc_sections.manager import UCManager
 		widget = UCManager(section, self.F_Main)
 		self.managers[section] = widget
-		parentBox = button.get_parent()
+		parentBox = button.get_parent() # FIXME parentBox is an empty VBox in which we pack a VBox
 		parentBox.pack_start(widget)
 		button.destroy()
 			

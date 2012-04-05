@@ -225,6 +225,7 @@ class UC_Panes(AbstractPanel):
 		
 	
 	def load(self, *args):
+		self.TV_universes.setStyleSheet("background-color:white;")
 		self.processLoading('category', self.categoriesModel, False)
 		self.processLoading('universe', self.universesModel, False)
 		
@@ -238,98 +239,9 @@ class UC_Panes(AbstractPanel):
 		#AbstractPlanel.onContainerClicked(self, index)
 		if self.toggled[self.mode]:
 			index.internalPointer().background = 'yellow'
-			self.TV_universes.setStyleSheet("background-color:#A9E2F3;");
+			self.TV_universes.setStyleSheet("background-color:#A9E2F3;")
 			self.filter(index.internalPointer().container)
-		
-		
-	def on_right_click(self, TreeView, event, mode):
-		self.mode = mode
-		AbstractPanel.on_right_click(self, TreeView, event)
-		
-		if(event.button == 1):
-			if(self.toggled[self.mode]):
-				path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-				self.categories_model[path][4] = 'yellow'
-				for item in self.universes_model:
-					item[4] = 'yellow'
-				col = self.columns[self.mode]
-				model = TreeView.get_model()
-				col.set_title('Universes of' + ' ' + model[path][2])
-				try:
-					path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-					model = TreeView.get_model()
-					id = model[path][0]
-					type = model[path][1]
-				except TypeError:
-					id = 0
-					
-				icon_universe = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-				icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-				icon_size = settings.get_option('pictures/panel_icon_size', 32)
-				icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-				thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
-				
-				def get_icon(ID, default):
-					if(ID != 0):
-						try:
-							icon_path = thumbnail_path + str(ID) + ".jpg"
-							#icon = gtk.gdk.pixbuf_new_from_file(icon_path)
-							#icon = icon.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-							icon = gtk.gdk.pixbuf_new_from_file_at_size(icon_path, icon_size, icon_size)
-						except:
-							icon = default
-					else:
-						icon = default
-					return icon
-					
-				bdd = BDD()
-				self.filters.clear()
-				if(mode == 'category'):
-					container = 'categorie'
-					dic = self.universes
-					default_icon = icon_category
-					default_antagonist_icon = icon_universe
-					antagonist = 'univers'
-					model = self.universes_model
-				elif(mode == 'universe'):
-					container = 'univers'
-					dic = self.categories
-					default_icon = icon_universe
-					default_antagonist_icon = icon_category
-					antagonist = 'categorie'
-					model = self.categories_model
-				
-				
-				model.clear()
-				nodes = {0:None}
-				
-				model.append(None, [0, antagonist[0], _('All'), None, None, None])
-				
-				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
-				if(id != 0):
-					query += ' WHERE ' + container + '_ID = ' + str(id)
-					self.filters[container + '_ID'] = id
-				query += ' ORDER BY parent_ID'
-				for row in bdd.conn.execute(query):
-					icon = get_icon(row[3], default_antagonist_icon)
-
-					try:
-						nodes[row[0]] = model.append(nodes[row[2]], [row[0], antagonist[0], row[1], icon, None, None])
-					except KeyError:
-						# parent node missing
-						parent = row[2]
-						parents = []
-						while(parent != 0):
-							parents.append(parent)
-							parent = dic[parent]['parent']
-						
-						parents.reverse() # Sort them in the right order
-						for parent in parents:
-							# TODO icon in dic (thumbnail_ID)
-							if(parent not in nodes.keys()):
-								nodes[parent] = model.append(nodes[dic[parent]['parent']], [parent, antagonist[0], dic[parent]['label'], default_antagonist_icon, None, None])
-						# Now we can add the node that caused the exception
-						nodes[row[0]] = model.append(nodes[row[2]], [row[0], antagonist[0], row[1], icon, None, None])
+			
 
 
 class ContainerBrowser(QtGui.QTreeView):
