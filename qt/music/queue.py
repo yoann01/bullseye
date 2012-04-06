@@ -344,7 +344,8 @@ class Queue(QtGui.QTableView):
 		permAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18))), _('Add to perm jump list'))
 		tempAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18), '#FFCC00', '#000', '#000')), _('Add to temp jump list'))
 		self.popMenu.addSeparator()
-		self.popMenu.addAction('José Long')
+		self.popMenu.addAction(u'José Long')
+		#self.popMenu.setStyleSheet(" QMenu {    icon-size: 128px; } " )
 		
 		# --- BRIDGES SOURCES ---
 		dic = self.manager.playerWidget.bridgesSrc
@@ -362,7 +363,8 @@ class Queue(QtGui.QTableView):
 				self.refreshView(track)
 			
 			letter = chr(65 + len(dic))
-			bridgeSrcAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letter + ' →', (24, 18), '#58FA58', '#000', '#000')), _("Add bridge source"), add_bridge_src)
+			#bridgeSrcAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letter + ' →', (24, 18), '#58FA58', '#000', '#000')), _("Add bridge source"), add_bridge_src)
+			bridgeSrcAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letter, (18, 18), '#58FA58', '#000', '#000')), _("Add bridge source"), add_bridge_src)
 		
 		
 		
@@ -384,7 +386,8 @@ class Queue(QtGui.QTableView):
 				self.refreshView(track)
 			
 			letterDest = chr(65 + len(dicDest))
-			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letterDest, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
+			#self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letterDest, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
+			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letterDest, (18, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)
 			
 			
 		action = self.popMenu.exec_(self.mapToGlobal(event.pos()))
