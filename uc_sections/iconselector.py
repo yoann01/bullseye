@@ -152,7 +152,7 @@ class ImageSelector(IconSelector):
 		TODO intégrer Box_Controls
 	"""
 	def __init__(self, imageWidget, Box_Controls):
-		IconSelector.__init__(self, "image")
+		IconSelector.__init__(self, "picture")
 		
 		self.imageWidget = imageWidget
 		

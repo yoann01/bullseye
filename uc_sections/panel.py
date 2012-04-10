@@ -19,11 +19,13 @@ logger = logging.getLogger(__name__)
 
 class AbstractPanel(UCPanelInterface):
 	
-	icon_universe = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-	icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
+	
 	icon_size = settings.get_option('pictures/panel_icon_size', 32)
-	icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-	thumbnail_path = xdg.get_thumbnail_dir('image' + '/128/')
+	DEFAULT_ICONS = {'univers': gtk.gdk.pixbuf_new_from_file('icons/genre.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'categorie': gtk.gdk.pixbuf_new_from_file('icons/artist.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR) }
+	
+	
+	#icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
+	thumbnail_path = xdg.get_thumbnail_dir('picture' + '/128/')
 	
 	"""
 		Base class for all differents Gtk UC Panel implementations
@@ -37,7 +39,7 @@ class AbstractPanel(UCPanelInterface):
 	
 	
 	def append(self, model, container, parentNode):
-		def get_icon(ID, default):
+		def get_icon(ID):
 			if(ID != 0):
 				try:
 					icon_path = self.thumbnail_path + str(ID) + ".jpg"
@@ -45,12 +47,12 @@ class AbstractPanel(UCPanelInterface):
 					#icon = icon.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
 					icon = gtk.gdk.pixbuf_new_from_file_at_size(icon_path, self.icon_size, self.icon_size)
 				except:
-					icon = default
+					icon = self.DEFAULT_ICONS[container.container_type]
 			else:
-				icon = default
+				icon = self.DEFAULT_ICONS[container.container_type]
 			return icon
 			
-		node = model.append(parentNode, [container.ID, container.container_type[0], container.label, get_icon(container.thumbnail_ID, None), None, None])
+		node = model.append(parentNode, [container.ID, container.container_type[0], container.label, get_icon(container.thumbnail_ID), None, None])
 		return node
 		
 	def clear(self, model):
@@ -183,7 +185,7 @@ class AbstractPanel(UCPanelInterface):
 				node = nodes[s]
 		
 		bdd = BDD()
-		bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
+		bdd.c.execute('SELECT DISTINCT folder FROM ' + self.module + 's ORDER BY folder')
 		
 		folders = bdd.c.fetchall()
 		#i = 0
@@ -258,7 +260,7 @@ class AbstractPanel(UCPanelInterface):
 		
 		t = []
 		
-		query = "SELECT " + type + "_ID, fichier, dossier, note, categorie_ID, univers_ID FROM " + type + "s "
+		query = "SELECT " + type + "_ID, filename, folder, rating, categorie_ID, univers_ID FROM " + type + "s "
 
 		def dig_in(ID, query):
 			for c_ID in dic[ID]['children']:
@@ -273,7 +275,7 @@ class AbstractPanel(UCPanelInterface):
 		if(mode == "folder"):
 			dig = False
 			condition = ' LIKE ? '
-			column = 'dossier'
+			column = 'folder'
 			#t = (unicode(critere),)
 			#query += "WHERE dossier LIKE ? ORDER BY fichier"
 		elif(mode == "category"):
@@ -308,7 +310,7 @@ class AbstractPanel(UCPanelInterface):
 				#first = False
 			#else:
 				#query += ' AND ' + key + condition 
-		query += " ORDER BY fichier"
+		query += " ORDER BY filename"
 		
 		
 		#elif(mode == "category_and_universe"):
@@ -331,7 +333,7 @@ class AbstractPanel(UCPanelInterface):
 			thumbnail_path = thumbnail_dir + ID + ".jpg"
 			
 			if not os.path.exists(thumbnail_path):
-				if(type == "image"):
+				if(type == "picture"):
 					try:
 						im = Image.open(path)
 						im.thumbnail((128, 128), Image.ANTIALIAS)
@@ -426,7 +428,7 @@ class AbstractPanel(UCPanelInterface):
 		
 	def what_is(self, container_path, model):
 		#Détermine le type de section (category ou universe) d'un chemin de l'arbre des sections, ainsi que son identifiant
-		columns = {'c':'categorie_ID', 'u':'univers_ID', 'f':'dossier'}
+		columns = {'c':'categorie_ID', 'u':'univers_ID', 'f':'folder'}
 
 		level = len(container_path)
 		ID = model[container_path][0]
@@ -591,7 +593,7 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		liste = self.model
 		self.processLoading(mode, liste)
 				
-class UC_Panes(AbstractPanel, gtk.HBox):
+class UC_Panes(AbstractPanel, gtk.VBox):
 	"""
 		TODO multi-paneaux
 		TODO rewrite folders management
@@ -708,12 +710,18 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		B_refresh.connect('clicked', self.load)
 		
 		#On assemble tout graphiquement
-		gtk.HBox.__init__(self)
+		gtk.VBox.__init__(self)
+		
+		BB = gtk.HButtonBox()
+		BB.pack_start(B_refresh, False)
+		self.pack_start(BB, False)
+		
+		hbox = gtk.HBox()
 		SW = gtk.ScrolledWindow()
 		SW.add(TreeView)
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		label = gtk.Label(_("Folders"))
-		self.pack_start(SW)
+		hbox.pack_start(SW)
 		Box = gtk.VBox()
 		Box_mode = gtk.HBox()
 		Box_mode.pack_start(CB)
@@ -728,13 +736,18 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		SW.add(TV_categories)
 		Box.pack_start(SW)
 		Box.pack_start(B, False)
-		self.pack_start(Box)
+		hbox.pack_start(Box)
 		
 		SW = gtk.ScrolledWindow()
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		SW.add(TV_universes)
-		self.pack_start(SW)
+		hbox.pack_start(SW)
 		
+		searchEntry = gtk.Entry()
+		
+		
+		self.pack_start(hbox)
+		self.pack_start(searchEntry, False)
 		self.set_size_request(600, -1)
 		label = gtk.Label(_("Sections"))
 		#self.append_page(Box, label)
@@ -756,6 +769,7 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 		AbstractPanel.on_container_click(self, w, i, c)
 		
 	def on_right_click(self, TreeView, event, mode):
+		# TODO should use Interface filter() method
 		self.mode = mode
 		AbstractPanel.on_right_click(self, TreeView, event)
 		
@@ -776,10 +790,8 @@ class UC_Panes(AbstractPanel, gtk.HBox):
 				except TypeError:
 					id = 0
 					
-				icon_universe = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-				icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-				icon_size = settings.get_option('pictures/panel_icon_size', 32)
-				icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
+				icon_universe = self.DEFAULT_ICONS['univers']
+				icon_category = self.DEFAULT_ICONS['categorie']
 				thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
 				
 				def get_icon(ID, default):

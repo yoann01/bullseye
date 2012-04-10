@@ -19,7 +19,7 @@ class SpecialElement():
 	def __init__(self, data, module, thumbnail_path=None):
 		if(type(data).__name__=='int'):
 			ID = str(data)
-			query = "SELECT " + module + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + module + "s WHERE " + module + "_ID = " + ID
+			query = "SELECT " + module + "_ID, filename, folder, rating, categorie_ID, univers_ID, size FROM " + module + "s WHERE " + module + "_ID = " + ID
 			data = bdd.execute_and_return(query)
 			
 		self.module = module
@@ -35,12 +35,12 @@ class SpecialElement():
 		self.thumbnail_path = thumbnail_path
 	
 	def change_rating(self, w, new_rating):
-		query = "UPDATE " + self.module + "s SET note = " + str(new_rating) + " WHERE " + self.module + "_ID = " + self.ID
+		query = "UPDATE " + self.module + "s SET rating = " + str(new_rating) + " WHERE " + self.module + "_ID = " + self.ID
 		bdd.execute(query)
 		self.rating = new_rating
 	
 	def set_path(self, folder, file_name):
-		query = "UPDATE " + self.module + "s SET dossier = ?, fichier = ? WHERE " + self.module + "_ID = " + self.ID
+		query = "UPDATE " + self.module + "s SET folder = ?, filename = ? WHERE " + self.module + "_ID = " + self.ID
 		t = (folder, file_name)
 		bdd.execute(query, t)
 		self.path = folder + '/' + file_name
@@ -54,7 +54,7 @@ class Track():
 		'''
 		if(type(data).__name__=='int'):
 			ID = str(data)
-			query = "SELECT track_ID, path, title, album, artist, length, compteur, note FROM tracks WHERE track_ID = " + ID
+			query = "SELECT track_ID, path, title, album, artist, length, playcount, rating FROM tracks WHERE track_ID = " + ID
 			data = bdd.execute_and_return(query)
 		
 		self.ID = str(data[0])
@@ -76,7 +76,7 @@ class Track():
 		self.bridgeDest = None
 	
 	def change_rating(self, w, new_rating):
-		query = "UPDATE tracks SET note = " + str(new_rating) + " WHERE track_ID = " + self.ID
+		query = "UPDATE tracks SET rating = " + str(new_rating) + " WHERE track_ID = " + self.ID
 		bdd.execute(query)
 		self.rating = new_rating
 		messager.diffuser('track_data_changed', self, self)
@@ -97,7 +97,7 @@ class Track():
 		
 	def incrementPlayCount(self):
 		self.playcount += 1
-		query = "UPDATE tracks SET compteur = compteur + 1  WHERE track_ID = " + self.ID
+		query = "UPDATE tracks SET playcount = playcount + 1  WHERE track_ID = " + self.ID
 		bdd.execute(query)
 		
 		def scrobble():

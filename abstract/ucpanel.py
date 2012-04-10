@@ -48,7 +48,7 @@ class UCPanelInterface(object):
 		
 		t = []
 		
-		query = "SELECT " + type + "_ID, fichier, dossier, note, categorie_ID, univers_ID, size FROM " + type + "s "
+		query = "SELECT " + type + "_ID, filename, folder, rating, categorie_ID, univers_ID, size FROM " + type + "s "
 
 		def dig_in(ID, query):
 			for c_ID in dic[ID]['children']:
@@ -62,7 +62,7 @@ class UCPanelInterface(object):
 		if(mode == "folder"):
 			dig = False
 			condition = ' LIKE ? '
-			column = 'dossier'
+			column = 'folder'
 			#t = (unicode(critere),)
 			#query += "WHERE dossier LIKE ? ORDER BY fichier"
 		elif(mode == "category"):
@@ -97,7 +97,7 @@ class UCPanelInterface(object):
 				#first = False
 			#else:
 				#query += ' AND ' + key + condition 
-		query += " ORDER BY fichier"
+		query += " ORDER BY filename"
 		
 		
 		#elif(mode == "category_and_universe"):
@@ -228,7 +228,7 @@ class UCPanelInterface(object):
 		
 		def processContainer(container_ID, root_path):
 			print root_path
-			query = 'SELECT ' + type + '_ID, dossier, fichier, size FROM ' + type + 's WHERE ' + container + '_ID = ?'
+			query = 'SELECT ' + type + '_ID, folder, filename, size FROM ' + type + 's WHERE ' + container + '_ID = ?'
 			if(show_antagonistic):
 				query += ' AND ' + antagonist + '_ID = 1'
 			bdd.c.execute(query, (container_ID,))
@@ -250,10 +250,10 @@ class UCPanelInterface(object):
 						os.renames(child[1] + '/' + child[2], root_path + '/' + new_name)
 					except OSError:
 						pass
-					bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
+					bdd.c.execute('UPDATE ' + type + 's SET folder = ?, filename = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
 			
 			if(show_antagonistic): #Elements of this container which are antagonist-setted (if category -> universe, if universe->category) will be placed in a subfolder
-				bdd.c.execute('SELECT t.' + type + '_ID, dossier, fichier, ' + antagonist + '_L, t.' + antagonist + '_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ? AND t.' + antagonist + '_ID != 1', (container_ID,))
+				bdd.c.execute('SELECT t.' + type + '_ID, folder, filename, ' + antagonist + '_L, t.' + antagonist + '_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ? AND t.' + antagonist + '_ID != 1', (container_ID,))
 				children = bdd.c.fetchall()
 				for child in children:
 					new_name = child[2]
@@ -264,7 +264,7 @@ class UCPanelInterface(object):
 							new_name = shortname + '_' + str(i) + extension
 							i += 1
 						os.renames(child[1] + '/' + child[2], root_path + '/' + child[3] + '/' + new_name)
-						bdd.c.execute('UPDATE ' + type + 's SET dossier = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path + '/' + child[3], new_name, child[0]))
+						bdd.c.execute('UPDATE ' + type + 's SET folder = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path + '/' + child[3], new_name, child[0]))
 			
 			for subContainerID in dic[container_ID]['children']:
 				bdd.c.execute('SELECT ' + container + '_L FROM ' + container + '_' + type + 's WHERE ' + container + '_ID = ?', (subContainerID,))
@@ -348,7 +348,7 @@ class UCPanelInterface(object):
 					s += '/'
 					
 			icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
-			bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
+			bdd.c.execute('SELECT DISTINCT folder FROM ' + self.module + 's ORDER BY folder')
 			folders = bdd.c.fetchall()
 			nodes = {}
 			i = 0

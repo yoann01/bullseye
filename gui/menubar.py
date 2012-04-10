@@ -54,17 +54,10 @@ class BullseyeMenuBar(gtk.MenuBar):
 		
 		self.append(outils)
 		
-		music = gtk.MenuItem(_("Music"))
-		menu = gtk.Menu()
-		item = gtk.MenuItem(_("Reload covers"))
-		item.connect('activate', Core.BDD.reloadCovers)
-		menu.append(item)
 		
-		music.set_submenu(menu)
-		self.append(music)
-		
-		if('pictures' in Core.loadedModules):
-			loadModuleMenus(None, 'pictures')
+		for module in Core.loadedModules:
+			self.loadModuleMenus(None, module)
+
 		
 		
 	def loadModuleMenus(self, core, module):
@@ -75,14 +68,20 @@ class BullseyeMenuBar(gtk.MenuBar):
 			item.connect('activate', self.checkDoubloons)
 			menu.append(item)
 			
+			browserMode = settings.get_option(module + '/browser_mode', 'panel')
+			
 			item = gtk.MenuItem(_("Move to UC structure"))
 			item.connect('activate', self.core.managers[module].containerBrowser.moveToUCStructure)
 			menu.append(item)
 			
 			panes = gtk.RadioMenuItem(None, _('Multi-panes'))
-			panes.set_active(True)
+			if browserMode == 'panes':
+				panes.set_active(True)
 			panes.connect_object('toggled', self.core.managers[module].setBrowserMode, 'panes')
+			
 			panel = gtk.RadioMenuItem(panes, _('All in one panel'))
+			if browserMode == 'panel':
+				panes.set_active(True)
 
 			panel.connect_object('toggled', self.core.managers[module].setBrowserMode, 'panel')
 			
@@ -91,22 +90,32 @@ class BullseyeMenuBar(gtk.MenuBar):
 			
 			pictures.set_submenu(menu)
 			self.append(pictures)
+		elif(module == 'music'):
+			music = gtk.MenuItem(_("Music"))
+			menu = gtk.Menu()
+			item = gtk.MenuItem(_("Reload covers"))
+			item.connect('activate', self.core.BDD.reloadCovers)
+			menu.append(item)
+			
+			music.set_submenu(menu)
+			self.append(music)
+			
 		self.show_all()
 	
-	def temp(self, garbButton, mode):
-		if(garbButton.get_active()):
-			from uc_sections.panel import UC_Panel, UC_Panes
-			obj = self.core._imagePanel
-			box = obj.get_parent()
+	#def temp(self, garbButton, mode):
+		#if(garbButton.get_active()):
+			#from uc_sections.panel import UC_Panel, UC_Panes
+			#obj = self.core._imagePanel
+			#box = obj.get_parent()
 			
-			if(mode == "panel"):
-				newObj = UC_Panel(obj.module, obj.elementSelector)
-			else:
-				newObj = UC_Panes(obj.module, obj.elementSelector)
-			obj.destroy()
-			box.pack_start(newObj, False)
-			newObj.show_all()
-			self.core._imagePanel = newObj
+			#if(mode == "panel"):
+				#newObj = UC_Panel(obj.module, obj.elementSelector)
+			#else:
+				#newObj = UC_Panes(obj.module, obj.elementSelector)
+			#obj.destroy()
+			#box.pack_start(newObj, False)
+			#newObj.show_all()
+			#self.core._imagePanel = newObj
 	
 		
 	def checkDoubloons(self, *args):

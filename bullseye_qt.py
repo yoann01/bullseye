@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from PySide import QtCore, QtGui
-from common import settings
+from common import settings, util
 from data.elements import Track
 
 #Init translation
@@ -12,12 +12,12 @@ gettext.install("bullseye")
 import gobject
 
 class Frame(QtGui.QMainWindow):
+	ready = QtCore.Signal()
 	moduleLoaded = QtCore.Signal(str)
 	
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
 		
-	#Redimensionnement de la fenêtre principale.
 		self.move(settings.get_option('gui/window_x', 50), settings.get_option('gui/window_y', 50))
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
 		if(settings.get_option('gui/maximized', False)):
@@ -26,25 +26,21 @@ class Frame(QtGui.QMainWindow):
 		else:
 			self.maximized = False
 
-	#Application de la police d'écriture Verdana à la fenêtre mais aussi à tous les widgets enfants. 
-	#À noter que nous aurions aussi pu choisir la taille et la mise en forme (gras, italique...)
 		self.setFont(QtGui.QFont("Verdana")) 
 
-	#Titre de la fenêtre 
 		self.setWindowTitle("Bullseye")
 
-	#Utilisation d'une icône pour la fenêtre si celui est présent dans le répertoire courant... 
-	#sinon on passe.
+	
 		try:
-			self.setWindowIcon(QtGui.Icon("icon.jpg")) 
+			self.setWindowIcon(QtGui.Icon("icons/bullseye.png"))
 		except:pass
 		self.NB_Main = QtGui.QTabWidget(self)
 		self.NB_Main.setTabPosition(QtGui.QTabWidget.West)
 		
 		
-		
 		from data.bdd import MainBDD
 		self.BDD = MainBDD()
+		self.loadedModules = []
 		
 		if(settings.get_option('music/preload', False)):
 			self.loadMusic()
@@ -78,6 +74,17 @@ class Frame(QtGui.QMainWindow):
 		self.setCentralWidget(self.NB_Main)
 		
 		self.managers = {} # Managers are the big widget representing a module
+		
+		self.NB_Main.currentChanged.connect(self.onModuleChanged)
+		self.ready.connect(self.loadMusic)
+
+		@util.threaded
+		def emitReady():
+			import time
+			time.sleep(0.5)
+			self.ready.emit()
+			
+		emitReady()
 
 
 	def changeEvent(self, e):
@@ -96,6 +103,7 @@ class Frame(QtGui.QMainWindow):
 		
 	
 	def loadMusic(self):
+		self.loadedModules.append('music')
 		
 		from qt.music.musicpanel import LibraryPanel
 		from qt.music.playerwidget import PlayerWidget
@@ -138,6 +146,8 @@ class Frame(QtGui.QMainWindow):
 		self.moduleLoaded.emit('music')
 		
 	def loadModule(self, moduleKey):
+		self.loadedModules.append(moduleKey)
+		
 		from qt.uc_sections.manager import UCManager
 		widget = UCManager(moduleKey)
 		self.managers[moduleKey] = widget
@@ -152,8 +162,17 @@ class Frame(QtGui.QMainWindow):
 			self.NB_Main.addTab(widget, _('Videos'))
 			#self.NB_Main.insertTab(index, widget, _('Pictures'))
 			self.NB_Main.setCurrentIndex(index)
-			
+		
 		self.moduleLoaded.emit(moduleKey)
+		
+		
+	def onModuleChanged(self, index):
+		if(index == 0 and 'music' not in self.loadedModules):
+			self.loadMusic()
+		if(index == 1 and 'pictures' not in self.loadedModules):
+			self.loadModule('pictures')
+		elif(index == 2 and 'videos' not in self.loadedModules):
+			self.loadModule('videos')
 		
 	def resizeEvent(self, e):
 		if(not self.maximized):

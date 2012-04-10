@@ -296,7 +296,7 @@ class TagsEditor(gtk.Dialog):
 			L = gtk.Label(_(tag) + " : ")
 			Box.attach(L, 0, 1, self.i, self.i+1)
 			self.tagsEntries[tag] = gtk.Entry()
-			self.tagsEntries[tag].set_text(text)
+			self.tagsEntries[tag].set_text(str(text))
 			Box.attach(self.tagsEntries[tag], 1, 2, self.i, self.i+1)
 			self.i += 1
 

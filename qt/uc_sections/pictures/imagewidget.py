@@ -86,8 +86,9 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		
 	def fitCurrentMode(self):
 		pic = self.pic
-		w = self.image.width()
-		h = self.image.height()
+		w = self.image.parentWidget().width()
+		h = self.image.parentWidget().height()
+		
 		if(self.mode == 'fit'):
 			pic = pic.scaled(w, h, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 		elif(self.scaleFactor != 1.0):
@@ -125,6 +126,7 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		else:
 			self.image.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
 			self.mode = mode
+			
 		self.fitCurrentMode()
 		
 	def wheelEvent(self, e):

@@ -10,7 +10,7 @@ import logging
 from operator import attrgetter
 
 
-from common import messager, settings
+from common import messager, settings, util
 
 from data.elements import Track, BDD
 
@@ -56,7 +56,7 @@ class QueueManager(gtk.VBox):
 		self.playing_iter = None
 		self.dest_row = None
 		# On ajoute une liste pour commencer
-		self.load_state()
+		self.loadState()
 		self.initialisation_raccourcis()
 		glib.timeout_add_seconds(300, self.save_state)
 		
@@ -287,8 +287,8 @@ class QueueManager(gtk.VBox):
 		messager.diffuser('desRaccourcis', self, accel_group)
 		
 
-        
-        def load_state(self):
+        @util.threaded
+        def loadState(self):
 		"""
 			TODO Use one sql query by queue (using parametized IN clause) and thread this
 			self.memcursor.execute('''SELECT id, matbefore, matafter, name, date 
@@ -296,24 +296,20 @@ class QueueManager(gtk.VBox):
                            WHERE name IN (%s)''' % 
                        ','.join('?'*len(offset)), (offset,))
 		"""
-		def traiter_queues():
-			bdd = BDD()
-			queues = settings.get_option('session/queues', None)
-			if(queues is not None):
-				for key in queues.iterkeys():
-					if type(key).__name__=='int':
-						self.addQueue()
-						for track_id in queues[key]:
-							self.addSelection(bdd.getTracks({'track_ID':track_id}))
-					else:
-						playlist = self.addQueue(key)
-						for track_id in queues[key]:
-							self.addSelection(bdd.getTracks({'track_ID':track_id}))
-						playlist.Liste.connect("row-changed", playlist.setModified)
-			else:
-				self.addQueue()
-		a = threading.Thread(target=traiter_queues)
-		a.start()
+		bdd = BDD()
+		queues = settings.get_option('session/queues', None)
+		if(queues is not None):
+			for key in queues.iterkeys():
+				if type(key).__name__=='int':
+					self.addQueue()
+					self.addSelection(bdd.getTracksFromIDs(queues[key]))
+				else:
+					playlist = self.addQueue(key)
+					for track_id in queues[key]:
+						self.addSelection(bdd.getTracks({'track_ID':track_id}))
+					playlist.Liste.connect("row-changed", playlist.setModified)
+		else:
+			self.addQueue()
 		
 		
 	def marquer_piste(self):#Ajoute un marqueur (pour la piste courante de la liste jouée)

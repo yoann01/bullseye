@@ -2,6 +2,8 @@
 from PySide import QtGui, QtCore
 from qt.gui import modales
 
+from common import settings
+
 class MenuBar(QtGui.QMenuBar):
 	def __init__(self, parent):
 		self.core = parent
@@ -11,6 +13,9 @@ class MenuBar(QtGui.QMenuBar):
 		self.addMenu(toolsMenu)
 		
 		parent.moduleLoaded.connect(self.loadModuleMenus)
+		
+		for module in self.core.loadedModules:
+			self.loadModuleMenus(module)
 		
 		
 	def loadModuleMenus(self, module):
@@ -22,19 +27,29 @@ class MenuBar(QtGui.QMenuBar):
 			
 			panelGroup = QtGui.QActionGroup(self)
 			
-			panes = pictures.addAction( _('Multi-panes'), lambda: self.temp(module, panes, 'panes'))
+			browserMode = settings.get_option(module + 's/browser_mode', 'panel')
+			
+			panes = pictures.addAction( _('Multi-panes'), lambda: self.core.managers[module].setBrowserMode('panes'))
 			panes.setCheckable(True)
+			if(browserMode == 'panes'):
+				panes.setChecked(True)
 			panes.setActionGroup(panelGroup)
 			
-			panel = pictures.addAction(_('All in one panel'), lambda: self.temp(module, panel, 'panel'))
+			panel = pictures.addAction(_('All in one panel'), lambda: self.core.managers[module].setBrowserMode('panel'))
 			panel.setCheckable(True)
+			if(browserMode == 'panel'):
+				panel.setChecked(True)
 			panel.setActionGroup(panelGroup)
 
 			self.addMenu(pictures)
+		elif(module == 'music'):
+			music = QtGui.QMenu(_('Music'))
+			music.addAction(_('Reload covers'), self.core.BDD.reloadCovers)
+			
+			self.addMenu(music)
+		
+
 		
 	def openSettings(self):
 		dialog = modales.SettingsEditor()
 		dialog.exec_()
-		
-	def temp(self, module, action, viewType):
-		self.core.managers[module].setBrowserMode(viewType)

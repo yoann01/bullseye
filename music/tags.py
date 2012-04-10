@@ -3,6 +3,7 @@ import os
 
 from mutagen.easyid3 import EasyID3
 from mutagen.oggvorbis import OggVorbis
+from mutagen.mp3 import MP3
 
 
 class Tags:
@@ -41,7 +42,7 @@ class Tags:
 			year = _("Unknown")
 		
 		if(format == ".mp3"):
-			length = int(MP3(fichier).info.length)
+			length = int(MP3(path).info.length)
 		else:
 			length =  int(audio.info.length)
 			

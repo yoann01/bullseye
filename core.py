@@ -7,12 +7,13 @@ import gobject
 class Core(gobject.GObject):
 	"""
 		Object that contain all Bullseye core widgets
-		TODO controle dbus
-		TODO setting is maximised
-		TODO verifier l'existence des fichiers
+		TODO sort Library Qt + sort UC Sections and add rating & search functionnalities!
+		TODO scroll to current Qt
+		TODO verifier l'existence des fichiers (on load + routine)
 		TODO possibilité de supprimer les fichiers
 		
-		TODO scroll to current
+		
+		TODO controle dbus
 		TODO filter
 		TODO stop flag when temp
 		TODO add a tableview for UC Sections + playlists
@@ -176,7 +177,8 @@ class Core(gobject.GObject):
 		parentBox = button.get_parent() # FIXME parentBox is an empty VBox in which we pack a VBox
 		parentBox.pack_start(widget)
 		button.destroy()
-			
+		
+		self.loadedModules.append(section)
 		self.emit('module-loaded', section)
 			
 	
@@ -225,11 +227,15 @@ class Core(gobject.GObject):
 		
 		self.HPaned_Music.show_all()
 		self.loadedModules.append('music')
+		self.emit('module-loaded', 'music')
 	
 	def notifier(self, message):
 		self.Label.set_text(message)
 		
 	def hot_swap_widget(self, button, name, option):
+		'''
+			DEPRECATED
+		'''
 		from uc_sections.panel import UC_Panel, UC_Panes
 		if(name == 'imagePanel'):
 			print 'TODO'

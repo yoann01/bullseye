@@ -3,13 +3,12 @@ from PySide import QtGui, QtCore
 from PySide.QtCore import Qt
 import threading
 import time
-import gobject
 import gettext
 import logging
 from operator import attrgetter
 
 
-from common import messager, settings
+from common import settings, util
 
 from data.elements import QueuedTrack, Track, BDD
 
@@ -23,7 +22,7 @@ IM = icons.IconManager()
 
 logger = logging.getLogger(__name__)
 
-class QueueManager(QtGui.QTabWidget):
+class QueueManager(QtGui.QWidget):
 	"""
         Cet objet correspond au gestionnaire de pistes à jouer, graphiquement c'est un NoteBook (onglets, etc...)
         TODO ponts (A -> B, B-> C), filtres
@@ -31,15 +30,28 @@ class QueueManager(QtGui.QTabWidget):
         TODO open external track files (mime + isLoaded(musicSection)) + handle drop event for that
         """
 	def __init__(self, playerWidget):
-		QtGui.QTabWidget.__init__(self)
+		QtGui.QWidget.__init__(self)
+		
+		self.tabWidget = QtGui.QTabWidget()
+		actionBox = QtGui.QHBoxLayout()
+		scrollToCurrentButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('go-jump'), None)
+		searchEntry = QtGui.QLineEdit()
+		searchEntry.textChanged.connect(self.filter)
+		actionBox.addWidget(scrollToCurrentButton, 0)
+		actionBox.addWidget(searchEntry, 1)
+		
+		layout = QtGui.QVBoxLayout()
+		layout.addWidget(self.tabWidget, 1)
+		layout.addLayout(actionBox, 0)
+		self.setLayout(layout)
 		
 		# *** Visual features ***
-		self.setTabsClosable(True)
-		self.tabCloseRequested.connect(self.removeQueue)
+		self.tabWidget.setTabsClosable(True)
+		self.tabWidget.tabCloseRequested.connect(self.removeQueue)
 		addTabButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('list-add'), None)
 		addTabButton.setFlat(True)
 		addTabButton.released.connect(self.addQueue)
-		self.setCornerWidget(addTabButton)
+		self.tabWidget.setCornerWidget(addTabButton)
 		
 		# *** Data attributes
 		self.playerWidget = playerWidget
@@ -56,101 +68,35 @@ class QueueManager(QtGui.QTabWidget):
 		#q.model.append(QueuedTrack(1, q))
 		#q.model.append(QueuedTrack(2, q))
 		#q.model.append(QueuedTrack(3, q))
-		self.addTab(q, 'Queue0')
+		
 		# On ajoute une liste pour commencer
+		self.loadState()
 		
 		QtGui.QShortcut(QtGui.QKeySequence(self.tr("Ctrl+T", "File|New")), self, self.addQueue)
 		QtGui.QShortcut(QtGui.QKeySequence(self.tr("Ctrl+W", "File|Close")), self, self.removeQueue)
-		
+	
+	
 
-	def getAddTabButtonPos(self):
-		try:
-			last_tab_label = self.get_tab_label(self.get_nth_page(self.get_n_pages() -1))
-			alloc = last_tab_label.get_allocation()
-		except:
-			print 'TODO'
-		
-		return (alloc.x + alloc.width + 10, alloc.y + 4)
-			
-	def onButtonRelease(self, widget, event):
-		if(event.button == 1):
-			x, y = self.getAddTabButtonPos()
-			x_root, y_root = self.window.get_root_origin()
-			x = x + x_root - 5
-			y = y + y_root + 16
-			if(event.x_root > x and event.x_root < x + 32 and event.y_root > y and event.y_root < y + 32):
-				self.addQueue()
-		
-	def redrawAddTabButton(self, w, e):
-		icon = gtk.Image().render_icon(gtk.STOCK_ADD, gtk.ICON_SIZE_MENU)
-		#icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
-		
-		alloc = self.getAddTabButtonPos()
-		self.window.draw_pixbuf(None, icon, 0, 0, alloc[0], alloc[1])
 
 	@property
 	def visibleQueue(self):
 		try:
-			q = self.currentWidget()
+			q = self.tabWidget.currentWidget()
 		except:
 			q = None
 
 		return q
 		
-	def addSelection(self, tracks):
-		self.visibleQueue.addTracks(tracks)
+	def addSelection(self, tracks, queue=None):
+		if(queue == None):
+			queue = self.visibleQueue
+		queue.addTracks(tracks)
 		
-		
-	def addToDirectList(self, menuitem, row, temp=False):
-		'''
-		@param menuitem : osef
-		@param row : TreeReference
-		@param temp : if temp is true then after jumping return where player was before
-		'''
-		i = 0
-		while((i < len(self.directList)) and not self.directList[i].equals(row)):
-			i+=1
-
-		if(i < len(self.directList) and self.directList[i].equals(row)):
-			self.directList.insert(i, DirectIter(None, temp))
-			i+=1
-		else:
-			self.directList.append(DirectIter(row, temp))
-		if temp is True:
-			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18), '#FFCC00', '#000', '#000')
-		else:
-			image = icons.MANAGER.pixbuf_from_text(str(i+1), (18, 18))
-		row.get_model()[row.get_path()][1] = image
 
 
-	def ajouter_selection(self, selection): 
-		''' 
-			Ajoute la séléction envoyée par le Panel à la queue visible
-			@param selection : t de list content les informations des pistes à ajouter
-				rappel de l'ordre: police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
-		'''
-		liste = self.visibleQueue
-		try:
-			iter_pos = liste.get_iter(self.dest_row[0])
-			pos_type = self.dest_row[1]
-		except:
-			iter_pos = None
-			pos_type = None
-			
-		if liste != None:
-			for track in selection:
-				length = self.format_length(track[5])
-				rating= self.IM.rating_pixbufs[track[7]]
-				if(pos_type == gtk.TREE_VIEW_DROP_BEFORE or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
-					liste.insert_before(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
-				elif(pos_type == gtk.TREE_VIEW_DROP_AFTER or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-					liste.insert_after(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
-				else:
-					liste.append([None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
-		self.dest_row = None
 		
 	def addQueue(self, button=None, label=None):
-		nb_pages = self.count()
+		nb_pages = self.tabWidget.count()
 		if(label != None):
 			#Cela veut dire qu'on a reçu une playlist du messager
 			newQueue = Playlist(self, label)
@@ -158,8 +104,8 @@ class QueueManager(QtGui.QTabWidget):
 			label = _("Queue ") + str(nb_pages)
 			newQueue = Queue(self, label)
 		
-		self.addTab(newQueue, label)
-		self.setCurrentIndex(nb_pages)
+		self.tabWidget.addTab(newQueue, label)
+		self.tabWidget.setCurrentIndex(nb_pages)
 		return newQueue
 			
 
@@ -168,33 +114,19 @@ class QueueManager(QtGui.QTabWidget):
 	def removeQueue(self, i=-1):
 		if i == -1: # triggered by shortcut
 			i = self.currentIndex()
-		if(self.widget(i).modified == True):
+		if(self.tabWidget.widget(i).modified == True):
 			print "TODO"
-		self.removeTab(i)
-		if(self.count() == 0):
+		self.tabWidget.removeTab(i)
+		if(self.tabWidget.count() == 0):
 			self.addQueue()
-		
-	def fermer_onglet(self, bouton=None, onglet=None):
-		if(bouton == None):
-			#La demande provient d'un raccourci clavier
-			numero_page = self.get_current_page()
-		else:
-			numero_page = self.page_num(onglet)
-		if(self.get_nth_page(numero_page).modified == True):
-			dialog = gtk.Dialog(title=_("Closing non-saved playlist"), buttons=(gtk.STOCK_NO, gtk.RESPONSE_REJECT,
-                      gtk.STOCK_YES, gtk.RESPONSE_ACCEPT))
-			box = dialog.get_content_area()
-			box.pack_start(gtk.Label(_("Save changes?")), False, 5, 5)
-			box.show_all()
-			reponse = dialog.run()
-			dialog.destroy()
-			if(reponse == -3): #Valider
-				self.get_nth_page(numero_page).save()
-		self.remove_page(numero_page)
-		#Il n'y a plus d'onglet, on en crée un
-		if(self.get_n_pages() == 0):
-			self.addQueue()
-			
+	
+
+	
+	def filter(self, text):
+		proxyModel = self.visibleQueue.filterModel
+		proxyModel.setFilterRegExp(QtCore.QRegExp(text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString))
+		proxyModel.setFilterKeyColumn(1)
+		print text
 	
 	def format_length(self, length):
 		minutes = 0
@@ -212,33 +144,31 @@ class QueueManager(QtGui.QTabWidget):
 	def getDefaultTrack(self):
 		return self.visibleQueue.getTrackAt(0)
 		
-
 		
-
-        
-        def load_state(self):
-		def traiter_queues():
+	
+	def loadState(self):
+		@util.threaded
+		def addTracks(IDs, queue):
 			bdd = BDD()
-			queues = settings.get_option('session/queues', None)
-			if(queues is not None):
-				for key in queues.iterkeys():
-					if type(key).__name__=='int':
-						self.addQueue()
-						for track_id in queues[key]:
-							self.ajouter_selection(bdd.get_tracks_data({'track_ID':track_id}))
-					else:
-						playlist = self.addQueue(key)
-						for track_id in queues[key]:
-							self.ajouter_selection(bdd.get_tracks_data({'track_ID':track_id}))
-						playlist.Liste.connect("row-changed", playlist.setModified)
-			else:
-				self.addQueue()
-		a = threading.Thread(target=traiter_queues)
-		a.start()
+			self.addSelection(bdd.getTracksFromIDs(IDs), queue)
+			
+
+		queues = settings.get_option('session/queues', None)
+		if(queues is not None):
+			for key in queues.iterkeys():
+				if type(key).__name__== 'int':
+					addTracks(queues[key], self.addQueue())
+				else:
+					playlist = self.addQueue(key)
+					for track_id in queues[key]:
+						self.addSelection(bdd.get_tracks_data({'track_ID':track_id}))
+					playlist.Liste.connect("row-changed", playlist.setModified)
+		else:
+			self.addQueue()
 		
 
 		
-	def save_state(self):
+	def saveState(self):
 		i = 0
 		queues = {}
 		while( i < self.get_n_pages()):
@@ -292,7 +222,10 @@ class Queue(QtGui.QTableView):
 		
 		#police, icon_playing, icon_stopping, ID, path, titre, album, artiste, length, count, pixbuf_note, note, bridge_src key
 		self.model = QueueModel()
-		self.setModel(self.model)
+		filterModel = QtGui.QSortFilterProxyModel()
+		filterModel.setSourceModel(self.model)
+		self.setModel(filterModel)
+		self.filterModel = filterModel
 		
 		header = self.horizontalHeader()
 		

@@ -96,7 +96,10 @@ class UC_Panel(AbstractPanel):
 		TreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		TreeView.customContextMenuRequested.connect(self.showContextMenu)
 		self.model = UCModel()
-		TreeView.setModel(self.model)
+		filterModel = QtGui.QSortFilterProxyModel()
+		filterModel.setSourceModel(self.model)
+		
+		TreeView.setModel(filterModel)
 		TreeView.activated.connect(self.onContainerActivated)
 
 		#TreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
@@ -118,8 +121,10 @@ class UC_Panel(AbstractPanel):
 		modeBox = QtGui.QHBoxLayout()
 		modeBox.addWidget(self.modesCB, 1)
 		modeBox.addWidget(refreshButton)
-		layout.addLayout(modeBox)
-		layout.addWidget(TreeView)
+		layout.addLayout(modeBox, 0)
+		layout.addWidget(TreeView, 1)
+		searchEntry = QtGui.QLineEdit()
+		layout.addWidget(searchEntry, 0)
 		self.setLayout(layout)
 		self.setMinimumWidth(300)
 		
@@ -210,8 +215,11 @@ class UC_Panes(AbstractPanel):
 		buttonBar = QtGui.QToolBar()
 		buttonBar.addAction(QtGui.QIcon.fromTheme('view-refresh'), None, self.load)
 		
+		searchEntry = QtGui.QLineEdit()
+		
 		mainLayout.addWidget(buttonBar, 0)
 		mainLayout.addLayout(layout, 1)
+		mainLayout.addWidget(searchEntry, 0)
 		
 		self.setLayout(mainLayout)
 		
@@ -363,7 +371,7 @@ class UCModel(treemodel.TreeModel):
 			elif section == 1:
 				return 'Label'
 			elif section == 2:
-				return _('Count')
+				return _('Rating')
 			
 		return None
 		

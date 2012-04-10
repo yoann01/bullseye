@@ -20,7 +20,7 @@ class IconViewer(QtGui.QListView):
 		QtGui.QListView.__init__(self)
 		#self.setMovement(QtGui.QListView.Free)
 		self.setViewMode(QtGui.QListView.IconMode)
-		self.setUniformItemSizes(True)
+		#self.setUniformItemSizes(True)
 		self.model = ThumbnailModel()
 		self.setModel(self.model)
 
@@ -36,7 +36,7 @@ class IconViewer(QtGui.QListView):
 		self.setSpacing(10)
 		self.setStyleSheet('QListView::item::selected::active {border-radius:5px; background-color: palette(highlight)}')
 		#self.setStyleSheet('QListView::icon { border-radius:10px; background-color:orange;}');
-		self.setMinimumHeight(170)
+		#self.setMinimumHeight(170)
 
 		self.setWrapping(False)
 		self.activated.connect(self.onActivated)
@@ -106,7 +106,7 @@ class AbstractIconSelector(QtGui.QWidget):
 		
 class ImageSelector(AbstractIconSelector):
 	def __init__(self, imageWidget):
-		AbstractIconSelector.__init__(self, 'image')
+		AbstractIconSelector.__init__(self, 'picture')
 		self.imageWidget = imageWidget
 		
 		self.buttonBar.addSeparator()
@@ -143,19 +143,8 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 		if not index.isValid():
 			return None
 		elif role == QtCore.Qt.DisplayRole:
+			return None
 			return item.file[:20] + (item.file[20:] and '..')
-			if index.column() == 1:
-				return self.tracks[index.row()].title
-			elif index.column() == 2:
-				return self.tracks[index.row()].album
-			elif index.column() == 3:
-				return self.tracks[index.row()].artist
-			elif index.column() == 4:
-				return self.tracks[index.row()].length
-			elif index.column() == 5:
-				return self.tracks[index.row()].playcount
-			elif index.column() == 6:
-				return self.tracks[index.row()].rating
 		elif role == QtCore.Qt.DecorationRole:
 			try:
 				if(item.icon is None):

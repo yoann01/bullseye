@@ -8,7 +8,7 @@ class UCManager(gtk.VBox):
 		from uc_sections.panel import UC_Panel, UC_Panes
 
 		if(moduleType == 'pictures'):
-			self.module = 'image'
+			self.module = 'picture'
 			from uc_sections.pictures.image_widget import ImageWidget
 				
 			Box_UpperP = gtk.HBox()
@@ -23,7 +23,11 @@ class UCManager(gtk.VBox):
 			SW_IconsP.add(self.elementSelector)
 
 			#self._imagePanel = UC_Panel("image", self._imageSelector)
-			self.containerBrowser = UC_Panes("image", self.elementSelector)
+			
+			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
+				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
+			else:
+				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
 
 			Box_UpperP.pack_start(self.containerBrowser ,False)
 			Box_UpperP.pack_end(imageWidget)
@@ -54,7 +58,11 @@ class UCManager(gtk.VBox):
 			SW_IconsV = gtk.ScrolledWindow()
 			SW_IconsV.set_size_request(-1, 170)
 			SW_IconsV.add(self.elementSelector)
-			self.containerBrowser = UC_Panel("video", self.elementSelector)
+			
+			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
+				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
+			else:
+				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
 			
 			HPaned_Video = gtk.HPaned()
 			HPaned_Video.pack1(self.containerBrowser)
@@ -81,3 +89,4 @@ class UCManager(gtk.VBox):
 		newObj.show_all()
 
 		self.containerBrowser = newObj
+		settings.set_option(self.module + 's/browser_mode', viewType)

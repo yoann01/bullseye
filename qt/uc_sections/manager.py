@@ -11,7 +11,7 @@ class UCManager(QtGui.QWidget):
 		QtGui.QWidget.__init__(self)
 		
 		if(moduleKey == 'pictures'):
-			self.module = 'image'
+			self.module = 'picture'
 			from qt.uc_sections.iconselector import ImageSelector
 			from qt.uc_sections.pictures.imagewidget import SimpleImageWidget
 			from qt.uc_sections.panel import UC_Panel, UC_Panes
@@ -20,7 +20,10 @@ class UCManager(QtGui.QWidget):
 			layout = QtGui.QHBoxLayout()
 			imageWidget = SimpleImageWidget()
 			self.elementSelector = ImageSelector(imageWidget)
-			self.containerBrowser = UC_Panes('image', self.elementSelector)
+			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
+				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
+			else:
+				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
 			layout.addWidget(self.containerBrowser, 0)
 			layout.addWidget(imageWidget, 1)
 			mainLayout.addLayout(layout, 1)
@@ -52,7 +55,12 @@ class UCManager(QtGui.QWidget):
 			mainLayout = QtGui.QVBoxLayout()
 			layout = QtGui.QHBoxLayout()
 			self.elementSelector = VideoSelector(self.videoPlayerWidget)
-			self.containerBrowser = UC_Panel('video', self.elementSelector)
+			
+			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
+				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
+			else:
+				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
+				
 			layout.addWidget(self.containerBrowser, 0)
 			layout.addWidget(self.videoPlayerWidget, 1)
 			mainLayout.addLayout(layout, 1)
@@ -61,6 +69,8 @@ class UCManager(QtGui.QWidget):
 			
 		self.setLayout(mainLayout)
 		self.upLayout = layout
+			
+			
 			
 	def setBrowserMode(self, viewType):
 		'''
@@ -74,6 +84,7 @@ class UCManager(QtGui.QWidget):
 			newObj = UC_Panel(self.module, self.elementSelector)
 		else:
 			newObj = UC_Panes(self.module, self.elementSelector)
+		settings.set_option(self.module + 's/browser_mode', viewType)
 			
 		index = self.upLayout.indexOf(self.containerBrowser)
 		self.containerBrowser.deleteLater()

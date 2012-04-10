@@ -4,6 +4,7 @@ from PySide import QtGui, QtCore
 from PySide.QtCore import Qt
 
 from PySide.QtCore import QModelIndex, QAbstractItemModel
+from operator import attrgetter
 
 from common import messager, settings, xdg
 from qt.util import treemodel
@@ -27,7 +28,9 @@ class LibraryPanel(QtGui.QWidget):
 		TODO check errors (arkenstone, little richard)
 		TODO réimplémenter mousePressEvent pour avoir l'image lors du drag
 	"""
-		
+	
+	expandRequested = QtCore.Signal(list)
+	
 	def __init__(self, BDD, queueManager):
 		QtGui.QWidget.__init__(self)
 		self.BDD = BDD
@@ -37,6 +40,7 @@ class LibraryPanel(QtGui.QWidget):
 		
 		self.TreeView = QtGui.QTreeView()
 		self.TreeView.setExpandsOnDoubleClick(False)
+		self.TreeView.setSortingEnabled(True)
 		self.TreeView.mouseReleaseEvent = self.mouseReleaseEvent
 		
 		self.model = LibraryModel()
@@ -50,6 +54,7 @@ class LibraryPanel(QtGui.QWidget):
 		#self.model.append(LibraryItem(None, 1, "ok", 1, 1, 1, 1, False))
 		self.TreeView.setModel(self.model)
 		self.TreeView.activated.connect(self.enqueue)
+		self.expandRequested.connect(self.expandIndexes)
 		
 		self.TreeView.setDragEnabled(True)
 		self.TreeView.setAcceptDrops(True)
@@ -79,7 +84,7 @@ class LibraryPanel(QtGui.QWidget):
 		modLayout.addWidget(refreshButton)
 		
 		searchLine = QtGui.QLineEdit()
-		searchLine.returnPressed.connect(lambda: self.restreindre(searchLine))
+		searchLine.returnPressed.connect(lambda: self.searchFor(searchLine))
 		
 		layout = QtGui.QVBoxLayout()
 		layout.addLayout(modLayout)
@@ -125,6 +130,10 @@ class LibraryPanel(QtGui.QWidget):
 		model = self.modeCB.model()
 		self.mode = model.data(model.index(i, 0))
 		self.fill_model()
+		
+	def expandIndexes(self, indexes):
+		for path in indexes:
+			self.TreeView.setExpanded(path, True)
 		
 	
 	def fill_model(self, garbageFromConnect=None, force_reload=False, mot='', e=None):
@@ -311,17 +320,23 @@ class LibraryPanel(QtGui.QWidget):
 			niveau = 0
 			ligne = 0
 
+			i = 0
 			while(ligne < len(tracks)):
-				self.model.beginInsertRows(QtCore.QModelIndex(), 0, 0)
+				
 				self.expand = [[], []]
 				self.expand_paths = []
 				self.selection = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
 				ligne = traiter_conteneur(0, ligne, self.selection)
 				
+				self.model.beginInsertRows(QtCore.QModelIndex(), i, i+1)
+				i+=1
+				
 				ajouter_selection(self.model.rootItem, 0, self.selection)
 				#glib.idle_add(ajouter_selection, None, 0, self.selection)
-				expand()
 				self.model.endInsertRows()
+				self.expandRequested.emit(self.expand_paths)
+				#expand()
+				
 			#self.TreeView.expand_all()
 			if(e != None):
 				e.set() #On a fini donc on prévient les autres threads qui nous attendaient
@@ -427,7 +442,7 @@ class LibraryPanel(QtGui.QWidget):
 		selection_data.set_text(str(T))
 
 		
-	def restreindre(self, entry):
+	def searchFor(self, entry):
 		word = entry.text()
 		self.fill_model(mot=word)
 		
@@ -562,10 +577,11 @@ class LibraryItem(treemodel.TreeItem):
 class LibraryModel(treemodel.TreeModel):
 	def __init__(self):
 		treemodel.TreeModel.__init__(self)
+		self.columnsFields = ('label', 'label', 'playcount', 'rating', 'burn')
 
 
 	def columnCount(self, parent):
-		return 3
+		return 5
 
 	def data(self, index, role):
 		if not index.isValid():
@@ -576,6 +592,11 @@ class LibraryModel(treemodel.TreeModel):
 				return item.label
 			elif index.column() == 2:
 				return item.playcount
+			elif index.column() == 3:
+				return item.rating
+			elif index.column() == 4:
+				return item.rounded_burn
+				
 		elif role == Qt.DecorationRole and index.column() == 0:
 			if(item.icon is None):
 				try:
@@ -603,6 +624,10 @@ class LibraryModel(treemodel.TreeModel):
 				return 'Label'
 			elif section == 2:
 				return _('Count')
+			elif section == 3:
+				return _('Rating')
+			elif section == 4:
+				return _('Burn')
 			
 		return None
 		
@@ -622,6 +647,22 @@ class LibraryModel(treemodel.TreeModel):
 			FIXME Not used, didn't manage to find out how to automatically serialize items (thus overrided mimeData instead)
 		'''
 		return ('bullseye/library.items',)
+		
+	def sort(self, columnIndex, order):
+		self.layoutAboutToBeChanged.emit()
+		if(order == Qt.AscendingOrder):
+			reverse = False
+		else:
+			reverse = True
+			
+		def sort(elt, reverse):
+			elt.childItems = sorted(elt.childItems, key=attrgetter(self.columnsFields[columnIndex]), reverse=reverse)
+			for childElt in elt.childItems:
+				sort(childElt, reverse)
+				
+		sort(self.rootItem, reverse)
+		
+		self.layoutChanged.emit()
 		
             
 class SearchEntry(object):

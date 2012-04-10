@@ -3,9 +3,8 @@ import sqlite3
 import os
 from urllib import urlretrieve
 from PIL import Image
-from mutagen.easyid3 import EasyID3
-from mutagen.oggvorbis import OggVorbis
-from mutagen.mp3 import MP3
+
+
 import gtk
 import subprocess
 from common import messager, settings, util, xdg
@@ -93,6 +92,20 @@ class BDD():
 		tracks = []
 		for row in d:
 			tracks.append(elements.Track(row[0]))
+		return tracks
+		
+	
+	def getTracksFromIDs(self, IDs):
+		# IN (%s)''' % ','.join('?'*len(IDs)), (IDs,))
+		self.c.execute('SELECT * FROM tracks WHERE track_ID IN (%s)' % ("?," * len(IDs))[:-1], IDs)
+		
+		tracksData = []
+		for row in self.c:
+			tracksData.append((row[0], row[1], row[2], row[3], row[4], row[6], row[7], row[8]))
+
+		tracks = []
+		for dataTuple in tracksData:
+			tracks.append(elements.Track(dataTuple))
 		return tracks
 		
 		
@@ -207,7 +220,7 @@ class MainBDD():
 			
 			
 		
-		#BDD.initNetwork()
+		BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
 		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
@@ -336,18 +349,18 @@ class MainBDD():
 			for row in c:
 				registered_paths.append(row[0])
 				
-			c.execute('SELECT dossier, fichier, dossier FROM images')
+			c.execute('SELECT folder, filename, folder FROM pictures')
 			for row in c:
 				registered_paths.append(row[0] + '/' + row[1])
 				
-			c.execute('SELECT dossier, fichier, dossier FROM videos')
+			c.execute('SELECT folder, filename, folder FROM videos')
 			for row in c:
 				registered_paths.append(row[0] + '/' + row[1])
 			
 			
 			new_paths = list(set(recovered_paths) - set(registered_paths))
 			
-			new_files = {'music':[], 'image':[], 'video':[]}
+			new_files = {'music':[], 'picture':[], 'video':[]}
 			# *** REQUETE PARAMETREE AVEC CLAUSE IN -> for row in conn.execute('SELECT path FROM tracks WHERE path IN (%s)' % ("?," * len(tracks_path))[:-1], tracks_path):
 			
 			longueur = float(len(files['music_files']))
@@ -360,13 +373,13 @@ class MainBDD():
 				i += 1
 				P_Bar.set_fraction((float(i) / longueur))
 			
-			longueur = float(len(files['image_files']))
+			longueur = float(len(files['picture_files']))
 			P_Bar.set_fraction(0)
 			i = 0
-			for element in files['image_files']:
+			for element in files['picture_files']:
 				path = element[0] + '/' + element[1]
 				if(path in new_paths):
-					new_files['image'].append(get_UC_element_data('image', element[0], element[1]))
+					new_files['picture'].append(get_UC_element_data('picture', element[0], element[1]))
 				i += 1
 				P_Bar.set_fraction((float(i) / longueur))
 				
@@ -383,9 +396,9 @@ class MainBDD():
 			
 			for section in new_files.iterkeys():
 				if(section == 'music'):
-					conn.executemany('INSERT INTO tracks (path, title, album, artist, genre, length, note, compteur, year) VALUES (?,?,?,?,?, ?, ?, ?, ?)', new_files[section])
+					conn.executemany('INSERT INTO tracks (path, title, album, artist, genre, length, rating, playcount, year) VALUES (?,?,?,?,?, ?, ?, ?, ?)', new_files[section])
 				else:
-					conn.executemany('INSERT INTO ' + section + 's (dossier, fichier, note, categorie_ID, univers_ID, size) VALUES (?, ?, ?, ?, ?, ?)', new_files[section])
+					conn.executemany('INSERT INTO ' + section + 's (folder, filename, rating, categorie_ID, univers_ID, size) VALUES (?, ?, ?, ?, ?, ?)', new_files[section])
 			
 			P_Bar.set_fraction(0)
 			conn.commit()
@@ -444,7 +457,7 @@ class MainBDD():
 			return t
 			
 			
-		def scanner_dossier(dossier, dig=False, files={'music_files':[], 'image_files':[], 'video_files':[]}):
+		def scanner_dossier(dossier, dig=False, files={'music_files':[], 'picture_files':[], 'video_files':[]}):
 			'''
 				Scanne récursivement un dossier et ses sous-dossiers pour repérer les fichiers intéressants
 				@param dossier : le dossier qui sera scanné
@@ -455,7 +468,7 @@ class MainBDD():
 			def add_new_CU(type, dossier, fichier, extension):
 				try:
 					t = (unicode(dossier), unicode(fichier))
-					c.execute('SELECT COUNT(' + type + '_ID) FROM ' + type + 's WHERE dossier = ? AND fichier = ?', t)
+					c.execute('SELECT COUNT(' + type + '_ID) FROM ' + type + 's WHERE folder = ? AND filename = ?', t)
 					if(c.fetchone()[0] == 0): #Si le fichier n'est pas déjà dans la base
 						files.append((type, dossier, fichier, extension))
 				except UnicodeDecodeError:
@@ -480,7 +493,7 @@ class MainBDD():
 				elif extension in (".jpg", '.gif', ".png", ".bmp"):
 					try :
 						if(dossier != "thumbnails/images"): # *** A COMPLETER ***
-							files['image_files'].append((dossier, fichier))
+							files['picture_files'].append((dossier, fichier))
 							recovered_paths.append(unicode(dossier + "/" + fichier))
 					except UnicodeDecodeError:
 						error_paths.append(dossier + '/' + fichier)
@@ -513,7 +526,7 @@ class MainBDD():
 		# ***** Musique *****
 		self.c.execute('''CREATE TABLE tracks
 		(track_ID INTEGER PRIMARY KEY AUTOINCREMENT, path text, title text, album text,
-		artist text, genre text, length int, compteur int, note int, year text)''')
+		artist text, genre text, length int, playcount int, rating int, year text, num int, status text DEFAULT 'a')''')
 		
 		
 		self.c.execute('''CREATE TRIGGER insert_track BEFORE INSERT ON tracks
@@ -521,6 +534,9 @@ class MainBDD():
 				SELECT  RAISE(IGNORE)
 				WHERE (SELECT track_ID from tracks WHERE path = NEW.path) IS NOT NULL;
 			END;''')
+			
+			
+		self.c.execute('''"CREATE TABLE listened (track_ID INTEGER, time INTEGER, PRIMARY KEY(track_ID, time));''')
 		
 		
 		# ***** Vidéos *****
@@ -528,7 +544,7 @@ class MainBDD():
 		
 		
 		# ***** Images *****
-		self.creer_tablesUC("image")
+		self.creer_tablesUC("picture")
 		
 		#self.c.execute('''CREATE TABLE lien_IC
 		#(categorie_ID int, image_ID int, PRIMARY KEY(categorie_ID, image_ID))''')
@@ -544,7 +560,7 @@ class MainBDD():
 		queries.append( 'INSERT INTO categorie_' + type + 's VALUES(1, "Divers",0 , 0)')
 		queries.append ( 'INSERT INTO univers_' + type + 's VALUES(1, "Divers", 0, 0)')
 		
-		query = 'CREATE TABLE ' + type + 's ('+ type + '_ID INTEGER PRIMARY KEY AUTOINCREMENT, dossier text, fichier text, note int, categorie_ID, univers_ID, size int,'
+		query = 'CREATE TABLE ' + type + 's ('+ type + '_ID INTEGER PRIMARY KEY AUTOINCREMENT, folder text, filename text, rating int, categorie_ID int, univers_ID int, size int, status text DEFAULT "a", '
 		query += 'FOREIGN KEY(categorie_ID) REFERENCES categorie_' + type + 's(categorie_ID),'
 		query += 'FOREIGN KEY(univers_ID) REFERENCES univers_' + type + 's(univers_ID))'
 		queries.append(query)
@@ -869,7 +885,7 @@ class MainBDD():
 			ID = str(row[0])
 			thumbnail_path = "thumbnails/" + type + "s/" + ID + ".jpg"
 			if not os.path.exists(thumbnail_path):
-				if(type == "image"):
+				if(type == "picture"):
 					im = Image.open(path)
 					im.thumbnail((128, 128), Image.ANTIALIAS)
 					im.save(thumbnail_path, "JPEG")
@@ -1078,12 +1094,12 @@ class MainBDD():
 		# data = [type, ID, note]
 		type_cible = data[0]
 		t = (data[2], data[1],)
-		if(type_cible == "image"):
-			self.c.execute('UPDATE images SET note = ? WHERE image_ID = ?', t)
+		if(type_cible == "picture"):
+			self.c.execute('UPDATE picture SET rating = ? WHERE picture_ID = ?', t)
 		elif(type_cible == "track"):
-			self.c.execute('UPDATE tracks SET note = ? WHERE track_ID = ?', t)
+			self.c.execute('UPDATE tracks SET rating = ? WHERE track_ID = ?', t)
 		elif(type_cible == "video"):
-			self.c.execute('UPDATE videos SET note = ? WHERE video_ID = ?', t)
+			self.c.execute('UPDATE videos SET rating = ? WHERE video_ID = ?', t)
 		self.conn.commit()
 	
 	def quit(self):
