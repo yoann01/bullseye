@@ -35,6 +35,7 @@ class QueueManager(QtGui.QWidget):
 		self.tabWidget = QtGui.QTabWidget()
 		actionBox = QtGui.QHBoxLayout()
 		scrollToCurrentButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('go-jump'), None)
+		scrollToCurrentButton.clicked.connect(self.scrollToCurrent)
 		searchEntry = QtGui.QLineEdit()
 		searchEntry.textChanged.connect(self.filter)
 		actionBox.addWidget(scrollToCurrentButton, 0)
@@ -56,18 +57,8 @@ class QueueManager(QtGui.QWidget):
 		# *** Data attributes
 		self.playerWidget = playerWidget
 		self.playerWidget.queueManager = self
-		self.directList = [] #Liste de pistes à jouer en priorité
-		self.bridges_src = {}
-		self.bridges_dest = {}
 		
-		self.queue_jouee = None
-		self.playing_iter = None
-		self.dest_row = None
-		
-		q = Queue(self, 'Q0')
-		#q.model.append(QueuedTrack(1, q))
-		#q.model.append(QueuedTrack(2, q))
-		#q.model.append(QueuedTrack(3, q))
+	
 		
 		# On ajoute une liste pour commencer
 		self.loadState()
@@ -125,7 +116,7 @@ class QueueManager(QtGui.QWidget):
 	def filter(self, text):
 		proxyModel = self.visibleQueue.filterModel
 		proxyModel.setFilterRegExp(QtCore.QRegExp(text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString))
-		proxyModel.setFilterKeyColumn(1)
+		proxyModel.setFilterKeyColumn(-1)
 		print text
 	
 	def format_length(self, length):
@@ -185,6 +176,13 @@ class QueueManager(QtGui.QWidget):
 				queues[i] = t
 			i += 1
 		settings.set_option('session/queues', queues)
+		
+		
+	def scrollToCurrent(self):
+		currentQueue, currentTrack = self.playerWidget.getCurrents()
+		index = currentQueue.model.tracks.index(currentTrack)
+		self.tabWidget.setCurrentWidget(currentQueue)
+		currentQueue.scrollTo(currentQueue.model.index(index, 0))
 			
 
 
@@ -195,8 +193,9 @@ class Queue(QtGui.QTableView):
 	def __init__(self, manager, label):
 		QtGui.QTableView.__init__(self)
 		
-		#self.setItemDelegate(StarDelegate())
-		#self.setItemDelegateForColumn(3, StarDelegate())
+		self.starDelegate = StarDelegate() # Trick to prevent garbage collector issue
+		#self.setItemDelegate(self.delegate) # The right way, but style option doesn't get initialized correctly causing no alternate colors for rows
+		self.setItemDelegateForColumn(6, self.starDelegate)
 		
 		self.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.SelectedClicked)
 		# Visual tweaks
@@ -224,8 +223,9 @@ class Queue(QtGui.QTableView):
 		self.model = QueueModel()
 		filterModel = QtGui.QSortFilterProxyModel()
 		filterModel.setSourceModel(self.model)
-		self.setModel(filterModel)
 		self.filterModel = filterModel
+		self.setModel(self.filterModel)
+		
 		
 		header = self.horizontalHeader()
 		
@@ -480,6 +480,7 @@ class Queue(QtGui.QTableView):
 				
 	
 	def onActivated(self, i):
+		self.manager.playerWidget.cleanPlayFlag()
 		self.manager.playerWidget.playTrack(self.getTrackAt(i), self)
 	
 	def on_cell_rating_changed(self, widget, path, rating):
@@ -611,7 +612,7 @@ class QueueModel(QtCore.QAbstractTableModel):
 		
 	def insert(self, data, pos):
 		if type(data).__name__=='list':
-			self.beginInsertRows(QtCore.QModelIndex(), pos, pos + len(data))
+			self.beginInsertRows(QtCore.QModelIndex(), pos, pos + len(data)-1)
 			if(pos == len(self.tracks)):
 				self.tracks.extend(data)
 			else:

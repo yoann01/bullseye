@@ -63,7 +63,10 @@ class QueueManager(gtk.VBox):
 		actionBox = gtk.HBox()
 		scrollToCurrentButton = gtk.ToolButton(gtk.STOCK_JUMP_TO)
 		scrollToCurrentButton.connect('clicked', self.scrollToCurrent)
+		searchEntry = gtk.Entry()
+		searchEntry.connect('activate', self.filter)
 		actionBox.pack_start(scrollToCurrentButton, False)
+		actionBox.pack_start(searchEntry)
 		
 		self.pack_start(self.NoteBook)
 		self.pack_start(actionBox, False)
@@ -260,6 +263,18 @@ class QueueManager(gtk.VBox):
 		#Il n'y a plus d'onglet, on en crée un
 		if(self.NoteBook.get_n_pages() == 0):
 			self.addQueue()
+			
+			
+	def filter(self, entry):
+		def match(model, iter, word):
+			value = model.get_value(iter, 5)
+			print value
+			return value.lower().find(word) != -1
+
+		entry.get_text()
+		filterModel = self.visibleQueue.model.filter_new()
+		filterModel.set_visible_func(match, entry.get_text())
+		self.visibleQueue.TreeView.set_model(filterModel)
 
 		
 	def getDefaultTrack(self):
@@ -312,14 +327,14 @@ class QueueManager(gtk.VBox):
 			self.addQueue()
 		
 		
-	def marquer_piste(self):#Ajoute un marqueur (pour la piste courante de la liste jouée)
-		icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
-		try:
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, icon)
-			self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, 'bold')
-		except:
-			self.queue_jouee.set_value(self.playing_iter, 1, icon)
-			self.queue_jouee.set_value(self.playing_iter, 0, 'bold')
+	#def marquer_piste(self):#Ajoute un marqueur (pour la piste courante de la liste jouée)
+		#icon = gtk.gdk.pixbuf_new_from_file('icons/track.png')
+		#try:
+			#self.temp_queue_jouee.set_value(self.temp_playing_iter, 1, icon)
+			#self.temp_queue_jouee.set_value(self.temp_playing_iter, 0, 'bold')
+		#except:
+			#self.queue_jouee.set_value(self.playing_iter, 1, icon)
+			#self.queue_jouee.set_value(self.playing_iter, 0, 'bold')
 
 		
 	def recule(self, data):
@@ -549,7 +564,8 @@ class Queue(gtk.ScrolledWindow):
 		##si aucun onglet, en créer un
 		#if(self.NB.get_n_pages() == 0):
 			#self.NB.addQueue()
-		
+
+	
 	def format_length(self, length):
 		minutes = 0
 		while length > 59:

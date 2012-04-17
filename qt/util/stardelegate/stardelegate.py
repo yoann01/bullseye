@@ -69,6 +69,8 @@ class StarDelegate(QStyledItemDelegate):
         """
         #QStyledItemDelegate.initStyleOption(self, option, index)
         #QStyledItemDelegate.paint(self, painter, option, index)
+        style = QtGui.QStyleOptionViewItemV2(option)
+       
         if index.column() == 6:
             starRating = StarRating(index.data())
             
@@ -91,8 +93,14 @@ class StarDelegate(QStyledItemDelegate):
             # to paint the stars.
             starRating.paint(painter, option.rect, option.palette)
         else:
-            #style = QtGui.QStyleOptionViewItemV2(option)
-            #self.initStyleOption(style, index)
+            #style = QtGui.QStyleOptionViewItemV4(option)
+            #option.features = QtGui.QStyleOptionViewItemV2.Alternate
+            self.initStyleOption(option, index)
+            
+            #if(option.features & QtGui.QStyleOptionViewItemV2.Alternate):
+                #print 'alternate'
+            #else:
+                #print 'normal'
             
             #painter.save()
             #if style.features and QtGui.QStyleOptionViewItemV2.Alternate:
