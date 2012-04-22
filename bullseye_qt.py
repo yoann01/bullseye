@@ -84,7 +84,7 @@ class Frame(QtGui.QMainWindow):
 			time.sleep(0.5)
 			self.ready.emit()
 			
-		emitReady()
+		#emitReady()
 
 
 	def changeEvent(self, e):
@@ -97,15 +97,18 @@ class Frame(QtGui.QMainWindow):
 	def closeEvent(self, e):
 		from data.bdd import BDD
 		BDD.saveCache()
+		if 'music' in self.loadedModules:
+			self.queueManager.saveState()
 		settings.set_option('gui/maximized', self.maximized)
 		settings.MANAGER.save()
+		settings.MANAGER.saveTimer.cancel()
 		print 'Good bye'
 		
 	
 	def loadMusic(self):
 		self.loadedModules.append('music')
 		
-		from qt.music.musicpanel import LibraryPanel
+		from qt.music.musicpanel import BrowserPanel
 		from qt.music.playerwidget import PlayerWidget
 		from media.player import Player
 		#from media.phononplayer import Player
@@ -120,8 +123,8 @@ class Frame(QtGui.QMainWindow):
 		self.HPaned_Music = QtGui.QSplitter(self)
 
 		self.queueManager = QueueManager(playerWidget)
-		self.libraryPanel = LibraryPanel(self.BDD, self.queueManager)
-		self.HPaned_Music.addWidget(self.libraryPanel)
+		self.browserPanel = BrowserPanel(self.BDD, self.queueManager)
+		self.HPaned_Music.addWidget(self.browserPanel)
 		
 		
 		

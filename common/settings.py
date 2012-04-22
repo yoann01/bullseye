@@ -8,7 +8,8 @@ from ConfigParser import (
 import xdg
 import os
 import logging
-import glib
+import threading
+#import glib
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -45,13 +46,20 @@ class SettingsManager(RawConfigParser):
 			except:
 				pass
 			
-		if location is not None:
-			glib.timeout_add_seconds(180, self._timeout_save)
+		self.saveTimer = threading.Timer(180, self._timeout_save)
+		self.saveTimer.start()
+		#if location is not None:
+			#glib.timeout_add_seconds(180, self._timeout_save)
 	
 	
 	def _timeout_save(self):
 		#logger.debug("Requesting save from timeout...")
+			
 		self.save()
+		
+		self.saveTimer = threading.Timer(180, self._timeout_save)
+		self.saveTimer.start()
+	
 		return True
 		
 	def set_option(self, option, value):
@@ -105,7 +113,7 @@ class SettingsManager(RawConfigParser):
 		"""
 		Save the settings to disk
 		"""
-
+		
 		if self.location is None:
 			logger.debug("Save requested but not saving settings, location is None")
 			return
@@ -142,6 +150,8 @@ class SettingsManager(RawConfigParser):
 
 		self._saving = False
 		self._dirty = False
+		
+		
 		
 		
 	def _val_to_str(self, value):

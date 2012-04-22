@@ -7,16 +7,15 @@ import gobject
 class Core(gobject.GObject):
 	"""
 		Object that contain all Bullseye core widgets
+		TODO prompt to add indexed folders
 		TODO sort Library Qt + sort UC Sections and add rating & search functionnalities!
-		TODO scroll to current Qt
 		TODO verifier l'existence des fichiers (on load + routine)
 		TODO possibilité de supprimer les fichiers
 		
 		
 		TODO controle dbus
-		TODO filter
 		TODO stop flag when temp
-		TODO add a tableview for UC Sections + playlists
+		TODO add a tableview for UC Sections
 		TODO moveToUCStrucutre : filter
 	"""
 	
@@ -210,7 +209,7 @@ class Core(gobject.GObject):
 		
 		NB_PanelM = gtk.Notebook()
 		self.library_panel = LibraryPanel(self.BDD, self.queueManager)
-		self.playlists_panel = Playlists_Panel()
+		self.playlists_panel = Playlists_Panel(self.BDD, self.queueManager)
 		NB_PanelM.append_page(self.library_panel, gtk.Label(_("Library")))
 		NB_PanelM.append_page(self.playlists_panel, gtk.Label(_("Playlists")))
 		
@@ -258,6 +257,7 @@ class Core(gobject.GObject):
 			self.videoPlayer.stop()
 	
 		settings.MANAGER.save()
+		settings.MANAGER.saveTimer.cancel()
 		print(_('Closing the eye...'))
 		gtk.main_quit()
 		

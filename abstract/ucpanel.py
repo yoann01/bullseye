@@ -21,7 +21,6 @@ class UCPanelInterface(object):
 		self.filters = {}
 		
 	def enqueue(self, parameters):
-	
 		bdd = BDD()
 		mode = self.mode
 		
@@ -235,19 +234,19 @@ class UCPanelInterface(object):
 			directChildren = bdd.c.fetchall()
 			for child in directChildren:
 				new_name = child[2]
-				if((child[1] + '/' + child[2]) != (root_path + '/' + new_name)): #Do not move if paths are the same
+				if((child[1] + os.sep + child[2]) != (root_path + os.sep + new_name)): #Do not move if paths are the same
 					i = 2
 					same = False;
-					while(os.path.isfile(root_path + '/' + new_name) and not same):
-						if(not os.path.isfile(child[1] + '/' + child[2]) and os.path.getsize(root_path + '/' + new_name) != child[3]): # Same size, assume database is not up to date, so lets move on the same place thus the database will update correctly
+					while(os.path.isfile(root_path + os.sep + new_name) and not same):
+						if(not os.path.isfile(child[1] + os.sep + child[2]) and os.path.getsize(root_path + os.sep + new_name) != child[3]): # Same size, assume database is not up to date, so lets move on the same place thus the database will update correctly
 							(shortname, extension) = os.path.splitext(child[2])
 							new_name = shortname + '_' + str(i) + extension
 							i += 1
 						else:
 							same = True
-					logger.debug('OLD path -> ' + child[1] + '/' + child[2] + ' | NEW path -> ' + root_path + '/' + new_name)
+					logger.debug('OLD path -> ' + child[1] + os.sep + child[2] + ' | NEW path -> ' + root_path + os.sep + new_name)
 					try:
-						os.renames(child[1] + '/' + child[2], root_path + '/' + new_name)
+						os.renames(child[1] + os.sep + child[2], root_path + os.sep + new_name)
 					except OSError:
 						pass
 					bdd.c.execute('UPDATE ' + type + 's SET folder = ?, filename = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
@@ -257,19 +256,20 @@ class UCPanelInterface(object):
 				children = bdd.c.fetchall()
 				for child in children:
 					new_name = child[2]
-					if((child[1] + '/' + child[2]) != (root_path + '/' + child[3] + '/' + new_name)): #move only if paths are different
+					if((child[1] + os.sep + child[2]) != (root_path + os.sep + child[3] + os.sep + new_name)): #move only if paths are different
 						i = 2
-						while(os.path.isfile(root_path + '/' + child[3] + '/' + new_name)):
+						while(os.path.isfile(root_path + os.sep + child[3] + os.sep + new_name)):
 							(shortname, extension) = os.path.splitext(child[2])
 							new_name = shortname + '_' + str(i) + extension
 							i += 1
-						os.renames(child[1] + '/' + child[2], root_path + '/' + child[3] + '/' + new_name)
-						bdd.c.execute('UPDATE ' + type + 's SET folder = ?, fichier = ? WHERE ' + type + '_ID = ?', (root_path + '/' + child[3], new_name, child[0]))
+						os.renames(child[1] + os.sep + child[2], root_path + os.sep + child[3] + os.sep + new_name)
+
+						bdd.c.execute('UPDATE ' + type + 's SET folder = ?, filename = ? WHERE ' + type + '_ID = ?', (root_path + os.sep + child[3], new_name, child[0]))
 			
 			for subContainerID in dic[container_ID]['children']:
 				bdd.c.execute('SELECT ' + container + '_L FROM ' + container + '_' + type + 's WHERE ' + container + '_ID = ?', (subContainerID,))
 				label = bdd.c.fetchone()[0]
-				processContainer(subContainerID, root_path + '/' + label)
+				processContainer(subContainerID, root_path + os.sep + label)
 		
 		
 		bdd.c.execute('SELECT ' + container +'_ID, ' + container + '_L FROM ' + container + '_' + type + 's WHERE parent_ID = 0')
@@ -330,24 +330,24 @@ class UCPanelInterface(object):
 			#elif(mode == "dossier"):
 				#self.c.execute('SELECT DISTINCT dossier FROM ' + type + 's ORDER BY dossier')
 				#for dossier in self.c:
-					#path = dossier[0].rpartition('/')
+					#path = dossier[0].rpartition(os.sep)
 					#liste.append([dossier[0], path[2]])
 		else:
 			def add_node(path):
 				"""
 					Add a folder node, and all parent folder nodes if needed
 				"""
-				parts = path.split('/')
+				parts = path.split(os.sep)
 				s = ''
 				node = None
 				for part in parts:
 					s += part
 					if(s not in nodes.keys()):
-						nodes[s] = liste.append(node, [0, 'f' + s, part, icon, None, None])
+						nodes[s] = self.append(liste, Container((s, part, 0, 0), 'folder', self.module), node) #[0, 'f' + s, part, icon, None, None])
 					node = nodes[s]
-					s += '/'
+					s += os.sep
 					
-			icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
+			#icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
 			bdd.c.execute('SELECT DISTINCT folder FROM ' + self.module + 's ORDER BY folder')
 			folders = bdd.c.fetchall()
 			nodes = {}

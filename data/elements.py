@@ -190,7 +190,7 @@ class Container():
 			thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
 			path = thumbnail_path + str(self.thumbnail_ID) + '.jpg'
 		else:
-			path = 'icons/artist.png'
+			path = None
 		return path
 	
 	@staticmethod

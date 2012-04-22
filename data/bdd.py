@@ -232,7 +232,7 @@ class MainBDD():
 		messager.inscrire(self.add_file_in, 'fileINuniverse', None, "univers_ID")
 		messager.inscrire(self.ajouter_section, 'new_category', None, "categorie")
 		messager.inscrire(self.ajouter_section, 'new_universe', None, "univers")
-		messager.inscrire(self.create_intelligent_playlist, 'intelligent_playlist_request')
+		#messager.inscrire(self.create_intelligent_playlist, 'intelligent_playlist_request')
 		
 		print('BDD initialisée')
 		
@@ -278,33 +278,7 @@ class MainBDD():
 			liste.append([track[1], track[0], "not set", "not set", '0'] )
 			
 	
-	def create_intelligent_playlist(self, filter):
-		'''
-			Crée une requête pour séléctionner des pistes selon les paramètres envoyés
-		'''
-		params = []
-		for t in filter['criterions']:
-			try:
-				query += ' ' + filter['link'] + t[0] + t[1] + '? '
-			except NameError:
-				query = 'SELECT * FROM tracks WHERE ' + t[0] + t[1] + '? '
-			params.append(t[2])
-		
-		
-		#COLLATE NOCASE'
-		
-		if(filter['random']):
-			query += " ORDER BY RANDOM()"
 
-		logger.debug(query)
-		logger.debug(params)
-		self.c.execute(query, params)
-		table = []
-		for row in self.c:
-			table.append((row[0], row[1], row[2], row[3], row[4], row[6], row[7], row[8]))
-		messager.diffuser('desPistes', self, table)
-			
-		
 		
 	def charger_playlist(self, data):
 		ID_list = data[0] # data[1] = l'instance de queue
@@ -962,6 +936,33 @@ class MainBDD():
 			messager.diffuser('desPistes', self, table)
 		else:
 			return table
+		
+		
+	def getDynamicListTracks(self, filter):
+		'''
+			Crée une requête pour séléctionner des pistes selon les paramètres envoyés
+		'''
+		params = []
+		for t in filter['criterions']:
+			try:
+				query += ' ' + filter['link'] + t[0] + t[1] + '? '
+			except NameError:
+				query = 'SELECT * FROM tracks WHERE ' + t[0] + t[1] + '? '
+			params.append(t[2])
+		
+		
+		#COLLATE NOCASE'
+		
+		if(filter['random']):
+			query += " ORDER BY RANDOM()"
+
+		logger.debug(query)
+		logger.debug(params)
+		self.c.execute(query, params)
+		table = []
+		for row in self.c:
+			table.append(elements.Track((row[0], row[1], row[2], row[3], row[4], row[6], row[7], row[8])))
+		return table
 		
 	#def get_tracks_data(self, data):
 		#if type(data).__name__=='dict':

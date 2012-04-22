@@ -27,7 +27,8 @@ class MenuBar(QtGui.QMenuBar):
 			
 			panelGroup = QtGui.QActionGroup(self)
 			
-			browserMode = settings.get_option(module + 's/browser_mode', 'panel')
+			browserMode = settings.get_option(module + '/browser_mode', 'panel')
+			print browserMode
 			
 			panes = pictures.addAction( _('Multi-panes'), lambda: self.core.managers[module].setBrowserMode('panes'))
 			panes.setCheckable(True)

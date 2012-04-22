@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 icon_size = settings.get_option('pictures/panel_icon_size', 32)
 
 class AbstractPanel(UCPanelInterface, QtGui.QWidget):
+
+	
 	def __init__(self, moduleType):
 		UCPanelInterface.__init__(self, moduleType)
 		QtGui.QWidget.__init__(self)
@@ -96,10 +98,10 @@ class UC_Panel(AbstractPanel):
 		TreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		TreeView.customContextMenuRequested.connect(self.showContextMenu)
 		self.model = UCModel()
-		filterModel = QtGui.QSortFilterProxyModel()
-		filterModel.setSourceModel(self.model)
+		#filterModel = QtGui.QSortFilterProxyModel()
+		#filterModel.setSourceModel(self.model)
 		
-		TreeView.setModel(filterModel)
+		TreeView.setModel(self.model)
 		TreeView.activated.connect(self.onContainerActivated)
 
 		#TreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
@@ -108,6 +110,7 @@ class UC_Panel(AbstractPanel):
 		modesModel = QtGui.QStandardItemModel()
 		modesModel.appendRow([QtGui.QStandardItem('category'), QtGui.QStandardItem(_("Categories"))])
 		modesModel.appendRow([QtGui.QStandardItem('universe'), QtGui.QStandardItem(_("Universes"))])
+		modesModel.appendRow([QtGui.QStandardItem('folder'), QtGui.QStandardItem(_("Folders"))])
 		self.modesCB.setModel(modesModel)
 		self.modesCB.setModelColumn(1)
 		self.modesCB.currentIndexChanged.connect(self.load)
@@ -169,16 +172,18 @@ class UC_Panes(AbstractPanel):
 		self.module = module
 		self.elementSelector = elementSelector
 		
-		TV_folders = ContainerBrowser()
+		TV_folders = ContainerBrowser('folder')
 		TV_universes = ContainerBrowser('universe')
 		TV_categories = ContainerBrowser('category')
 		self.TV_universes = TV_universes # FIXME
 		
 		self.categoriesModel = UCModel()
 		self.universesModel = UCModel()
+		self.folderModel = UCModel()
 		
 		TV_categories.setModel(self.categoriesModel)
 		TV_universes.setModel(self.universesModel)
+		TV_folders.setModel(self.folderModel)
 
 
 		#self.loadFolders()
@@ -192,6 +197,7 @@ class UC_Panes(AbstractPanel):
 		
 		TV_categories.activated.connect(self.onContainerActivated)
 		TV_universes.activated.connect(self.onContainerActivated)
+		TV_folders.activated.connect(self.onContainerActivated)
 		
 		
 		TV_categories.clicked.connect(self.onContainerClicked)
@@ -223,7 +229,7 @@ class UC_Panes(AbstractPanel):
 		
 		self.setLayout(mainLayout)
 		
-		self.toggled = {'category': True, 'universe': False}
+		self.toggled = {'category': True, 'universe': False, 'folder':False}
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
@@ -236,6 +242,7 @@ class UC_Panes(AbstractPanel):
 		self.TV_universes.setStyleSheet("background-color:white;")
 		self.processLoading('category', self.categoriesModel, False)
 		self.processLoading('universe', self.universesModel, False)
+		self.processLoading('folder', self.folderModel, False)
 		
 	def onContainerActivated(self, index):
 		self.mode = self.sender().mode
@@ -324,14 +331,24 @@ class UCItem(treemodel.TreeItem):
 		dic = {}
 
 		item = self
-		while(item.parent() != None): # Don't  eval rootItem 
-			fieldKey = item.container.container_type + '_ID'
-			if(not dic.has_key(fieldKey)):
-				dic[fieldKey] = item.container.ID
-			item = item.parent()
+		if self.container.container_type == 'folder':
+			dic['folder'] = self.container.ID
+		else:
+			while(item.parent() != None): # Don't  eval rootItem 
+				fieldKey = item.container.container_type + '_ID'
+				if(not dic.has_key(fieldKey)):
+					dic[fieldKey] = item.container.ID
+				item = item.parent()
 		return dic
 
 class UCModel(treemodel.TreeModel):
+	
+	DEFAULT_ICONS = {
+		'univers': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'genre.png'),
+		'categorie': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'artist.png'),
+		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'playlist.png')
+		}
+		
 	def __init__(self):
 		treemodel.TreeModel.__init__(self)
 
@@ -350,7 +367,14 @@ class UCModel(treemodel.TreeModel):
 				return item.container.label
 		elif role == QtCore.Qt.DecorationRole and index.column() == 0:
 			if(item.icon is None):
-				item.icon = QtGui.QPixmap(item.container.getThumbnailPath())
+				path = item.container.getThumbnailPath()
+
+				if path is not None:
+					item.icon = QtGui.QPixmap(item.container.getThumbnailPath())
+					#item.icon = item.icon.scaled(icon_size, icon_size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation) #scaledToHeight(icon_size)
+				else:
+					item.icon = self.DEFAULT_ICONS[item.container.container_type]
+				# FIXME delete the next line, uncomment the previous line and maintain good aspect ratio for DEFAULT_ICONS
 				item.icon = item.icon.scaled(icon_size, icon_size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation) #scaledToHeight(icon_size)
 				
 			return item.icon

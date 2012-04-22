@@ -36,7 +36,7 @@ class UCManager(QtGui.QWidget):
 			from qt.uc_sections.iconselector import VideoSelector
 			
 			from qt.uc_sections.panel import UC_Panel
-			backend = settings.get_option('music/playback_lib', 'GStreamer')
+			backend = settings.get_option('videos/playback_lib', 'Phonon')
 			
 			from qt.uc_sections.videos.videoplayerwidget import VideoPlayerWidget
 			if(backend == 'VLC'):

@@ -9,10 +9,9 @@ from operator import attrgetter
 from common import messager, settings, xdg
 from qt.util import treemodel
 from data.elements import Track
-from gui import menus, modales
+from qt.gui import menus, modales
 import threading
 import time
-#from gui.menus import TrackMenu, TrackContainerMenu
 
 icon_track = QtGui.QPixmap('icons/track.png')
 icon_artist = QtGui.QPixmap('icons/artist.png')
@@ -23,6 +22,13 @@ icon_rating = QtGui.QPixmap('icons/star.png')
 icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
 icon_size = settings.get_option('music/panel_icon_size', 32)
 
+class BrowserPanel(QtGui.QTabWidget):
+	def __init__(self, db, queueManager):
+		QtGui.QTabWidget.__init__(self)
+		self.addTab(LibraryPanel(db, queueManager), _('Library'))
+		self.addTab(PlaylistBrowser(db, queueManager), _('Playlists'))
+		self.resize(settings.get_option('music/paned_position', 200), 500)
+		
 class LibraryPanel(QtGui.QWidget):
 	"""
 		TODO check errors (arkenstone, little richard)
@@ -63,7 +69,12 @@ class LibraryPanel(QtGui.QWidget):
 		# *** TreeView visual tweaks
 		self.TreeView.setColumnWidth(1, settings.get_option('music/col_label_panel_width', 170))
 		header = self.TreeView.header()
+		header.setStretchLastSection(False)
 		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
+		header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
 		self.TreeView.setAnimated(True)
 		
 		# --- Mode selector ---
@@ -95,10 +106,8 @@ class LibraryPanel(QtGui.QWidget):
 
 		#self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding))
 		self.setLayout(layout)
-		self.setMinimumSize(settings.get_option('music/paned_position', 200), 500)
 		
 	def resizeEvent(self, event):
-		print  event.size().width()
 		settings.set_option('music/paned_position', event.size().width())
 	
 		
@@ -147,6 +156,7 @@ class LibraryPanel(QtGui.QWidget):
 		'''
 		indices = {"title":2, "artist":4, "album":3, "genre":5, "note":8, "year":9}
 		
+		global icon_size
 		icon_size = settings.get_option('music/panel_icon_size', 32)
 		
 		
@@ -351,19 +361,8 @@ class LibraryPanel(QtGui.QWidget):
 	
 	
 	
-	
-	def keep_true_selection(self, TV, drag_context):
-		'''
-			Trick pour dragger plusieurs items car lors du drag la séléction devient l'item draggé
-		'''
-		#Début d'un DND
-		selection = TV.get_selection()
-		if(selection.get_selected_rows()[1][0] in self.selection):
-			for path in self.selection:
-				selection.select_path(path)
-		else:
-			self.selection = selection.get_selected_rows()[1]
-		
+
+
 	def mouseReleaseEvent(self, e):
 		if e.button() == Qt.MidButton:
 			i = self.TreeView.indexAt(QtCore.QPoint(e.x(), e.y()))
@@ -373,165 +372,14 @@ class LibraryPanel(QtGui.QWidget):
 		else:
 			QtGui.QTreeView.mouseReleaseEvent(self.TreeView, e)
 			
-	
-	def on_button_press(self, TV, event):
-		if event.button == 1: #Clic gauche
-			model, self.selection = TV.get_selection().get_selected_rows()
-		elif event.button == 3: #Clic droit
-			path = TV.get_path_at_pos(int(event.x),int(event.y))[0]
-			if (path != None):
-				mode = eval(self.mode)
-				model = TV.get_model()
-				if(len(path) != len(mode)): #Conteneur
-					dic = {}
-					i = 0
-					while (i != len(path)):
-						dic[mode[i]] = model[path[0:i+1]][2]
-						i += 1
-					m = menus.TrackContainerMenu(dic)
-					m.show_all()
-					m.popup(None, None, None, event.button, event.time)
-				else: #Piste
-					piste_ID = model[path][1]
-					ligne = model.get_iter(path)
-					m = menus.TrackMenu(piste_ID)
-					m.append(gtk.SeparatorMenuItem())
-					i = gtk.ImageMenuItem(_("Remove from queue"))
-					i.set_image(gtk.image_new_from_stock(gtk.STOCK_REMOVE, gtk.ICON_SIZE_MENU))
-					#i.connect('activate', self.enlever_piste, ligne)
-					m.append(i)
 
-					i = gtk.ImageMenuItem(_("Add to direct list"))
-					i.set_image(gtk.image_new_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_MENU))
-					#i.connect('activate', self.gestionnaire.addToDirectList, queue, ligne)
-					m.append(i)
-					m.show_all()
-					m.popup(None, None, None, event.button, event.time)
-		elif event.button == 2:
-			path = TV.get_path_at_pos(int(event.x),int(event.y))[0]
-			if(TV.row_expanded(path)):
-				TV.collapse_row(path)
-			else:
-				TV.expand_row(path, False)
-	
-	def on_column_clicked(self, column):
-		def disable_sorting_state():
-			time.sleep(2.0)
-			self.model.set_sort_column_id(-2, 0)
-			
-		a = threading.Thread(target=disable_sorting_state)
-		a.start()
-		
-	def on_drag_data_get(self, widget, drag_context, selection_data, info, timestamp):
-		def get_dic(path, mode):
-			#renvoie un dictionnaire contenant les données nécessaires à l'identifcation d'un item draggé
-			level = len(path)
-			dic = {}
-			while (level > 0):
-				dic[mode[level -1]] = self.model[path[0:level]][2]
-				level -= 1
-			return dic
-		#Début d'un DND
-		model, paths = widget.get_selection().get_selected_rows() #Cela correspond en fait à l'index de l'unique item cliqué (auto séléctionné par l'événement button-press)
-		if paths[0] in self.selection: #On vérifie que cet index ne figure pas dans l'ancienne séléction multiple
-			paths = self.selection #Si c'est le cas, cela veut dire que l'on voulait DND la séléction multiple et non l'unique item cliqué
-		T = []
-		mode = eval(self.mode)
-		for path in paths:
-			T.append(get_dic(path, mode))
-		selection_data.set_text(str(T))
 
 		
 	def searchFor(self, entry):
 		word = entry.text()
 		self.fill_model(mot=word)
 		
-		#self.model = self.BDD.fill_library_browser([self.model, mode], e)
 		
-		
-		#def suite_travail(e):
-			#t = e.wait() #On attend que l'autre thread ait fini puisqu'on est la suite de son travail
-			
-			#self.TreeView.collapse_all()
-			#if (word == ""):
-				#print('vide')
-				##self.TreeView.set_model(self.model)
-			#else:
-				#liste_a_virer = []
-				#liste_a_garder = []
-				
-				#def traiter(modele, chemin, iter, data=None):
-					#nom = modele[chemin][2].lower()
-					#recherche = data[2].lower()
-					#if(nom.find(recherche) == -1):
-						#data[0].append(chemin)
-					#else:
-						#data[1].append(chemin)
-				
-				#self.model.foreach(traiter, [liste_a_virer, liste_a_garder, word])
-				
-				#for chemin in liste_a_garder:
-					##On "développe" ce qu'on veut avant de virer ce qu'on ne veut pas (car les chemins réels auront alors changé)
-					#i = 1
-					#longueur = len(chemin)
-					#while(i < longueur):
-						#chemin_pere = chemin[0:i]
-						#self.TreeView.expand_to_path(chemin_pere)
-						#i+=1
-					##self.TreeView.expand_to_path(chemin)
-				
-
-				#liste_a_virer.reverse()
-				#for chemin in liste_a_virer:
-					#iter = self.model.get_iter(chemin)
-					#i = 0
-					##Tant qu'on essaye pas d'évaluer un niveau inexistant (au delà de la racine) et qu'aucun père n'a été trouvé
-					#while(i < len(chemin) and not(chemin[0:i] in liste_a_garder)): 
-						#i += 1
-					#pere_present = (chemin[0:i] in liste_a_garder)
-					#has_child = self.model.iter_has_child(iter)
-		
-					#if(not(pere_present) and not(has_child)): 
-					##L'élément est sur la liste à virer et qu'il n'a ni fils et ni père: on le supprime
-						#self.model.remove(iter)
-		
-		#a = threading.Thread(target=suite_travail, args=(e,))
-		#a.start()
-		#suite_travail()
-		
-		
-	#def ajouter_pistes(self, i):
-		#level = len(i) #On choppe le niveau de profondeur de la séléction ( 1 = Artiste, 2 = Album, 3 = Piste)
-		#selection = []
-		#if level == 3:
-			#track_ID = self.model[i][0]
-			#track_data = self.BDD.get_track_data(track_ID)
-			#selection.append((track[0], track[2], track[3], track[4],))
-		#elif level == 2:
-			#j = 0
-			#numero = i + (j,)
-			#track = self.model[numero]
-			#while track != None:
-				##On ajoute les infos de la piste à la séléction
-				#selection.append((track[0], track[2], track[3], track[4],))
-				#j += 1
-				#numero = i + (j,)
-				#try:
-					#track = self.model[numero]
-				#except:
-					#track = None
-				
-			#print(selection)
-			
-		#self.playlist.ajouter_selection(selection)
-
-		#print(self.model[i][0])
-		
-		
-
-
-
-
 
 
 		
@@ -572,8 +420,12 @@ class LibraryItem(treemodel.TreeItem):
 
 
 		
-	
-            
+		
+		
+		
+
+		
+		
 class LibraryModel(treemodel.TreeModel):
 	def __init__(self):
 		treemodel.TreeModel.__init__(self)
@@ -665,49 +517,94 @@ class LibraryModel(treemodel.TreeModel):
 		self.layoutChanged.emit()
 		
             
-class SearchEntry(object):
-	"""
-		A gtk.Entry that emits the "activated" signal when something has
-		changed after the specified timeout
-	"""
-	def __init__(self, entry=None, timeout=500):
-		"""
-		Initializes the entry
-		"""
-		self.entry = entry
-		self.timeout = timeout
-		self.change_id = None
 
-		if self.entry is None:
-			self.entry = gtk.Entry()
-
-		#self.entry.connect('changed', self.on_entry_changed)
-		self.entry.connect('icon-press', self.on_entry_icon_press)
-
-	def on_entry_changed(self, *e):
-		"""
-		Called when the entry changes
-		"""
-		if self.change_id:
-			glib.source_remove(self.change_id)
-
-		self.change_id = glib.timeout_add(self.timeout, self.entry_activate)
-
-	def on_entry_icon_press(self, entry, icon_pos, event):
-		"""
-		Clears the entry
-		"""
-		self.entry.set_text('')
-
-	def entry_activate(self, *e):
-		"""
-		Emit the activate signal
-		"""
-		self.entry.activate()
-
-	def __getattr__(self, attr):
-		"""
-		Tries to pass attribute requests
-		to the internal entry item
-		"""
-		return getattr(self.entry, attr)
+class PlaylistBrowser(QtGui.QWidget):
+	
+	FOLDER = os.path.join(xdg.get_data_home(), 'playlists')
+	PLAYLIST_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/playlist.png')
+	FOLDER_ICON = QtGui.QIcon.fromTheme('folder')
+	
+	def __init__(self, db, queueManager):
+		self.mdb = db
+		self.queueManager = queueManager
+		
+		QtGui.QWidget.__init__(self)
+		treeView = QtGui.QTreeView()
+		treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		treeView.customContextMenuRequested.connect(self.showContextMenu)
+		self.model = treemodel.SimpleTreeModel()
+		self.reloadModel()
+		treeView.setModel(self.model)
+		treeView.activated.connect(self.onActivated)
+		
+		layout = QtGui.QVBoxLayout()
+		layout.addWidget(treeView)
+		self.setLayout(layout)
+		
+	def addPlaylist(self, key, text, iconPath=xdg.get_data_dir() + 'icons/playlist.png', parent=None):
+		node = treemodel.SimpleTreeItem(parent, key, iconPath, text)
+		self.model.append(parent, node)
+		return node
+		
+	def deletePlaylist(self, index):
+		item = index.internalPointer()
+		name = item.key
+		if item.parent().key == '42static':
+			os.remove(self.FOLDER + os.sep +  name)
+		else:
+			os.remove(self.FOLDER + os.sep + 'dynamic' + os.sep + name)
+		#self.model.removeRow(index.row(), index.parent())
+		self.reloadModel()
+		
+	def onActivated(self, index):
+		item = index.internalPointer()
+		if item.parent().key == '42static':
+			f = open(self.FOLDER + os.sep +  item.key, 'r')
+			IDList = f.readlines()
+			f.close()
+			self.queueManager.addPlaylist(item.key, IDList)
+		elif item.parent().key == '42dynamic':
+			f = open(self.FOLDER + os.sep + 'dynamic' + os.sep + item.key, 'r')
+			data = f.readlines()
+			f.close()
+			self.queueManager.addQueue()
+			self.queueManager.addSelection(self.mdb.getDynamicListTracks(eval(data[0])))
+		
+	def reloadModel(self):
+		self.model.reset()
+		self.staticNode = self.addPlaylist('42static', _("Static playlists"))
+		for f in os.listdir(self.FOLDER):
+			if os.path.isfile(os.path.join(self.FOLDER, f)):
+				self.addPlaylist(f, f, None, self.staticNode)
+		
+		self.dynamicNode = self.addPlaylist('42dynamic', _("Dynamic playlists"))
+		dossier = self.FOLDER + os.sep + 'dynamic' + os.sep
+		for f in os.listdir(dossier):
+			if os.path.isfile(os.path.join(dossier, f)):
+				self.addPlaylist(f, f, None, self.dynamicNode)
+				
+	def showContextMenu(self, pos):
+		item = self.sender().indexAt(pos).internalPointer()
+		popMenu = QtGui.QMenu(self)
+		if item.key == '42static' or item.key == '42dynamic':
+			addStatic = popMenu.addAction(QtGui.QIcon.fromTheme('list-add'), _("Add a static playlist"))
+			addDynamic = popMenu.addAction(QtGui.QIcon.fromTheme('list-add'), _("Add a dynamic playlist"))
+			
+			action = popMenu.exec_(self.sender().mapToGlobal(pos))
+			if action == addStatic:
+				print 'todo'
+			elif action == addDynamic:
+				d = modales.DynamicPlaylistCreator()
+				newName = d.exec_()
+				if newName != None:
+					self.addPlaylist(newName, newName, None, self.dynamicNode)
+		else:
+			edit = popMenu.addAction(QtGui.QIcon.fromTheme('list-edit'), _("Edit playlist"))
+			delete = popMenu.addAction(QtGui.QIcon.fromTheme('list-remove'), _("Delete playlist"))
+			
+			action = popMenu.exec_(self.sender().mapToGlobal(pos))
+			if action == edit:
+				d = modales.DynamicPlaylistCreator(item.key)
+				d.exec_()
+			elif action == delete:
+				self.deletePlaylist(self.sender().indexAt(pos))

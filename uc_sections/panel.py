@@ -21,7 +21,7 @@ class AbstractPanel(UCPanelInterface):
 	
 	
 	icon_size = settings.get_option('pictures/panel_icon_size', 32)
-	DEFAULT_ICONS = {'univers': gtk.gdk.pixbuf_new_from_file('icons/genre.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'categorie': gtk.gdk.pixbuf_new_from_file('icons/artist.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR) }
+	DEFAULT_ICONS = {'univers': gtk.gdk.pixbuf_new_from_file('icons/genre.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'categorie': gtk.gdk.pixbuf_new_from_file('icons/artist.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'folder':gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU) }
 	
 	
 	#icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
@@ -51,7 +51,8 @@ class AbstractPanel(UCPanelInterface):
 			else:
 				icon = self.DEFAULT_ICONS[container.container_type]
 			return icon
-			
+
+		
 		node = model.append(parentNode, [container.ID, container.container_type[0], container.label, get_icon(container.thumbnail_ID), None, None])
 		return node
 		
@@ -181,7 +182,7 @@ class AbstractPanel(UCPanelInterface):
 			for part in parts:
 				s += part + '/'
 				if(s not in nodes.keys()):
-					nodes[s] = self.liste_dossiers.append(node, [s, part])
+					nodes[s] = self.folderModel.append(node, [s, part])
 				node = nodes[s]
 		
 		bdd = BDD()
@@ -193,7 +194,7 @@ class AbstractPanel(UCPanelInterface):
 		#parent = ''
 		nodes = {}
 		i = 0
-		#node = self.liste_dossiers.append(None, [folders[0][0], folders[0][0]])
+		#node = self.folderModel.append(None, [folders[0][0], folders[0][0]])
 		#parent = folders[0][0]
 		
 		
@@ -209,15 +210,15 @@ class AbstractPanel(UCPanelInterface):
 			
 			#print(get_parent(folders[i][0], j))
 			#if(folders[i][0].find(parent) != -1):
-				#self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
+				#self.folderModel.append(node, [folders[i][0], folders[i][0]])
 			#else:
 				#parent = folders[i][0]
-				#node = self.liste_dossiers.append(None, [folders[i][0], folders[i][0]])
+				#node = self.folderModel.append(None, [folders[i][0], folders[i][0]])
 			#while(i < len(folders) and folders[i][0].find(parent) != -1):
-				#self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
+				#self.folderModel.append(node, [folders[i][0], folders[i][0]])
 				#i += 1
 			#parent = folders[i][0]
-			#node = self.liste_dossiers.append(node, [folders[i][0], folders[i][0]])
+			#node = self.folderModel.append(node, [folders[i][0], folders[i][0]])
 			
 			add_node(folders[i][0])
 			i += 1
@@ -384,7 +385,7 @@ class AbstractPanel(UCPanelInterface):
 
 	
 	def on_folder_activated(self, w, i, c):
-		dossier = self.liste_dossiers[i][0]
+		dossier = self.folderModel[i][0]
 		messager.diffuser("need_data_of", self, [self.module, "dossier", dossier])
 		
 	def on_folder_click(self, TreeView, event):
@@ -493,10 +494,10 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		CB = gtk.ComboBox()
 		
 		#Ini panel dossiers
-		self.liste_dossiers = gtk.TreeStore(str, str)
+		self.folderModel = gtk.TreeStore(str, str)
 		self.loadFolders()
-		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.liste_dossiers])
-		TreeView.set_model(self.liste_dossiers)
+		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
+		TreeView.set_model(self.folderModel)
 		colonne = gtk.TreeViewColumn('Column 0')
 		TreeView.append_column(colonne)
 		cell = gtk.CellRendererText()
@@ -615,10 +616,10 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		CB = gtk.ComboBox()
 		
 		#Ini panel dossiers
-		self.liste_dossiers = gtk.TreeStore(str, str)
-		self.loadFolders()
-		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.liste_dossiers])
-		TreeView.set_model(self.liste_dossiers)
+		self.folderModel = gtk.TreeStore(str, str, str, gtk.gdk.Pixbuf, str, str)
+
+		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
+		TreeView.set_model(self.folderModel)
 		colonne = gtk.TreeViewColumn('Column 0')
 		TreeView.append_column(colonne)
 		cell = gtk.CellRendererText()
@@ -626,7 +627,7 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		pb.set_property('stock-id', gtk.STOCK_DIRECTORY)
 		colonne.pack_start(pb, True)
 		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 1)
+		colonne.add_attribute(cell, 'text', 2)
 		TreeView.connect("row-activated", self.on_folder_activated)
 		TreeView.connect("button-press-event", self.on_folder_click)
 		
@@ -763,6 +764,7 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 	def load(self, *args):
 		self.processLoading('category', self.categories_model, False)
 		self.processLoading('universe', self.universes_model, False)
+		self.processLoading('folder', self.folderModel, False)
 		
 	def on_container_click(self, w, i, c, mode):
 		self.mode = mode

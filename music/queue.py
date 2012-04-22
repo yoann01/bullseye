@@ -390,7 +390,7 @@ class Queue(gtk.ScrolledWindow):
 		self.model.connect('row-deleted', self.onRowDeleted)
 		self.model.connect('row-inserted', self.onRowInserted)
 		self.model.connect('rows-reordered', self.onRowsReordered)
-		self.isMoving = False #Tell if there is currently a drag operation initiated by this TreeView
+		self.isMoving = False # Tells if there is currently a drag operation initiated by this TreeView
 		#On s'occupe du "label" de l'onglet
 		tab_label_box = gtk.EventBox()
 		tab_label_box.set_visible_window(False) #make event box don't change anything lookwise
@@ -490,26 +490,39 @@ class Queue(gtk.ScrolledWindow):
 		self.manager.playerWidget.cleanPlayFlag()
 		self.manager.playerWidget.playTrack(self.tracks[i[0]], self)
 		
-	def addTracks(self, tracks):
+		
+	def addTracks(self, tracks, destRow=None):
 		if type(tracks).__name__!='list': # One track
 			tracks = [tracks,]
-			
-		self.tracks.extend(tracks)
+		
+		
 		
 		try:
-			iter_pos = liste.get_iter(self.dest_row[0])
-			pos_type = self.dest_row[1]
+			iter_pos = self.model.get_iter(destRow[0])
+			pos_type = destRow[1]
+			pos = destRow[0][0]
+			# Adjustment
+			if pos_type == gtk.TREE_VIEW_DROP_AFTER or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_AFTER:
+				pos += 1
 		except:
 			iter_pos = None
 			pos_type = None
+			pos = len(self.tracks)
+			
+		print pos
+		if(pos == len(self.tracks)):
+			self.tracks.extend(tracks)
+		else:
+			for track in tracks:
+				self.tracks.insert(pos, track)
 			
 		for track in tracks:
 			length = self.format_length(track.length)
 			rating= self.manager.IM.rating_pixbufs[track.rating]
 			if(pos_type == gtk.TREE_VIEW_DROP_BEFORE or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
-				self.model.insert_before(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
+				self.model.insert_before(iter_pos, [None, None, None, int(track.ID), track.path, track.tags['title'], track.tags['album'], track.tags['artist'], length, track.playcount, rating, track.rating, None] )
 			elif(pos_type == gtk.TREE_VIEW_DROP_AFTER or pos_type == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-				self.model.insert_after(iter_pos, [None, None, None, track[0], track[1], track[2], track[3], track[4], length, track[6], rating, track[7], None] )
+				self.model.insert_after(iter_pos, [None, None, None, int(track.ID), track.path, track.tags['title'], track.tags['album'], track.tags['artist'], length, track.playcount, rating, track.rating, None] )
 			else:
 				self.model.append([None, None, None, int(track.ID), track.path, track.tags['title'], track.tags['album'], track.tags['artist'], length, track.playcount, rating, track.rating, None] )
 		
@@ -726,11 +739,13 @@ class Queue(gtk.ScrolledWindow):
 	def on_drag_data_received(self, TV, drag_context, x, y, selection_data, info, timestamp):
 		if(selection_data.get_target() == 'text/plain'):
 			#fin d'un DND
-			self.manager.dest_row = self.TreeView.get_dest_row_at_pos(x, y)
+			destRow = self.TreeView.get_dest_row_at_pos(x, y)
 			
 			T = eval(selection_data.get_text()) # eval => permet de retransformer la chaîne de caractères en tableau de dictionnaires
 			#for dic in T:
-			messager.diffuser('need_tracks', self, T)
+			bdd = BDD()
+			self.addTracks(bdd.getTracks(T), destRow)
+			#messager.diffuser('need_tracks', self, T)
 		
 	def on_tab_click(self, widget, event, child):
 		if event.type == gtk.gdk.BUTTON_PRESS:
@@ -755,13 +770,20 @@ class Queue(gtk.ScrolledWindow):
 	def onRowDeleted(self, model, path):
 		if(self.isMoving):
 			previousPos = path[0]
+			# Depending on the newPos and the previousPos we need to make adjustments
+			if self.newPos < previousPos:
+				previousPos -= 1
+			else:
+				self.newPos -= 1
+			print 'previousPos = ' + str(previousPos)
+			print 'newPos = ' + str(self.newPos)
 			trackMoved = self.tracks.pop(previousPos)
 			self.tracks.insert(self.newPos, trackMoved)
 			self.isMoving = False # Done moving
 		
 	def onRowInserted(self, model, path, iter):
 		if(self.isMoving):
-			self.newPos = path[0] - 1
+			self.newPos = path[0]
 			
 	def onRowsReordered(self, model, path, iter, newOrder):
 		column, order = self.model.get_sort_column_id()

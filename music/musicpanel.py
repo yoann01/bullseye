@@ -515,8 +515,11 @@ class LibraryPanel(gtk.VBox):
 		
 		
 class Playlists_Panel(gtk.VBox):
-	def __init__(self):
+	def __init__(self, db, queueManager):
 		#Attributs:
+		self.mdb = db
+		self.queueManager = queueManager
+		
 		self.TV = gtk.TreeView()
 		self.model = gtk.TreeStore(gtk.gdk.Pixbuf, int, str) #icon, ID, titre
 		dossier = 'playlists/'
@@ -585,8 +588,9 @@ class Playlists_Panel(gtk.VBox):
 				fichier = open('playlists/intelligents/' + nom,'r')
 				data = fichier.readlines()
 				fichier.close()
-				messager.diffuser('intelligent_playlist_request', self, eval(data[0]))
-				
+				self.queueManager.addQueue()
+				self.queueManager.addSelection(self.mdb.getDynamicListTracks(eval(data[0])))
+
 	
 	def editer(self, bouton, uneLigne):
 		path = self.model.get_path(uneLigne)

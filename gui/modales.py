@@ -16,8 +16,8 @@ class CriterionManager(gtk.VBox):
 		self.liste = gtk.ListStore(str, str)
 		self.liste.append(["artist", _("Artist")])
 		self.liste.append(["album", _("Album")])
-		self.liste.append(["note", _("Rating")])
-		self.liste.append(["compteur", _("Play count")])
+		self.liste.append(["rating", _("Rating")])
+		self.liste.append(["playcount", _("Play count")])
 		self.liste.append(["path", _("Path")])
 		
 		self.liste_operateurs = gtk.ListStore(str, str)
@@ -68,7 +68,7 @@ class CriterionManager(gtk.VBox):
 				CB_Critere.set_active(i)
 			else:
 				print("error : bad criterion")
-			if(criterion in ('note', 'compteur')):
+			if(criterion in ('rating', 'playcount')):
 				liste_op = self.liste_operateurs_note
 			else:
 				liste_op = self.liste_operateurs
@@ -188,9 +188,9 @@ class IntelligentPlaylistCreator(gtk.Dialog):
 		self.E_Name = gtk.Entry()
 		
 		if(name == None):
-			titre = _("Add an intelligent playlist")
+			titre = _("Add a dynamic playlist")
 		else:
-			titre = _("Edit an intelligent playlist")
+			titre = _("Edit a dynamic playlist")
 			self.E_Name.set_text(name)
 			
 		gtk.Dialog.__init__(self, title=titre, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -498,7 +498,7 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_icon_size_panel_music.append_text('48')
 			self.CB_icon_size_panel_music.append_text('64')
 			
-			self.CB_icon_size_panel_music.set_active(settings.get_option('music/panel_icon_size', 32) /16)
+			self.CB_icon_size_panel_music.set_active(settings.get_option('music/panel_icon_size', 32) / 16)
 			Box_music.attach(self.CB_icon_size_panel_music, 1, 2, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
 			
 			self.Box_Main.pack_start(Box_music)
@@ -687,6 +687,7 @@ class FilterManager(gtk.VBox):
 		B_add = gtk.Button('', gtk.STOCK_ADD)
 		B_add.connect('clicked', self.add_filter)
 		B_remove = gtk.Button('', gtk.STOCK_REMOVE)
+		B_remove.connect('clicked', self.deleteFilter)
 		self.RB_enabled = gtk.CheckButton(_("Enabled"))
 		Box = gtk.HBox()
 		Box.pack_start(self.RB_enabled, False)
@@ -729,6 +730,13 @@ class FilterManager(gtk.VBox):
 			self.CB_filters.set_active(self.count)
 			self.count += 1
 			
+	def deleteFilter(self, button=None):
+		filterName = self.CB_filters.get_active_text()
+		del self.config[filterName]
+		self.activeFilter = None
+		activeIndex = self.CB_filters.get_active()
+		self.CB_filters.remove_text(activeIndex)
+		self.CB_filters.set_active(activeIndex)
 			
 	def get_config(self):
 		"""

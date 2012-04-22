@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from PySide import QtGui, QtCore
 from PySide.QtCore import Qt
-import threading
+import threading, os
 import time
 import gettext
 import logging
 from operator import attrgetter
 
 
-from common import settings, util
+from common import settings, util, xdg
 
 from data.elements import QueuedTrack, Track, BDD
 
@@ -84,9 +84,16 @@ class QueueManager(QtGui.QWidget):
 		queue.addTracks(tracks)
 		
 
-
 		
-	def addQueue(self, button=None, label=None):
+		
+	def addPlaylist(self, label, IDList):
+		bdd = BDD()
+		playlist = self.addQueue(label)
+		self.addSelection(bdd.getTracksFromIDs(IDList), playlist)
+		playlist.watchForChange()
+		
+		
+	def addQueue(self, label=None):
 		nb_pages = self.tabWidget.count()
 		if(label != None):
 			#Cela veut dire qu'on a reçu une playlist du messager
@@ -106,7 +113,8 @@ class QueueManager(QtGui.QWidget):
 		if i == -1: # triggered by shortcut
 			i = self.currentIndex()
 		if(self.tabWidget.widget(i).modified == True):
-			print "TODO"
+			if QtGui.QMessageBox.question (self, _("Closing non-saved playlist"), _("Save changes?"), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
+				self.tabWidget.widget(i).save()
 		self.tabWidget.removeTab(i)
 		if(self.tabWidget.count() == 0):
 			self.addQueue()
@@ -150,10 +158,7 @@ class QueueManager(QtGui.QWidget):
 				if type(key).__name__== 'int':
 					addTracks(queues[key], self.addQueue())
 				else:
-					playlist = self.addQueue(key)
-					for track_id in queues[key]:
-						self.addSelection(bdd.get_tracks_data({'track_ID':track_id}))
-					playlist.Liste.connect("row-changed", playlist.setModified)
+					self.addPlaylist(key, queues[key])
 		else:
 			self.addQueue()
 		
@@ -162,16 +167,15 @@ class QueueManager(QtGui.QWidget):
 	def saveState(self):
 		i = 0
 		queues = {}
-		while( i < self.get_n_pages()):
+		while( i < self.tabWidget.count()):
 			t = []
-			queue =  self.get_nth_page(i)
-			model = queue.Liste
-			iter = model.get_iter_first()
-			while(iter is not None):
-				t.append(model.get_value(iter, 3))
-				iter = model.iter_next(iter)
-			if(type(queue).__name__=='Playlist'):
-				queues[self.get_nth_page(i).tab_label.get_text()] = t
+			queue =  self.tabWidget.widget(i)
+
+			for track in queue.model.tracks:
+				t.append(track.ID)
+
+			if(type(queue).__name__ == 'Playlist'):
+				queues[queue.label] = t
 			else:
 				queues[i] = t
 			i += 1
@@ -547,14 +551,11 @@ class Queue(QtGui.QTableView):
 				self.Liste.set(iter, 4, track.path, 5, track.tags['title'], 6, track.tags['album'], 7, track.tags['artist'], 10, IM.pixbuf_from_rating(track.rating))
 			iter = self.Liste.iter_next(iter)
 		
-	def save(self, name=None):
-		if(name == None):
-			name = self.tab_label.get_text()[1:]
-		fichier = open('playlists/' + name,'w')
-		for piste in self.Liste:
-			print(piste[3])
-			fichier.write(str(piste[3]) + "\n")
-		fichier.close()
+	def save(self):
+		f = open(os.path.join(xdg.get_data_home(), 'playlists') + os.sep + self.label, 'w')
+		for track in self.model.tracks:
+			f.write(str(track.ID) + "\n")
+		f.close()
 		
 	
 	def toggleStopFlag(self, track):
@@ -571,12 +572,17 @@ class Queue(QtGui.QTableView):
 class Playlist(Queue):
 	def __init__(self, manager, label):
 		Queue.__init__(self, manager, label)
+		self.label = label
 		
-	def setModified(self, model, path, i):
+
+	def setModified(self, *args):
 		if(self.modified == False):
 			self.modified = True
-			self.tab_label.set_text('*' + self.tab_label.get_text())
+			#self.tab_label.set_text('*' + self.tab_label.get_text())
 			
+	def watchForChange(self):
+		self.model.rowsInserted.connect(self.setModified)
+		self.model.rowsRemoved.connect(self.setModified)
 
 class DirectIter():
 	'''
