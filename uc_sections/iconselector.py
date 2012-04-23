@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import threading
 import gtk
+import glib
 
 from common import messager
 from data.elements import SpecialElement
@@ -55,6 +56,13 @@ class IconSelector(gtk.IconView):
 			self.connect('set-scroll-adjustments', self.onSetAdj)
 		
 	
+	def append(self, elt):
+		try:
+			thumbnail = gtk.gdk.pixbuf_new_from_file(elt.thumbnail_path)
+		except:
+			thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
+		glib.idle_add(self.liste.append, (int(elt.ID), elt.path, elt.filename, thumbnail, elt.rating, elt.c_ID, elt.u_ID))
+		
 	def append_element(self, tuple):
 		self.liste.append(tuple)
 		

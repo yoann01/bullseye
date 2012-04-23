@@ -9,7 +9,11 @@ from data.elements import Track
 import gettext
 gettext.install("bullseye")
 
-import gobject
+#if  QtGui.QIcon.hasThemeIcon("document-open"):
+	#print 'ERIA'
+
+
+
 
 class Frame(QtGui.QMainWindow):
 	ready = QtCore.Signal()
@@ -17,7 +21,8 @@ class Frame(QtGui.QMainWindow):
 	
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
-		
+		#print os.is_file(QtGui.QIcon.themeSearchPaths()[-1])
+		QtGui.QIcon.setThemeName('silk')
 		self.move(settings.get_option('gui/window_x', 50), settings.get_option('gui/window_y', 50))
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
 		if(settings.get_option('gui/maximized', False)):
@@ -70,8 +75,11 @@ class Frame(QtGui.QMainWindow):
 		#layout.addWidget(self.NB_Main)
 		#self.setLayout(layout)
 		
+		self.statusBar = QtGui.QStatusBar()
+		
 		self.setMenuBar(MenuBar(self))
 		self.setCentralWidget(self.NB_Main)
+		self.setStatusBar(self.statusBar)
 		
 		self.managers = {} # Managers are the big widget representing a module
 		
@@ -110,11 +118,17 @@ class Frame(QtGui.QMainWindow):
 		
 		from qt.music.musicpanel import BrowserPanel
 		from qt.music.playerwidget import PlayerWidget
-		from media.player import Player
-		#from media.phononplayer import Player
-		#, Playlists_Panel
-		from qt.music.queue import QueueManager
+		
+		backend = settings.get_option('music/playback_lib', 'Phonon')
+		if backend == 'Phonon':
+			from media.phononplayer import Player
+		elif backend == 'GStreamer':
+			from media.player import Player
+		elif backend == 'VLC':
+			from media.vlcplayer import Player
 		player = Player()
+		from qt.music.queue import QueueManager
+		
 		playerWidget = PlayerWidget(player)
 		
 		index = self.NB_Main.currentIndex()
@@ -190,7 +204,6 @@ class Frame(QtGui.QMainWindow):
 app = QtGui.QApplication(sys.argv)
 app.setApplicationName('Bullseye');
 print sys.argv
-gobject.threads_init()
 frame = Frame()
 frame.show()
 sys.exit(app.exec_())

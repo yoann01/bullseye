@@ -12,8 +12,8 @@ from common import settings, util, xdg
 
 from data.elements import QueuedTrack, Track, BDD
 
-import gui.modales
-from gui.menus import TrackMenu
+#import qt.gui.modales
+#from gui.menus import TrackMenu
 from qt.util.stardelegate.starrating import StarRating
 from qt.util.stardelegate.stardelegate import StarDelegate
 from qt.util import icons

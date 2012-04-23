@@ -18,8 +18,10 @@ if sys.platform == "linux2": # for Linux using the X Server
 	config_home = os.path.join(config_home, ".config/bullseye")
 	data_home = os.path.join(data_home, '.local/share/bullseye')
 elif sys.platform == "win32": # for Windows
-	config_home = os.path.join(config_home, 'Local Settings\Application Data\\bullseye')
-	data_home = os.path.join(data_home, 'Application Data\\bullseye')
+	config_home = os.path.join(config_home, '.bullseye')
+	data_home = os.path.join(data_home, '.bullseye')
+	#config_home = os.path.join(config_home, 'Local Settings\Application Data\\bullseye')
+	#data_home = os.path.join(data_home, 'Application Data\\bullseye')
 elif sys.platform == "darwin": # for MacOS
 	config_home = os.path.join(config_home, "bullseye")
 
@@ -51,3 +53,6 @@ def make_missing_dirs():
 	for dir in dirs:
 		if not os.path.exists(dir):
 			os.makedirs(dir)
+			
+			
+make_missing_dirs()

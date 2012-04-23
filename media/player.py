@@ -5,6 +5,7 @@ import os
 
 class Player(object):
 	def __init__(self):
+		self.backend = 'GStreamer'
 		self._player = gst.element_factory_make('playbin2', 'player'+str(hash(self)))
 		self._format = gst.Format(gst.FORMAT_TIME)
 

@@ -434,7 +434,7 @@ class SettingsEditor(QtGui.QDialog):
 		musicLayout = QtGui.QFormLayout()
 		
 		self.CB_music_playback_lib = QtGui.QComboBox()
-		libs = {'GStreamer':0, 'MPlayer':1, 'VLC':2, 'Phonon':3}
+		libs = {'GStreamer':0, 'MPlayer':1, 'VLC':1, 'Phonon':2}
 		self.CB_music_playback_lib.addItem('GStreamer')
 		#self.CB_music_playback_lib.addItem('MPlayer')
 		self.CB_music_playback_lib.addItem('VLC')

@@ -2,12 +2,10 @@
 import threading
 import os
 import logging
-
 from PIL import Image
 
 from common import messager, settings, util, xdg
 from data.bdd import BDD
-
 
 from PySide import QtGui, QtCore
 
@@ -76,10 +74,12 @@ class AbstractIconSelector(QtGui.QWidget):
 		layout.addWidget(self.buttonBar, 0)
 		self.setLayout(layout)
 		
+	@util.threaded
 	def append(self, elt):
 		self.iconViewer.model.append(elt)
 		print self.iconViewer.contentsSize().height()
 		print self.iconViewer.verticalScrollBar().sizeHint().height()
+		
 		
 	def clear(self):
 		self.iconViewer.model.reset()

@@ -3,6 +3,8 @@ import logging
 import os
 import subprocess
 
+from PIL import Image
+
 from common import messager, settings, util, xdg
 from data.bdd import BDD
 from data.elements import Container, SpecialElement
@@ -119,7 +121,7 @@ class UCPanelInterface(object):
 			thumbnail_path = thumbnail_dir + ID + ".jpg"
 			
 			if not os.path.exists(thumbnail_path):
-				if(type == "image"):
+				if(type == "picture"):
 					try:
 						im = Image.open(path)
 						im.thumbnail((128, 128), Image.ANTIALIAS)

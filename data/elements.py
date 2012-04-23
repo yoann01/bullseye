@@ -26,6 +26,7 @@ class SpecialElement():
 		self.ID = str(data[0])
 		self.folder = data[2]
 		self.file = data[1]
+		self.filename = data[1]
 		self.path = data[2] + '/' + data[1]
 		self.rating = data[3]
 		self.c_ID = data[4]

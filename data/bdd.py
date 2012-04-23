@@ -2,12 +2,11 @@
 import sqlite3
 import os
 from urllib import urlretrieve
-from PIL import Image
 
 
-import gtk
 import subprocess
 from common import messager, settings, util, xdg
+from music.tags import Tags
 import threading
 import time
 from datetime import datetime
@@ -214,7 +213,7 @@ class MainBDD():
 			self.creer_tables()
 			#self.scanner_dossier("/home/piccolo/Musique")
 		
-		xdg.make_missing_dirs()
+		#xdg.make_missing_dirs()
 		
 		
 			
@@ -223,7 +222,7 @@ class MainBDD():
 		BDD.initNetwork()
 		#Abonnement à certains types de messages auprès du messager
 		messager.inscrire(self.charger_playlist, 'ID_playlist')
-		messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
+		#messager.inscrire(self.fill_library_browser, 'TS_bibliotheque')
 		#messager.inscrire(self.remplir_liste_sections, 'liste_sections')
 		messager.inscrire(self.get_tracks_data , 'need_tracks')
 		messager.inscrire(self.get_track_data , 'queue_add_track')
@@ -290,18 +289,21 @@ class MainBDD():
 		data[1].Liste.connect("row-changed", data[1].setModified)
 	
 	
-	def check_for_new_files(self, folders, P_Bar):
+	@util.threaded
+	def check_for_new_files(self, progressWidget, folders=None):
 		'''
 			Méthode principale pour remplir la base
 			- Est executée dans un thread secondaire
 			@param dossier : le dossier père qui sera scanné
-			@param P_Bar : la barre de progrès pour informer de l'état d'avancement du scan
+			@param progressWidget : la barre de progrès pour informer de l'état d'avancement du scan
 			TODO walk + list (see Bluemindo)
 			TODO use trigger to check existence - not needed with current process
 			TODO PERF trick : essayer de checker l'existence avec un trigger mais sans récupérer les tags
 			TODO prompter les fichiers mal nommés
 		'''
 		
+		if folders is None:
+			folders = settings.get_option('music/folders', [])
 		#Redéfinition d'une connexion puisque cette fonction tourne dans un thread secondaire :
 		conn = sqlite3.connect(os.path.join(xdg.get_data_home(), 'data.db'))
 		conn.row_factory = sqlite3.Row
@@ -315,7 +317,7 @@ class MainBDD():
 				Ajoute des nouveaux fichiers à la BDD
 				
 				@param files : liste de tuples(type, dossier, fichier, extension)
-				@param P_Bar : barre de progrès représentant l'avancement
+				@param progressWidget : barre de progrès représentant l'avancement
 			'''
 			
 			registered_paths = []
@@ -325,11 +327,11 @@ class MainBDD():
 				
 			c.execute('SELECT folder, filename, folder FROM pictures')
 			for row in c:
-				registered_paths.append(row[0] + '/' + row[1])
+				registered_paths.append(row[0] + os.sep + row[1])
 				
 			c.execute('SELECT folder, filename, folder FROM videos')
 			for row in c:
-				registered_paths.append(row[0] + '/' + row[1])
+				registered_paths.append(row[0] + os.sep + row[1])
 			
 			
 			new_paths = list(set(recovered_paths) - set(registered_paths))
@@ -338,34 +340,34 @@ class MainBDD():
 			# *** REQUETE PARAMETREE AVEC CLAUSE IN -> for row in conn.execute('SELECT path FROM tracks WHERE path IN (%s)' % ("?," * len(tracks_path))[:-1], tracks_path):
 			
 			longueur = float(len(files['music_files']))
-			P_Bar.set_fraction(0)
+			progressWidget.setFraction(0)
 			i = 0
 			for track in files['music_files']:
-				path = track[0] + '/' + track[1]
+				path = track[0] + os.sep + track[1]
 				if(path in new_paths):
 					new_files['music'].append(get_track_data(path, track[2]))
 				i += 1
-				P_Bar.set_fraction((float(i) / longueur))
+				progressWidget.setFraction((float(i) / longueur))
 			
 			longueur = float(len(files['picture_files']))
-			P_Bar.set_fraction(0)
+			progressWidget.setFraction(0)
 			i = 0
 			for element in files['picture_files']:
-				path = element[0] + '/' + element[1]
+				path = element[0] + os.sep + element[1]
 				if(path in new_paths):
 					new_files['picture'].append(get_UC_element_data('picture', element[0], element[1]))
 				i += 1
-				P_Bar.set_fraction((float(i) / longueur))
+				progressWidget.setFraction((float(i) / longueur))
 				
 			longueur = float(len(files['video_files']))
-			P_Bar.set_fraction(0)
+			progressWidget.setFraction(0)
 			i = 0
 			for element in files['video_files']:
-				path = element[0] + '/' + element[1]
+				path = element[0] + os.sep + element[1]
 				if(path in new_paths):
 					new_files['video'].append(get_UC_element_data('video', element[0], element[1]))
 				i += 1
-				P_Bar.set_fraction((float(i) / longueur))
+				progressWidget.setFraction((float(i) / longueur))
 				
 			
 			for section in new_files.iterkeys():
@@ -374,7 +376,7 @@ class MainBDD():
 				else:
 					conn.executemany('INSERT INTO ' + section + 's (folder, filename, rating, categorie_ID, univers_ID, size) VALUES (?, ?, ?, ?, ?, ?)', new_files[section])
 			
-			P_Bar.set_fraction(0)
+			progressWidget.setFraction(0)
 			conn.commit()
 				
 		def get_UC_element_data(type, dossier, fichier):
@@ -383,50 +385,9 @@ class MainBDD():
 			
 		
 		def get_track_data(fichier, extension):
-			if(extension == ".mp3"):
-				try:
-					audio = EasyID3(fichier)
-				except:
-						audio = "Unset"
-			elif(extension == ".ogg"):
-				try:
-					audio = OggVorbis(fichier)
-				except:
-						audio = "Unset"
-			try:
-				#titre = unicode(audio['TIT2'])
-				titre = audio['title'][0]
-			except:
-				titre = _("Unknown")
-			
-			try:
-				#album = unicode(audio['TALB'])
-				album = audio['album'][0]
-			except:
-				album = _("Unknown")
-			try:
-				#artiste = unicode(audio['TPE1'])
-				artiste = audio['artist'][0]
-			except:
-				artiste = _("Unknown")
-				
-			try:
-				genre = audio['genre'][0]
-			except:
-				genre = _("Unknown")
-				
-			try:
-				year = audio['date'][0][0:4]
-			except:
-				year = _("Unknown")
-			
-			if(extension == ".mp3"):
-				length = int(MP3(fichier).info.length)
-			else:
-				length =  int(audio.info.length)
-			print fichier
+			tags = Tags.fromPath(fichier)
 			fichier = unicode(fichier)
-			t = (fichier, titre, album, artiste, genre, length, 0, 0, year)
+			t = (fichier, tags['title'], tags['album'], tags['artist'], tags['genre'], tags['length'], 0, 0, tags['year'])
 			#conn.execute('INSERT INTO tracks (path, title, album, artist, genre, length, note, compteur, year) VALUES (?,?,?,?,?, ?, ?, ?, ?)', t)
 			return t
 			
@@ -451,30 +412,30 @@ class MainBDD():
 			def check_interest(dossier, fichier, extension):
 				if extension == ".mp3" or extension == ".ogg":
 					try:
-						t = (unicode(dossier + "/" + fichier),)
+						t = (unicode(dossier + os.sep + fichier),)
 						#c.execute('SELECT COUNT(track_ID) FROM tracks WHERE path = ?', t)
 						#if(c.fetchone()[0] == 0): #Si le fichier n'est pas déjà dans la base
 						files['music_files'].append((dossier, fichier, extension))
-						recovered_paths.append(unicode(dossier + "/" + fichier))
+						recovered_paths.append(unicode(dossier + os.sep + fichier))
 					except UnicodeDecodeError:
-						error_paths.append(dossier + '/' + fichier)
+						error_paths.append(dossier + os.sep + fichier)
 				elif extension == ".flv" or extension == ".mkv" or extension == ".avi":
 					try :
 						files['video_files'].append((dossier, fichier))
-						recovered_paths.append(unicode(dossier + "/" + fichier))
+						recovered_paths.append(unicode(dossier + os.sep + fichier))
 					except UnicodeDecodeError:
-						error_paths.append(dossier + '/' + fichier)
+						error_paths.append(dossier + os.sep + fichier)
 				elif extension in (".jpg", '.gif', ".png", ".bmp"):
 					try :
 						if(dossier != "thumbnails/images"): # *** A COMPLETER ***
 							files['picture_files'].append((dossier, fichier))
-							recovered_paths.append(unicode(dossier + "/" + fichier))
+							recovered_paths.append(unicode(dossier + os.sep + fichier))
 					except UnicodeDecodeError:
-						error_paths.append(dossier + '/' + fichier)
+						error_paths.append(dossier + os.sep + fichier)
 				#elif extension == '.pdf':
 					#add_new_CU('document', dossier, fichier, extension)
 
-			P_Bar.pulse()
+			progressWidget.pulse()
 			for f in os.listdir(dossier):
 				if f[0] != ".":
 					if os.path.isfile(os.path.join(dossier, f)):
@@ -482,7 +443,7 @@ class MainBDD():
 						check_interest(dossier, f, extension)
 					else:
 						if(dig):
-							scanner_dossier(dossier + "/" + f, files)
+							scanner_dossier(dossier + os.sep + f, files)
 			return (files)
 		
 		for folder in folders:
@@ -510,7 +471,7 @@ class MainBDD():
 			END;''')
 			
 			
-		self.c.execute('''"CREATE TABLE listened (track_ID INTEGER, time INTEGER, PRIMARY KEY(track_ID, time));''')
+		self.c.execute('''CREATE TABLE listened (track_ID INTEGER, time INTEGER, PRIMARY KEY(track_ID, time));''')
 		
 		
 		# ***** Vidéos *****
@@ -541,110 +502,20 @@ class MainBDD():
 		for query in queries:
 			self.c.execute(query)
 		
-		
-	def fill_library_browser(self, data, e=None):
-		'''
-			Remplit la liste arborescente avec les pistes de la BDD selon l'arborescence du mode séléctionné
-			
-			@param data = [TreeStore, mode]
-			@param e = threading event pour prévenir qu'on a fini
-			TODO : ajouter le ratio d'écoutes par conteneur, qui s'applique uniquement sur les pistes notées
-			ratio = total_ecoutes_conteneur / nb_pistes_notees_conteneur
-		'''
-		indices = {"title":2, "artist":4, "album":3, "genre":5, "note":8, "year":9}
-
-		def getValueOfLevel(track_line, level):
-			'''
-				@param track_line : la ligne de la piste dans le tableau self.tracks[mode]
-				@level : le niveau de profondeur dans le mode d'affichage
-					ex de mode ('artist, 'album', 'title') level 0 = artist, level 2 = title, etc...
-			'''
-			try:
-				value = track_line[indices[mode[level]]]
-			except IndexError:
-				value = None
-			return value
-			
-		def traiter_conteneur(pere, niveau, ligne):
-			'''
-				@param ligne : la ligne à laquelle la fonction commence (intérêt de la localité de ce paramètre =  possibilité de threading)
-				@param mot : le mot que doit contenir chaque noeud pour être présent
-			'''
-		
-			if(niveau == profondeur_max): #Si on est au dernier niveau du mode d'affichage, c'est que c'est une piste
-				#if(tracks[ligne][2].lower().find(mot) != -1):
-				model.append(pere, [icon_track, tracks[ligne][0], tracks[ligne][2], 1, 1])
-				#La ligne est traitée en intégralité, on passe à la suivante :
-				i = ligne + 1
-
-				
-			else: #Il faut continuer de "creuser" et ajouter tous les fils de ce père
-				icon = icons[mode[niveau]]
-				elt = getValueOfLevel(tracks[ligne], niveau)
-				#On ajoute le premier fils
-				fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[ligne], niveau), 1, 1])
-				#Tant qu'il reste du monde et qu'on est toujours sur le même conteneur :
-				while(ligne < len(tracks) and elt == getValueOfLevel(tracks[ligne], niveau)):
-					#Si les deux lignes n'ont pas la même valeur sur ce niveau on ajoute la nouvelle ligne :
-					if(ligne < len(tracks) and elt != getValueOfLevel(tracks[ligne], niveau)):
-						fils = model.append(pere, [icon, 1, getValueOfLevel(tracks[ligne], niveau), 1, 1])
-						elt = getValueOfLevel(tracks[ligne], niveau)
-					#Même valeur sur ce niveau, donc on descend d'un et on répète le schéma
-					else:
-						ligne = traiter_conteneur(fils, niveau+1, ligne)
-				#On a pas traité en intégralité cette ligne donc on reste dessus :
-				i = ligne
-			return i
-				#On a enfin fini de boucler le premier père accroché à la racine, on passe donc au suivant si il y en a :
-				#EN FAIT NON, C'EST FOIREUX :D
-				#if(getValueOfLevel(tracks[ligne], niveau-1) != elt_pere):
-					#traiter_conteneur(None, 0, None)
-				
-				
-		
-		model = data[0]
-		mode = data[1]
-		
-		#cle = 0
-		#for c in mode:
-			#cle += ord(c)
-			
-		try:
-			tracks = self.tracks[mode]
-		except KeyError:
-			self.loadTracks(mode)
-			tracks = self.tracks[mode]
-		
-		icon_track = gtk.gdk.pixbuf_new_from_file('track.png')
-		icon_artist = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-		icon_album = gtk.Image().render_icon(gtk.STOCK_CDROM, gtk.ICON_SIZE_MENU)
-		icon_genre = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-		icon_year = gtk.gdk.pixbuf_new_from_file('icons/year.png')
-		icon_rating = gtk.gdk.pixbuf_new_from_file('icons/star.png')
-		icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
-		mode = eval(mode)
-		profondeur_max = len(mode) - 1
-		
-		model.clear()
-		
-
 
 			
-			
-		
 
-		def traiter_tous_les_conteneurs():
-			niveau = 0
-			ligne = 0
-			while(ligne < len(tracks)):
-				ligne = traiter_conteneur(None, 0, ligne)
-			if(e != None):
-				e.set() #On a fini donc on prévient les autres threads qui nous attendaient
-		a = threading.Thread(target=traiter_tous_les_conteneurs)
-		a.start()
 		
-
+		
+	#def fill_library_browserBOURRIN(self, data):
+		#'''
+			#DEPRECATED Used way to much SQL queries
+			#Remplit la liste arborescente avec les pistes de la BDD selon l'arborescence du mode séléctionné
 			
+			#data = [TreeStore, mode]
+			
+			#Cette version a été abandonnée car elle utilise beaucoup trop de requêtes, ce qui est terrible au niveau des perfs.
+		#'''
 		#def traiter_conteneurs(conteneurs, pere, i, condition_antecedente=""):
 			#conn = sqlite3.connect('data.db')
 			#conn.row_factory = sqlite3.Row
@@ -697,71 +568,7 @@ class MainBDD():
 		#a = threading.Thread(target=traiter_conteneurs, args=(conteneurs, pere, i))
 		#a.start()
 		
-		return model
-		
-		
-	def fill_library_browserBOURRIN(self, data):
-		'''
-			DEPRECATED Used way to much SQL queries
-			Remplit la liste arborescente avec les pistes de la BDD selon l'arborescence du mode séléctionné
-			
-			data = [TreeStore, mode]
-			
-			Cette version a été abandonnée car elle utilise beaucoup trop de requêtes, ce qui est terrible au niveau des perfs.
-		'''
-		def traiter_conteneurs(conteneurs, pere, i, condition_antecedente=""):
-			conn = sqlite3.connect('data.db')
-			conn.row_factory = sqlite3.Row
-			c = conn.cursor()
-			if(i < profondeur_max): #Il faut encore "creuser"
-				for conteneur in conteneurs:
-					#print("Traitement de " + mode[i])
-					pere_icon = gtk.gdk.pixbuf_new_from_file('icons/' + mode[i-1] + '.png')
-					query = 'SELECT DISTINCT ' + mode[i] + ', SUM(compteur), SUM(note) FROM tracks WHERE ' + mode[i-1] + ' = ?' + condition_antecedente + ' GROUP BY ' + mode[i] + ' ORDER BY ' + mode[i]
-					antecedent = condition_antecedente + ' AND ' + mode[i-1] + ' = "' + str(conteneur[0]) + '"'
-					#print(query)
-					
-					c.execute(query, (conteneur[0],))
-					
-					conteneurs = c.fetchall()
-					fils = treestore.append(pere, [pere_icon, 0, conteneur[0], conteneur[1], conteneur[2]])
-					#traiter_conteneurs(conteneurs, fils, i+1, antecedent)
-					a = threading.Thread(target=traiter_conteneurs, args=(conteneurs, fils, i+1, antecedent))
-					a.start()
-					
-			else: #On est en bas de la "chaîne", il ne reste plus qu'à traiter les pistes du dernier conteneur
-				for conteneur in conteneurs:
-					fils = treestore.append(pere, [icon_album, 0, conteneur[0], conteneur[1], conteneur[2]])
-					c.execute('SELECT DISTINCT track_ID, title, compteur, note FROM tracks WHERE ' + mode[i-1] + ' = ?' + condition_antecedente +' ORDER BY title', (conteneur[0],))
-					for titre in c:
-						treestore.append(fils, [icon_track, titre[0], titre[1], titre[2], titre[3]])
-				#Fin de branche
-				i += 1
-		
-		treestore = data[0]
-		mode = eval(data[1])
-		print(mode)
-		profondeur_max = len(mode) -1
-		icon_track = gtk.gdk.pixbuf_new_from_file('track.png')
-		icon_artist = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-		icon_album = gtk.Image().render_icon(gtk.STOCK_CDROM, gtk.ICON_SIZE_MENU)
-		icon_genre = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-		icon_year = gtk.gdk.pixbuf_new_from_file('icons/year.png')
-		
-		treestore.clear()
-		
-		# On traite les conteneurs de bases (ex : Artiste, Genre):
-		self.c.execute('SELECT DISTINCT ' + mode[0] + ', SUM(compteur), SUM(note) FROM tracks GROUP BY ' + mode[0] + ' ORDER BY ' + mode[0])
-		pere_icon = gtk.gdk.pixbuf_new_from_file('icons/' + mode[0] + '.png')
-		pere = None  #Un conteneur de base n'a pas de père
-		conteneurs = self.c.fetchall()
-		i = 1 #On se place sur le second niveau de conteneurs
-
-		#traiter_conteneurs(conteneurs, pere, i)
-		a = threading.Thread(target=traiter_conteneurs, args=(conteneurs, pere, i))
-		a.start()
-		
-		return treestore
+		#return treestore
 
 			
 			
@@ -854,7 +661,7 @@ class MainBDD():
 		self.c.execute(query, t)
 		table = []
 		for row in self.c:
-			path = unicode(row[2] + "/" + row[1])
+			path = unicode(row[2] + os.sep + row[1])
 			print(path)
 			ID = str(row[0])
 			thumbnail_path = "thumbnails/" + type + "s/" + ID + ".jpg"
@@ -1307,13 +1114,13 @@ class MainBDD():
 		conn = sqlite3.connect(file_path)
 		conn.row_factory = sqlite3.Row
 		c = conn.cursor()
-		c.execute('SELECT artist, album, title, note, compteur FROM tracks')
+		c.execute('SELECT artist, album, title, rating, playcount FROM tracks')
 		bigParamsArray = []
 		for row in c:
 			t = [row[3], row[0], row[1], row[2]]
 			t.extend(params)
 			bigParamsArray.append(t)
 			#self.c.execute('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, t)
-		self.c.executemany('UPDATE tracks SET note = ? WHERE artist = ? AND album = ? AND title = ?' + query, bigParamsArray)
+		self.c.executemany('UPDATE tracks SET rating = ? WHERE artist = ? AND album = ? AND title = ?' + query, bigParamsArray)
 		self.conn.commit()
 		conn.close()

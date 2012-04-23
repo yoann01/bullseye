@@ -14,6 +14,7 @@ except ImportError:
 	
 class Player(QtCore.QObject):
 	def __init__(self):
+		self.backend = 'Phonon'
 		QtCore.QObject.__init__(self)
 		self.audioOuptut = Phonon.AudioOutput(Phonon.MusicCategory, self)
 		self.player = Phonon.MediaObject(self)
@@ -73,7 +74,7 @@ class Player(QtCore.QObject):
 		for pwidget in self.connectedWidgets:
 			pwidget.playNextTrack(True)
 			
-	def getVideoWidget(self):
+	def getQtVideoWidget(self):
 		videoArea = Phonon.VideoWidget()
 		Phonon.createPath(self.player, videoArea)
 		return videoArea

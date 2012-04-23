@@ -155,12 +155,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 		messager.diffuser("des_" + type +"s", self, table)
 		
 	def checkForNewFiles(self, menuitem):
-		#def doit():
-			
-			#check_for_new_files('/home/piccolo/Musique', self.P_Bar)
-		folders = settings.get_option('music/folders', [])
-		a = threading.Thread(target=self.bdd.check_for_new_files, args=(folders, self.P_Bar))
-		a.start()
+		self.bdd.check_for_new_files(ProgressNotifier())
 		
 	
 	def editSettings(self, *args):
@@ -177,4 +172,12 @@ class BullseyeMenuBar(gtk.MenuBar):
 		#dialog.destroy()
 		#print(fichier)
 		#self.bdd.retrieveFromSave(fichier)
+		
+class ProgressNotifier(gtk.ProgressBar):
+	def __init__(self):
+		gtk.ProgressBar.__init__(self)
+		
+	def setFraction(self, val):
+		self.set_fraction(val)
+
 	
