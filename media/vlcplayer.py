@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 import vlc
 import os
-import gtk
-import gobject
 import glib
 import sys
 
 from common import messager
-#gobject.threads_init()
 
 #instance = vlc.Instance()
 class Player(object):
 	
 	def __init__(self):
 		#self._player = instance.media_player_new()
+		self.backend = 'VLC'
 		self._player = vlc.MediaPlayer()
 		#Ne fonctionne pas, va savoir pourquoi. Bypass = trick sur le get pourcentage
 		#self._player.event_manager().event_attach(vlc.EventType.MediaPlayerEndReached, self.on_message)
@@ -23,11 +21,11 @@ class Player(object):
 
 		#self.PBar.connect('button-release-event', self.seek_end)
 		
-		def update_position():
-			self.PBar.set_fraction(self.pourcentage)
-			self.PBar.set_text(self.etat)
-		self._position_updater = Updater()
-		self._position_updater.set_target(update_position)
+		#def update_position():
+			#self.PBar.set_fraction(self.pourcentage)
+			#self.PBar.set_text(self.etat)
+		#self._position_updater = Updater()
+		#self._position_updater.set_target(update_position)
 
 	@property
 	def duration(self):
@@ -86,16 +84,15 @@ class Player(object):
 	
 	def playTrack(self, element):
 		#element.path.encode('latin-1')
-		self.load(str(element.path))
+		self.load(element.path.encode( "utf8" ))
 		self.play()
 
 	def load(self, filename):
 		self._player.set_mrl(filename)
 
 	def play(self):
-		self._position_updater.start()
+		#self._position_updater.start()
 		self._player.play()
-		self.PBar.set_sensitive(True)
 
 	def pause(self):
 		self._position_updater.stop()

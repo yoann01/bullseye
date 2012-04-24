@@ -76,9 +76,10 @@ class AbstractIconSelector(QtGui.QWidget):
 		
 	@util.threaded
 	def append(self, elt):
+		print elt.thumbnail_path
 		self.iconViewer.model.append(elt)
-		print self.iconViewer.contentsSize().height()
-		print self.iconViewer.verticalScrollBar().sizeHint().height()
+		#print self.iconViewer.contentsSize().height()
+		#print self.iconViewer.verticalScrollBar().sizeHint().height()
 		
 		
 	def clear(self):
@@ -149,8 +150,12 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 			try:
 				if(item.icon is None):
 					item.icon = QtGui.QPixmap(item.thumbnail_path)
+					
 			except:
 				item.icon = QtGui.QPixmap(item.thumbnail_path)
+				
+			if item.icon.isNull():
+				item.icon = QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + item.module + '.png')
 				
 			return item.icon
 	

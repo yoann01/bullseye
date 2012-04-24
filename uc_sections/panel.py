@@ -370,7 +370,6 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		
 		#Ini panel dossiers
 		self.folderModel = gtk.TreeStore(str, str)
-		self.loadFolders()
 		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
 		TreeView.set_model(self.folderModel)
 		colonne = gtk.TreeViewColumn('Column 0')

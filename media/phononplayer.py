@@ -74,6 +74,12 @@ class Player(QtCore.QObject):
 		for pwidget in self.connectedWidgets:
 			pwidget.playNextTrack(True)
 			
+	def seekTo(self, pos):
+		'''
+			@param pos : float ranging from 0 to 1
+		'''
+		self.player.seek(int(self.player.totalTime() * (float(pos) / float(100))))
+			
 	def getQtVideoWidget(self):
 		videoArea = Phonon.VideoWidget()
 		Phonon.createPath(self.player, videoArea)

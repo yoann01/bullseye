@@ -89,7 +89,7 @@ class LibraryPanel(QtGui.QWidget):
 		
 		
 		refreshButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('view-refresh'), _('Refresh'))
-		refreshButton.clicked.connect(self.fill_model)
+		refreshButton.clicked.connect(lambda: self.fill_model(None, True))
 		modLayout = QtGui.QHBoxLayout()
 		modLayout.addWidget(self.modeCB, 1)
 		modLayout.addWidget(refreshButton)

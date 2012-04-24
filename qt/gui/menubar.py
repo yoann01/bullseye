@@ -9,9 +9,8 @@ class MenuBar(QtGui.QMenuBar):
 		self.core = parent
 		QtGui.QMenuBar.__init__(self, parent)
 		toolsMenu = QtGui.QMenu(_('&Tools'))
-		progressNotifier = ProgressNotifier()
-		self.core.statusBar.addWidget(progressNotifier)
-		toolsMenu.addAction(_('Check for new files'), lambda: self.core.BDD.check_for_new_files(progressNotifier))
+		
+		toolsMenu.addAction(_('Check for new files'), self.checkForNewFiles)
 		toolsMenu.addAction(_('Settings'), self.openSettings)
 		self.addMenu(toolsMenu)
 		
@@ -19,6 +18,11 @@ class MenuBar(QtGui.QMenuBar):
 		
 		for module in self.core.loadedModules:
 			self.loadModuleMenus(module)
+			
+			
+	def checkForNewFiles(self):
+		progressNotifier = self.core.statusBar.addProgressNotifier()
+		self.core.BDD.check_for_new_files(progressNotifier)
 		
 		
 	def loadModuleMenus(self, module):
@@ -56,14 +60,33 @@ class MenuBar(QtGui.QMenuBar):
 	def openSettings(self):
 		dialog = modales.SettingsEditor()
 		dialog.exec_()
+		
+class StatusBar(QtGui.QStatusBar):
+	def __init__(self):
+		QtGui.QStatusBar.__init__(self)
+		
+	def addProgressNotifier(self):
+		notifier = ProgressNotifier(self)
+		notifier.done.connect(self.removeNotifier)
+		self.addWidget(notifier)
+		return notifier
+		
+	def removeNotifier(self):
+		notifier = self.sender()
+		self.removeWidget(notifier)
 
 class ProgressNotifier(QtGui.QProgressBar):
 	
 	valueRequested = QtCore.Signal(int)
+	done = QtCore.Signal()
 	
-	def __init__(self):
+	def __init__(self, statusBar):
 		QtGui.QProgressBar.__init__(self)
+		self.statusBar = statusBar
 		self.valueRequested.connect(self.setValue)
+		
+	def emitDone(self):
+		self.done.emit()
 		
 	def pulse(self):
 		self.setRange(0, 0)
@@ -73,3 +96,5 @@ class ProgressNotifier(QtGui.QProgressBar):
 		if(self.maximum != 100):
 			self.setMaximum(100)
 		self.valueRequested.emit(val)
+
+			

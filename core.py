@@ -133,15 +133,14 @@ class Core(gobject.GObject):
 		
 		
 		#Barre de status
-		StatusBar = gtk.Statusbar()
+		from gui.menubar import StatusBar
+		self.statusBar = StatusBar()
 		self.Label = gtk.Label("Gestionnaire initialisé")
-		StatusBar.pack_start(self.Label)
+		self.statusBar.pack_start(self.Label)
 		messager.inscrire(self.notifier, "notification_etat")
 		
-		self.P_Bar = gtk.ProgressBar()
-		StatusBar.pack_start(self.P_Bar)
-		
-		self.VBox_Main.pack_end(StatusBar, False)
+
+		self.VBox_Main.pack_end(self.statusBar, False)
 		self.VBox_Main.pack_end(self.NB_Main)
 		self.F_Main.add(self.VBox_Main)
 		

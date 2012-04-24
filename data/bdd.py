@@ -357,6 +357,7 @@ class MainBDD():
 				if(path in new_paths):
 					new_files['picture'].append(get_UC_element_data('picture', element[0], element[1]))
 				i += 1
+				time.sleep(0.3)
 				progressWidget.setFraction((float(i) / longueur))
 				
 			longueur = float(len(files['video_files']))
@@ -452,6 +453,8 @@ class MainBDD():
 			
 		for path in error_paths:
 			logging.debug('Chemin foireux : ' + path)
+			
+		progressWidget.emitDone()
 			
 		
 	def creer_tables(self):
@@ -917,7 +920,7 @@ class MainBDD():
 		f.close()
 	
 	@util.threaded
-	def reloadCovers(self, *args):
+	def reloadCovers(self, progressWidget):
 		forceReload = False
 		artist_dir = xdg.get_thumbnail_dir('artist')
 		album_dir = xdg.get_thumbnail_dir('album')
@@ -932,6 +935,7 @@ class MainBDD():
 			length = float(len(rows))
 			
 			i = 0
+			progressWidget.setFraction(0)
 			while(i < len(rows)):
 				artist_name = rows[i][0]
 				dest_path = os.path.join(artist_dir + '/medium', artist_name.replace ('/', ' ')) # + '.jpg')
@@ -961,9 +965,11 @@ class MainBDD():
 						else:
 							logger.debug('No cover url for album ' + album_name)
 					i += 1
+					progressWidget.setFraction(i / length)
 
 		else:
 			logger.debug("Can't retrieve covers : Network not connected")
+		progressWidget.emitDone()
 	
 			
 			

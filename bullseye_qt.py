@@ -9,11 +9,6 @@ from data.elements import Track
 import gettext
 gettext.install("bullseye")
 
-#if  QtGui.QIcon.hasThemeIcon("document-open"):
-	#print 'ERIA'
-
-
-
 
 class Frame(QtGui.QMainWindow):
 	ready = QtCore.Signal()
@@ -22,7 +17,9 @@ class Frame(QtGui.QMainWindow):
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
 		#print os.is_file(QtGui.QIcon.themeSearchPaths()[-1])
-		QtGui.QIcon.setThemeName('silk')
+		if not  QtGui.QIcon.hasThemeIcon("document-open"):
+			import fallbackicons
+			QtGui.QIcon.setThemeName('silk')
 		self.move(settings.get_option('gui/window_x', 50), settings.get_option('gui/window_y', 50))
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
 		if(settings.get_option('gui/maximized', False)):
@@ -70,12 +67,12 @@ class Frame(QtGui.QMainWindow):
 			self.NB_Main.addTab(button, _('Videos'))
 		
 		
-		from qt.gui.menubar import MenuBar
+		from qt.gui.menubar import MenuBar, StatusBar
 		#layout.addWidget(MenuBar())
 		#layout.addWidget(self.NB_Main)
 		#self.setLayout(layout)
 		
-		self.statusBar = QtGui.QStatusBar()
+		self.statusBar = StatusBar()
 		
 		self.setMenuBar(MenuBar(self))
 		self.setCentralWidget(self.NB_Main)

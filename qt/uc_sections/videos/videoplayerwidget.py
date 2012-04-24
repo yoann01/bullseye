@@ -8,13 +8,12 @@ class VideoPlayerWidget(AbstractVideoPlayerWidget, QtGui.QWidget):
 		layout = QtGui.QVBoxLayout()
 		
 		self.player = player
-		if player.backend == 'Phonon':
+		if player.backend  in ('Phonon', 'MPlayer'):
 			layout.addWidget(self.player.getQtVideoWidget())
 		else:
 			videoArea = QtGui.QFrame()
-			self.player.setUpQtVideo(videoArea)
 			layout.addWidget(videoArea)
-		#if in ('Phonon', 'MPlayer')
+			self.player.setUpQtVideo(videoArea)
 		
 		
 		self.setLayout(layout)

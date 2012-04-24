@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import gtk
+import gobject
 import threading
 import subprocess
 import os
@@ -16,7 +17,6 @@ class BullseyeMenuBar(gtk.MenuBar):
 		self.core = Core
 		self.core.connect('module-loaded', self.loadModuleMenus)
 		self.bdd = Core.BDD
-		self.P_Bar = Core.P_Bar
 		
 		file = gtk.MenuItem(_('_File'))
 		menu = gtk.Menu()
@@ -94,7 +94,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 			music = gtk.MenuItem(_("Music"))
 			menu = gtk.Menu()
 			item = gtk.MenuItem(_("Reload covers"))
-			item.connect('activate', self.core.BDD.reloadCovers)
+			item.connect_object('activate', self.core.BDD.reloadCovers, self.core.statusBar.addProgressNotifier())
 			menu.append(item)
 			
 			music.set_submenu(menu)
@@ -155,7 +155,8 @@ class BullseyeMenuBar(gtk.MenuBar):
 		messager.diffuser("des_" + type +"s", self, table)
 		
 	def checkForNewFiles(self, menuitem):
-		self.bdd.check_for_new_files(ProgressNotifier())
+		notifier = self.core.statusBar.addProgressNotifier()
+		self.bdd.check_for_new_files(notifier)
 		
 	
 	def editSettings(self, *args):
@@ -172,12 +173,33 @@ class BullseyeMenuBar(gtk.MenuBar):
 		#dialog.destroy()
 		#print(fichier)
 		#self.bdd.retrieveFromSave(fichier)
+	
+class StatusBar(gtk.Statusbar):
+	def __init__(self):
+		gtk.Statusbar.__init__(self)
+		
+	def addProgressNotifier(self):
+		notifier = ProgressNotifier()
+		notifier.connect('done', self.removeNotifier)
+		self.pack_start(notifier)
+		self.show_all()
+		return notifier
+		
+	def removeNotifier(self, notifier):
+		self.remove(notifier)
 		
 class ProgressNotifier(gtk.ProgressBar):
+	
+	__gsignals__ = { "done": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()) }
+	
 	def __init__(self):
 		gtk.ProgressBar.__init__(self)
 		
+	def emitDone(self):
+		self.emit('done')
+		
 	def setFraction(self, val):
 		self.set_fraction(val)
+			
 
 	

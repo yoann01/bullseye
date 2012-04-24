@@ -345,7 +345,7 @@ class UCPanelInterface(object):
 				for part in parts:
 					s += part
 					if(s not in nodes.keys()):
-						nodes[s] = self.append(liste, Container((s, part, 0, 0), 'folder', self.module), node) #[0, 'f' + s, part, icon, None, None])
+						nodes[s] = self.append(liste, Container((s + '%', part, 0, 0), 'folder', self.module), node) #[0, 'f' + s, part, icon, None, None])
 					node = nodes[s]
 					s += os.sep
 					
