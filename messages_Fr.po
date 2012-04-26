@@ -1,0 +1,582 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-04-26 16:43+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: qt/uc_sections/panel.py:71 abstract/ucpanel.py:193 abstract/ucpanel.py:337
+#: uc_sections/panel.py:707
+msgid "All"
+msgstr "Tous"
+
+#: qt/uc_sections/panel.py:74
+msgid "Add a "
+msgstr "Ajouter un"
+
+#: qt/uc_sections/panel.py:75
+msgid "Delete container"
+msgstr "Supprimer conteneur"
+
+#: qt/uc_sections/panel.py:78
+msgid "Add new container"
+msgstr "Ajouter nouveau conteneur"
+
+#: qt/uc_sections/panel.py:78 qt/gui/modales.py:197 qt/music/queue.py:416
+#: gui/menus.py:38 gui/menus.py:155 gui/modales.py:200 gui/modales.py:724
+#: music/queue.py:540
+msgid "Name"
+msgstr "Nom"
+
+
+#: qt/uc_sections/panel.py:87
+msgid "Are you sure you want to delete"
+msgstr "Êtes-vous sur de vouloir supprimer"
+
+#: qt/uc_sections/panel.py:126 qt/uc_sections/panel.py:229
+#: uc_sections/panel.py:517
+msgid "Categories"
+msgstr "Catégories (formes)"
+
+#: qt/uc_sections/panel.py:127 qt/uc_sections/panel.py:230
+#: uc_sections/panel.py:417 uc_sections/panel.py:532 uc_sections/panel.py:570
+msgid "Universes"
+msgstr "Univers (fonds)"
+
+#: qt/uc_sections/panel.py:128 qt/uc_sections/panel.py:231
+#: uc_sections/panel.py:418 uc_sections/panel.py:439 uc_sections/panel.py:571
+#: uc_sections/panel.py:598 gui/modales.py:438
+msgid "Folders"
+msgstr "Dossiers"
+
+#: qt/uc_sections/panel.py:228
+msgid "None"
+msgstr "Aucun"
+
+#: qt/uc_sections/panel.py:236 qt/uc_sections/panel.py:289
+msgid "No active filters"
+msgstr "Pas de filtre actif"
+
+#: qt/uc_sections/panel.py:311
+msgid "Filtering"
+msgstr "Filtrage"
+
+#: qt/uc_sections/panel.py:460 qt/gui/modales.py:11 qt/music/musicpanel.py:85
+#: qt/music/musicpanel.py:487 gui/modales.py:19 music/queue.py:426
+#: music/musicpanel.py:60 music/musicpanel.py:79
+msgid "Rating"
+msgstr "Note"
+
+#: qt/gui/menus.py:11
+msgid "Set as category thumbnail"
+msgstr "Définir en tant que vignette de sa catégorie"
+
+#: qt/gui/menus.py:12
+msgid "Set as universe thumbnail"
+msgstr "Définir en tant que vignette de son univers"
+
+#: qt/gui/modales.py:11 qt/music/queue.py:717 qt/music/musicpanel.py:83
+#: gui/modales.py:17 music/queue.py:422 music/musicpanel.py:77
+msgid "Artist"
+msgstr "Artiste"
+
+#: qt/gui/modales.py:11 qt/music/queue.py:715 qt/music/musicpanel.py:84
+#: gui/modales.py:18 music/queue.py:423 music/musicpanel.py:78
+msgid "Album"
+msgstr ""
+
+#: qt/gui/modales.py:11 qt/music/queue.py:721 music/queue.py:425
+msgid "Playcount"
+msgstr "Écoutes"
+
+#: qt/gui/modales.py:11 qt/gui/modales.py:392 qt/gui/modales.py:616
+#: gui/modales.py:21 gui/modales.py:344
+msgid "Path"
+msgstr "Chemin"
+
+#: qt/gui/modales.py:12 gui/modales.py:30
+msgid "equals"
+msgstr "égal"
+
+#: qt/gui/modales.py:12 gui/modales.py:31
+msgid "is inferior to"
+msgstr ""
+
+#: qt/gui/modales.py:12 gui/modales.py:32
+msgid "is superior to"
+msgstr "est inférieur à"
+
+#: qt/gui/modales.py:12 gui/modales.py:33
+msgid "is lower than"
+msgstr ""
+
+#: qt/gui/modales.py:12 gui/modales.py:34
+msgid "is at least"
+msgstr "est au moins"
+
+#: qt/gui/modales.py:13 gui/modales.py:24
+msgid "is"
+msgstr "est"
+
+#: qt/gui/modales.py:13 gui/modales.py:25
+msgid "is not"
+msgstr "n'est pas"
+
+#: qt/gui/modales.py:13 gui/modales.py:26
+msgid "like"
+msgstr "contient"
+
+#: qt/gui/modales.py:13 gui/modales.py:27
+msgid "not like"
+msgstr "ne contient pas"
+
+#: qt/gui/modales.py:119 gui/modales.py:37
+msgid "Whatever criterion matches"
+msgstr "Peu importe le critère"
+
+#: qt/gui/modales.py:122 gui/modales.py:38
+msgid "Random order"
+msgstr "Ordre aléatoire"
+
+#: qt/gui/modales.py:202 qt/music/musicpanel.py:598 gui/modales.py:191
+msgid "Add a dynamic playlist"
+msgstr "Ajouter une playlist dynamique"
+
+#: qt/gui/modales.py:204 gui/modales.py:193
+msgid "Edit a dynamic playlist"
+msgstr "Ajouter une playlist statique"
+
+#: qt/gui/modales.py:263 gui/modales.py:697
+msgid "Enabled"
+msgstr "Activé"
+
+#: qt/gui/modales.py:288
+msgid "New filter name"
+msgstr "Nom du nouveau filtre"
+
+#: qt/gui/modales.py:288
+msgid "Enter a name"
+msgstr "Entrez un nom"
+
+#: qt/gui/modales.py:332 gui/modales.py:366
+msgid "Settings editor"
+msgstr "Éditeur de paramètres"
+
+#: qt/gui/modales.py:353 gui/modales.py:374
+msgid "General"
+msgstr "Général"
+
+#: qt/gui/modales.py:354 gui/modales.py:375
+msgid "Indexed folders"
+msgstr "Dossiers indexés"
+
+#: qt/gui/modales.py:355 qt/gui/menubar.py:54 core.py:74 bullseye_qt.py:53
+#: bullseye_qt.py:158 gui/modales.py:376 gui/menubar.py:94
+msgid "Music"
+msgstr "Musique"
+
+#: qt/gui/modales.py:356 gui/modales.py:378
+msgid "Audioscrobbler"
+msgstr ""
+
+#: qt/gui/modales.py:357 gui/modales.py:377
+msgid "Filters"
+msgstr "Filtres"
+
+#: qt/gui/modales.py:358 core.py:126 bullseye_qt.py:68 bullseye_qt.py:180
+#: gui/modales.py:380
+msgid "Videos"
+msgstr "Vidéos"
+
+#: qt/gui/modales.py:373
+msgid "GUI framework"
+msgstr ""
+
+#: qt/gui/modales.py:375 gui/modales.py:420
+msgid "Enable pictures manager"
+msgstr "Activer le module photos"
+
+#: qt/gui/modales.py:392 gui/modales.py:440
+msgid "Dig"
+msgstr "Creuser"
+
+#: qt/gui/modales.py:405 gui/modales.py:465
+msgid "Add"
+msgstr "Ajouter"
+
+#: qt/gui/modales.py:413 gui/menus.py:142 gui/modales.py:467
+msgid "Remove"
+msgstr "Enlever"
+
+#: qt/gui/modales.py:446 qt/gui/modales.py:493 gui/modales.py:481
+#: gui/modales.py:582
+msgid "Playback library"
+msgstr ""
+
+#: qt/gui/modales.py:455 gui/modales.py:496
+msgid "Panel icon size"
+msgstr "Taille des icônes du panel"
+
+#: qt/gui/modales.py:471 gui/modales.py:520
+msgid "Login"
+msgstr "Compte"
+
+#: qt/gui/modales.py:472 gui/modales.py:527
+msgid "Password"
+msgstr "Mot de passe"
+
+#: qt/gui/modales.py:554 gui/modales.py:277
+msgid "Tags editor"
+msgstr "Éditeur de tags"
+
+#: qt/gui/modales.py:569 gui/modales.py:285
+msgid "Single file mod"
+msgstr "Mode fichier unique"
+
+#: qt/gui/modales.py:571 gui/modales.py:287
+msgid "Container mod"
+msgstr "Mode conteneur"
+
+#: qt/gui/menubar.py:11
+msgid "&Tools"
+msgstr "Ou&tils"
+
+#: qt/gui/menubar.py:13 gui/menubar.py:44
+msgid "Check for new files"
+msgstr "Rechercher nouveaux fichiers"
+
+#: qt/gui/menubar.py:14
+msgid "Settings"
+msgstr "Paramètres"
+
+#: qt/gui/menubar.py:32 gui/menubar.py:67
+msgid "Check for doubloons"
+msgstr "Rechercher doublons"
+
+#: qt/gui/menubar.py:33 gui/menubar.py:73
+msgid "Move to UC structure"
+msgstr "Déplacer vers la structure UC"
+
+#: qt/gui/menubar.py:40 gui/menubar.py:77
+msgid "Multi-panes"
+msgstr "Multi-panneaux"
+
+#: qt/gui/menubar.py:46 gui/menubar.py:82
+msgid "All in one panel"
+msgstr "Panel tout en un"
+
+#: qt/gui/menubar.py:55 gui/menubar.py:96
+msgid "Reload covers"
+msgstr "Recharger pochettes"
+
+#: qt/music/queue.py:102
+msgid "Queue "
+msgstr "File "
+
+#: qt/music/queue.py:116 music/queue.py:253
+msgid "Closing non-saved playlist"
+msgstr "Fermeture d'une playlist non enregistrée"
+
+#: qt/music/queue.py:116 music/queue.py:256
+msgid "Save changes?"
+msgstr "Enregistrer les changements?"
+
+#: qt/music/queue.py:279 music/queue.py:623 music/musicpanel.py:384
+msgid "Remove from queue"
+msgstr "Supprimer de la file"
+
+#: qt/music/queue.py:280 music/queue.py:628
+msgid "Set stop cursor"
+msgstr "Définir marqueur d'arrêt"
+
+#: qt/music/queue.py:281 music/queue.py:634
+msgid "Add to perm jump list"
+msgstr "Ajouter à la liste de sauts permanents"
+
+#: qt/music/queue.py:282 music/queue.py:641
+msgid "Add to temp jump list"
+msgstr "Ajouter à la liste de sauts temporaires"
+
+#: qt/music/queue.py:285 gui/menus.py:204 gui/menus.py:217
+msgid "Edit tags"
+msgstr "Éditer tags"
+
+#: qt/music/queue.py:296 music/queue.py:657
+msgid "Unset bridge source"
+msgstr "Retirer entrée de pont"
+
+#: qt/music/queue.py:305 music/queue.py:668
+msgid "Add bridge source"
+msgstr "Ajouter entrée de pont"
+
+#: qt/music/queue.py:318 music/queue.py:683
+msgid "Unset bridge dest"
+msgstr "Retirer sortie de pont"
+
+#: qt/music/queue.py:328 music/queue.py:694
+msgid "Add bridge dest"
+msgstr "Ajouter sortie de pont"
+
+#: qt/music/queue.py:421 gui/menus.py:43 gui/modales.py:729 music/queue.py:545
+msgid "Cancel"
+msgstr "Annuler"
+
+#: qt/music/queue.py:523 music/queue.py:756
+msgid "Save as..."
+msgstr "Enregistrer sous..."
+
+#: qt/music/queue.py:526 music/queue.py:759
+msgid "Set all track to stop"
+msgstr "Placer un marqueur d'arrêt sur toutes les pistes"
+
+#: qt/music/queue.py:713 gui/menus.py:197 music/queue.py:421
+msgid "Title"
+msgstr "Titre"
+
+#: qt/music/queue.py:719 music/queue.py:424
+msgid "Length"
+msgstr "Durée"
+
+#: qt/music/musicpanel.py:28 core.py:212
+msgid "Library"
+msgstr "Bibliothèque"
+
+#: qt/music/musicpanel.py:29 core.py:213
+msgid "Playlists"
+msgstr ""
+
+#: qt/music/musicpanel.py:86 music/musicpanel.py:80
+msgid "Genre"
+msgstr ""
+
+#: qt/music/musicpanel.py:87 music/musicpanel.py:82
+msgid "Year - Genre"
+msgstr "Année - genre"
+
+#: qt/music/musicpanel.py:88 music/musicpanel.py:81
+msgid "Year"
+msgstr "Année"
+
+#: qt/music/musicpanel.py:89 music/musicpanel.py:83
+msgid "Rating - Year - Genre"
+msgstr "Note - Année - Genre"
+
+#: qt/music/musicpanel.py:98
+msgid "Refresh"
+msgstr "Rafraîchir"
+
+#: qt/music/musicpanel.py:485 music/musicpanel.py:59
+msgid "Count"
+msgstr "Cpt"
+
+#: qt/music/musicpanel.py:489 music/musicpanel.py:61
+msgid "Burn"
+msgstr ""
+
+#: qt/music/musicpanel.py:582
+msgid "Static playlists"
+msgstr "Playlists statiques"
+
+#: qt/music/musicpanel.py:587 music/musicpanel.py:536
+msgid "Dynamic playlists"
+msgstr "Playlists dynamiques"
+
+#: qt/music/musicpanel.py:597
+msgid "Add a static playlist"
+msgstr "Ajouter une liste statique"
+
+#: qt/music/musicpanel.py:609
+msgid "Edit playlist"
+msgstr "Éditer playlist"
+
+#: qt/music/musicpanel.py:610
+msgid "Delete playlist"
+msgstr "Supprimer playlist"
+
+#: common/settings.py:169
+msgid "We don't know how to store that kind of setting: "
+msgstr ""
+
+#: common/settings.py:194
+msgid "An Unknown type of setting was found!"
+msgstr ""
+
+#: core.py:70 core.py:108 core.py:122
+msgid "Load"
+msgstr "Charger"
+
+#: core.py:112 bullseye_qt.py:60 bullseye_qt.py:176 bullseye_qt.py:178
+#: gui/modales.py:379 gui/menubar.py:65
+msgid "Pictures"
+msgstr "Photos"
+
+#: core.py:260
+msgid "Closing the eye..."
+msgstr ""
+
+#: media/oldplayer.py:35 music/playerwidget.py:18 music/playerwidget.py:63
+msgid "Pending..."
+msgstr "En attente..."
+
+#: media/mplayers.py:53
+msgid "Nothing"
+msgstr "Rien"
+
+#: uc_sections/panel.py:451 uc_sections/panel.py:627
+msgid "Sections"
+msgstr ""
+
+#: gui/menus.py:17
+msgid "Add an intelligent playlist"
+msgstr ""
+
+#: gui/menus.py:23
+msgid "Add a playlist"
+msgstr ""
+
+#: gui/menus.py:76
+msgid "Set thumbnail as category thumbnail"
+msgstr ""
+
+#: gui/menus.py:82
+msgid "Set thumbnail as universe thumbnail"
+msgstr ""
+
+#: gui/menus.py:88
+msgid "Move to category folder"
+msgstr ""
+
+#: gui/menus.py:131
+msgid "Add an universe"
+msgstr ""
+
+#: gui/menus.py:136
+msgid "Add a category"
+msgstr ""
+
+#: gui/menus.py:175
+msgid "Are you sure you want to delete container "
+msgstr ""
+
+#: gui/menus.py:222
+msgid "Delete from DB"
+msgstr ""
+
+#: gui/util/etoiles.py:323
+msgid "Rating:"
+msgstr ""
+
+#: gui/modales.py:20
+msgid "Play count"
+msgstr ""
+
+#: gui/modales.py:384
+msgid "Section"
+msgstr ""
+
+#: gui/modales.py:422
+msgid "Enable videos manager"
+msgstr ""
+
+#: gui/modales.py:461
+msgid "You must select a folder before clicking the remove button"
+msgstr ""
+
+#: gui/modales.py:539
+msgid "Preload pictures manager"
+msgstr ""
+
+#: gui/modales.py:541 gui/modales.py:669
+msgid ""
+"If true, will be preloaded before application start, else will be loaded on "
+"demand (slightly faster startup)"
+msgstr ""
+
+#: gui/modales.py:544 gui/modales.py:672
+msgid "Panel thumbnail size"
+msgstr ""
+
+#: gui/modales.py:662
+msgid "Indexed extensions"
+msgstr ""
+
+#: gui/modales.py:667
+msgid "Preload this module"
+msgstr ""
+
+#: gui/modales.py:779
+msgid "Import helper"
+msgstr ""
+
+#: gui/modales.py:782
+msgid "Choose a database file"
+msgstr ""
+
+#: gui/menubar.py:21
+msgid "_File"
+msgstr ""
+
+#: gui/menubar.py:26
+msgid "New _tab"
+msgstr ""
+
+#: gui/menubar.py:29
+msgid "_Quit"
+msgstr ""
+
+#: gui/menubar.py:36
+msgid "_Tools"
+msgstr ""
+
+#: gui/menubar.py:49
+msgid "Edit settings"
+msgstr ""
+
+#: music/queue.py:148
+msgid "List "
+msgstr ""
+
+#: music/queue.py:407
+msgid "Close Tab"
+msgstr ""
+
+#: music/musicpanel.py:45
+msgid "Icon"
+msgstr ""
+
+#: music/musicpanel.py:48
+msgid "Label"
+msgstr ""
+
+#: music/musicpanel.py:389
+msgid "Add to direct list"
+msgstr ""
+
+#: music/tags.py:21 music/tags.py:27 music/tags.py:32 music/tags.py:37
+#: music/tags.py:42
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: bullseye.py:34
+msgid "Bullseye Media Manager"
+msgstr ""
+
+#: data/bdd.py:1043 data/bdd.py:1046 data/bdd.py:1101 data/bdd.py:1104
+msgid "errors"
+msgstr ""
+
+#: data/bdd.py:1046 data/bdd.py:1104
+msgid "Sync ended with"
+msgstr ""

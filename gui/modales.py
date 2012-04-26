@@ -485,7 +485,10 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_music_playback_lib.append_text('MPlayer')
 			self.CB_music_playback_lib.append_text('VLC')
 			
-			self.CB_music_playback_lib.set_active(libs[settings.get_option('music/playback_lib', 'GStreamer')])
+			try:
+				self.CB_music_playback_lib.set_active(libs[settings.get_option('music/playback_lib', 'GStreamer')])
+			except KeyError:
+				self.CB_music_playback_lib.set_active(libs['GStreamer'])
 			Box_music.attach(self.CB_music_playback_lib, 1, 2, i, i+1, gtk.FILL, gtk.FILL)
 			
 			
@@ -583,7 +586,10 @@ class SettingsEditor(gtk.Dialog):
 			self.CB_video_playback_lib.append_text('MPlayer')
 			self.CB_video_playback_lib.append_text('VLC')
 			
-			self.CB_video_playback_lib.set_active(libs[settings.get_option('videos/playback_lib', 'GStreamer')])
+			try:
+				self.CB_video_playback_lib.set_active(libs[settings.get_option('videos/playback_lib', 'GStreamer')])
+			except KeyError:
+				self.CB_video_playback_lib.set_active(libs['GStreamer'])
 			self.widgets['videos'].attach(self.CB_video_playback_lib, 1, 2, i, i+1, gtk.FILL, gtk.FILL)
 			
 			

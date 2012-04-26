@@ -116,8 +116,23 @@ class ImageSelector(AbstractIconSelector):
 		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-in'), None)
 		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-out'), None)
 		
+		from qt.util.stardelegate.stareditor import StarEditor
+		from qt.util.stardelegate.starrating import StarRating
+		starEditor = StarEditor()
+		starEditor.starRating = StarRating()
+		starEditor.setCurrent(0)
+		starEditor.editingFinished.connect(self.updateRating)
+		self.starWidget = starEditor
+		self.buttonBar.addSeparator()
+		self.buttonBar.addWidget(starEditor)
+		
 	def openElement(self, elt):
+		self.currentElt = elt
+		self.starWidget.setCurrent(elt.rating)
 		self.imageWidget.loadFile(elt.path)
+		
+	def updateRating(self):
+		self.currentElt.setRating(self.starWidget.current)
 	
 	
 class VideoSelector(AbstractIconSelector):
@@ -144,8 +159,10 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 		if not index.isValid():
 			return None
 		elif role == QtCore.Qt.DisplayRole:
-			return None
-			return item.file[:20] + (item.file[20:] and '..')
+			if item.module != 'picture':
+				return item.file[:20] + (item.file[20:] and '..')
+			else:
+				return None
 		elif role == QtCore.Qt.DecorationRole:
 			try:
 				if(item.icon is None):

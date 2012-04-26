@@ -21,10 +21,13 @@ icon_size = settings.get_option('pictures/panel_icon_size', 32)
 
 class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 
+	expandRequested = QtCore.Signal(str, list)
 	
 	def __init__(self, moduleType):
 		UCPanelInterface.__init__(self, moduleType)
 		QtGui.QWidget.__init__(self)
+		
+		self.expandRequested.connect(self.expandNodes)
 		
 		
 	def append(self, model, container, parentNode=None, backgroundColor='white'):
@@ -35,6 +38,16 @@ class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 		
 	def clear(self, model):
 		model.reset()
+		
+	def expand(self, view, nodes):
+		self.expandRequested.emit(view, nodes)
+		
+	def expandNodes(self, view, nodes):
+		tv = self.treeViews[view]
+		model = tv.model()
+		for node in nodes:
+			index = model.createIndex(node.row(), 0, node)
+			tv.setExpanded(index, True)
 		
 	def onContainerActivated(self, index):
 		dic = self.filters.copy()
@@ -71,7 +84,7 @@ class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 				else:
 					self.universes[newContainer.ID] = {'label':newContainer.label, 'children':[], 'parent':newContainer.parent_ID}
 		elif action == deleteContainer:
-			answer = QtGui.QMessageBox.question(self, _('Dele container'), _('Are you sure you want to delete') + ' ' + str(parent) + '?', QtGui.QMessageBox.StandardButton.Yes | QtGui.QMessageBox.StandardButton.No)
+			answer = QtGui.QMessageBox.question(self, _('Delete container'), _('Are you sure you want to delete') + ' ' + str(parent) + '?', QtGui.QMessageBox.StandardButton.Yes | QtGui.QMessageBox.StandardButton.No)
 			if(answer == QtGui.QMessageBox.StandardButton.Yes):
 				parent.delete()
 				self.load()
@@ -92,12 +105,14 @@ class UC_Panel(AbstractPanel):
 		self.categories = {}
 		self.universes = {}
 		
-		TreeView = ContainerBrowser()
+		self.model = UCModel()
+		TreeView = ContainerBrowser(self.model)
 		self.TreeView = TreeView
+		self.treeViews = {'folder':TreeView, 'category':TreeView, 'universe':TreeView}
 		
 		TreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		TreeView.customContextMenuRequested.connect(self.showContextMenu)
-		self.model = UCModel()
+		
 		#filterModel = QtGui.QSortFilterProxyModel()
 		#filterModel.setSourceModel(self.model)
 		
@@ -118,7 +133,6 @@ class UC_Panel(AbstractPanel):
 		refreshButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('view-refresh'), None)
 		refreshButton.clicked.connect(self.load)
 		
-		self.load()
 		
 		layout = QtGui.QVBoxLayout()
 		modeBox = QtGui.QHBoxLayout()
@@ -126,10 +140,13 @@ class UC_Panel(AbstractPanel):
 		modeBox.addWidget(refreshButton)
 		layout.addLayout(modeBox, 0)
 		layout.addWidget(TreeView, 1)
-		searchEntry = QtGui.QLineEdit()
-		layout.addWidget(searchEntry, 0)
+		self.searchEntry = QtGui.QLineEdit()
+		self.searchEntry.returnPressed.connect(self.load)
+		layout.addWidget(self.searchEntry, 0)
 		self.setLayout(layout)
 		self.setMinimumWidth(300)
+		
+		self.load()
 		
 	def append(self, model, container, parentNode):
 		if(parentNode == None):
@@ -156,8 +173,9 @@ class UC_Panel(AbstractPanel):
 			TODO? Option to collapse expanded on new collapse
 		'''
 		mode = self.mode
+		word = self.searchEntry.text()
 		print mode
-		self.processLoading(mode, self.model)
+		self.processLoading(mode, self.model, True, word)
 		
 
 	
@@ -167,82 +185,117 @@ class UC_Panes(AbstractPanel):
 	"""
 		NOTE Categorie = forme, univers = fond
 	"""
+	
 	def __init__(self, module, elementSelector):
 		AbstractPanel.__init__(self, module)
 		self.module = module
 		self.elementSelector = elementSelector
 		
-		TV_folders = ContainerBrowser('folder')
-		TV_universes = ContainerBrowser('universe')
-		TV_categories = ContainerBrowser('category')
-		self.TV_universes = TV_universes # FIXME
+		
+		
+		# --- TreeView work ---
 		
 		self.categoriesModel = UCModel()
 		self.universesModel = UCModel()
 		self.folderModel = UCModel()
 		
-		TV_categories.setModel(self.categoriesModel)
-		TV_universes.setModel(self.universesModel)
-		TV_folders.setModel(self.folderModel)
-
-
-		#self.loadFolders()
 		
-
-		TV_categories.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-		TV_categories.customContextMenuRequested.connect(self.showContextMenu)
+		self.treeViews = {
+				'folder': ContainerBrowser(self.folderModel, 'folder'), 
+				'category': ContainerBrowser(self.categoriesModel, 'category'),
+				'universe': ContainerBrowser(self.universesModel, 'universe')
+				}
+				
+	
+		tvLayout = QtGui.QHBoxLayout()
+		for key in ('folder', 'category', 'universe'):
+			tv = self.treeViews[key]
+			if key != 'folder':
+				tv.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+				tv.customContextMenuRequested.connect(self.showContextMenu)
 		
-		TV_universes.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-		TV_universes.customContextMenuRequested.connect(self.showContextMenu)
+			tv.activated.connect(self.onContainerActivated)
 		
-		TV_categories.activated.connect(self.onContainerActivated)
-		TV_universes.activated.connect(self.onContainerActivated)
-		TV_folders.activated.connect(self.onContainerActivated)
-		
-		
-		TV_categories.clicked.connect(self.onContainerClicked)
-		#TV_universes.activated.connect(lambada: self.on_container_click('universe'))
-		
-		#TV_categories.connect("button-press-event", self.on_right_click, 'category')
-		#TV_universes.connect("button-press-event", self.on_right_click, 'universe')
+			tv.clicked.connect(self.onContainerClicked)
+				
+			tvLayout.addWidget(tv)
 	
 	
-		self.load()
+		# --- Other work ---
+		
+		self.modesCB = QtGui.QComboBox()
+		modesModel = QtGui.QStandardItemModel()
+		modesModel.appendRow([QtGui.QStandardItem(None), QtGui.QStandardItem(_("None"))])
+		modesModel.appendRow([QtGui.QStandardItem('category'), QtGui.QStandardItem(_("Categories"))])
+		modesModel.appendRow([QtGui.QStandardItem('universe'), QtGui.QStandardItem(_("Universes"))])
+		modesModel.appendRow([QtGui.QStandardItem('folder'), QtGui.QStandardItem(_("Folders"))])
+		self.modesCB.setModel(modesModel)
+		self.modesCB.setModelColumn(1)
+		self.modesCB.currentIndexChanged[int].connect(self.filteringTreeViewChanged)
+		
+		self.filterLabel = QtGui.QLabel(_('No active filters'))
+		
+		self.searchEntry = QtGui.QLineEdit()
+		self.searchEntry.returnPressed.connect(self.load)
+	
+		
 		
 		# --- On assemble tout graphiquement ---
-		layout = QtGui.QHBoxLayout()
 		
-		layout.addWidget(TV_folders)
-		layout.addWidget(TV_categories)
-		layout.addWidget(TV_universes)
 		
 		mainLayout = QtGui.QVBoxLayout()
 		
 		buttonBar = QtGui.QToolBar()
 		buttonBar.addAction(QtGui.QIcon.fromTheme('view-refresh'), None, self.load)
+		buttonBar.addWidget(self.modesCB)
+		buttonBar.addWidget(self.filterLabel)
 		
-		searchEntry = QtGui.QLineEdit()
 		
 		mainLayout.addWidget(buttonBar, 0)
-		mainLayout.addLayout(layout, 1)
-		mainLayout.addWidget(searchEntry, 0)
+		mainLayout.addLayout(tvLayout, 1)
+		mainLayout.addWidget(self.searchEntry, 0)
 		
 		self.setLayout(mainLayout)
 		
-		self.toggled = {'category': True, 'universe': False, 'folder':False}
+		self.toggled = {'category': False, 'universe': False, 'folder':False}
+		self.load()
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
 		self.toggled['universe'] = not self.toggled['universe']
 		
 
+	def expandNodes(self, view, nodes):
+		tv = self.treeViews[view]
+		model = tv.model()
+		for node in nodes:
+			index = model.createIndex(node.row(), 0, node)
+			tv.setExpanded(index, True)
+			
+	def filteringTreeViewChanged(self, index):
+		model = self.modesCB.model()
+		value = model.data(model.index(index, 0))
+		
+		for key in self.toggled.iterkeys():
+			self.toggled[key] = False
+			
+		if value != None:
+			self.toggled[value] = True
+			
+		self.load()
 		
 	
 	def load(self, *args):
-		self.TV_universes.setStyleSheet("background-color:white;")
-		self.processLoading('category', self.categoriesModel, False)
-		self.processLoading('universe', self.universesModel, False)
-		self.processLoading('folder', self.folderModel, False)
+		self.filterLabel.setText(_('No active filters'))
+		for key in self.toggled.iterkeys():
+			if not self.toggled[key]:
+				self.treeViews[key].setStyleSheet("background-color:white;")
+			else:
+				self.treeViews[key].setStyleSheet("")
+		word = self.searchEntry.text()
+		self.processLoading('category', self.categoriesModel, False, word)
+		self.processLoading('universe', self.universesModel, False, word)
+		self.processLoading('folder', self.folderModel, False, word)
 		
 	def onContainerActivated(self, index):
 		self.mode = self.sender().mode
@@ -253,14 +306,20 @@ class UC_Panes(AbstractPanel):
 		self.mode = self.sender().mode
 		#AbstractPlanel.onContainerClicked(self, index)
 		if self.toggled[self.mode]:
-			index.internalPointer().background = 'yellow'
-			self.TV_universes.setStyleSheet("background-color:#A9E2F3;")
-			self.filter(index.internalPointer().container)
+			container = index.internalPointer().container
+			#index.internalPointer().background = 'yellow'
+			self.filterLabel.setText(_('Filtering') + ' : ' + container.label + ' (' + self.mode + ')')
+			for key in self.toggled.iterkeys():
+				if not self.toggled[key]:
+					self.treeViews[key].setStyleSheet("background-color:#A9E2F3;")
+				else:
+					self.treeViews[key].setStyleSheet('')
+			self.filter(container)
 			
 
 
 class ContainerBrowser(QtGui.QTreeView):
-	def __init__(self, mode='Melted'):
+	def __init__(self, model, mode='Melted'):
 		QtGui.QTreeView.__init__(self)
 		self.setAcceptDrops(True)
 		self.setDropIndicatorShown(True)
@@ -268,6 +327,8 @@ class ContainerBrowser(QtGui.QTreeView):
 		self.setExpandsOnDoubleClick(False)
 		
 		self.mode = mode
+		self.setModel(model)
+		self.header().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
 		
 	def dragEnterEvent(self, e):
 		QtGui.QTreeView.dragEnterEvent(self, e)
@@ -349,9 +410,10 @@ class UCModel(treemodel.TreeModel):
 		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'playlist.png')
 		}
 		
+	
+		
 	def __init__(self):
 		treemodel.TreeModel.__init__(self)
-
 
 	def columnCount(self, parent):
 		return 3
@@ -364,7 +426,7 @@ class UCModel(treemodel.TreeModel):
 			if index.column() == 1:
 				return item.container.label
 			elif index.column() == 2:
-				return item.container.label
+				return item.container.rating
 		elif role == QtCore.Qt.DecorationRole and index.column() == 0:
 			if(item.icon is None):
 				path = item.container.getThumbnailPath()
@@ -418,3 +480,4 @@ class UCModel(treemodel.TreeModel):
 		
 	def supportedDropActions(self):
 		return QtCore.Qt.CopyAction | QtCore.Qt.MoveAction
+		

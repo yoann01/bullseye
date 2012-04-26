@@ -357,7 +357,6 @@ class MainBDD():
 				if(path in new_paths):
 					new_files['picture'].append(get_UC_element_data('picture', element[0], element[1]))
 				i += 1
-				time.sleep(0.3)
 				progressWidget.setFraction((float(i) / longueur))
 				
 			longueur = float(len(files['video_files']))

@@ -7,7 +7,11 @@ from data.elements import Track
 
 #Init translation
 import gettext
-gettext.install("bullseye")
+filename = "locale/bullseye_Fr.mo"
+trans = gettext.GNUTranslations(open( filename, "rb" ) )
+# Param True : unicode
+trans.install(True)
+#gettext.install("bullseye")
 
 
 class Frame(QtGui.QMainWindow):
@@ -43,6 +47,7 @@ class Frame(QtGui.QMainWindow):
 		from data.bdd import MainBDD
 		self.BDD = MainBDD()
 		self.loadedModules = []
+		self.managers = {} # Managers are the big widget representing a module
 		
 		if(settings.get_option('music/preload', False)):
 			self.loadMusic()
@@ -52,7 +57,7 @@ class Frame(QtGui.QMainWindow):
 			self.NB_Main.addTab(button, _('Music'))
 			
 		if(settings.get_option('pictures/preload', False)):
-			self.loadSection('pictures')
+			self.loadModule('pictures', True)
 		else:
 			button = QtGui.QPushButton('load')
 			button.clicked.connect(lambda: self.loadModule('pictures'))
@@ -60,7 +65,7 @@ class Frame(QtGui.QMainWindow):
 			
 		
 		if(settings.get_option('videos/preload', False)):
-			self.loadSection('videos')
+			self.loadSection('videos', True)
 		else:
 			button = QtGui.QPushButton('load')
 			button.clicked.connect(lambda: self.loadModule('videos'))
@@ -78,7 +83,7 @@ class Frame(QtGui.QMainWindow):
 		self.setCentralWidget(self.NB_Main)
 		self.setStatusBar(self.statusBar)
 		
-		self.managers = {} # Managers are the big widget representing a module
+		
 		
 		self.NB_Main.currentChanged.connect(self.onModuleChanged)
 		self.ready.connect(self.loadMusic)
@@ -159,24 +164,29 @@ class Frame(QtGui.QMainWindow):
 		
 		self.moduleLoaded.emit('music')
 		
-	def loadModule(self, moduleKey):
+	def loadModule(self, moduleKey, preload=False):
 		self.loadedModules.append(moduleKey)
 		
 		from qt.uc_sections.manager import UCManager
 		widget = UCManager(moduleKey)
 		self.managers[moduleKey] = widget
 		
-		index = self.NB_Main.currentIndex()
-		self.NB_Main.removeTab(index)
+		if not preload:
+			index = self.NB_Main.currentIndex()
+			self.NB_Main.removeTab(index)
 		
 		if(moduleKey == 'pictures'):
-			self.NB_Main.insertTab(index, widget, _('Pictures'))
-			self.NB_Main.setCurrentIndex(index)
+			if preload:
+				self.NB_Main.addTab(widget, _('Pictures'))
+			else:
+				self.NB_Main.insertTab(index, widget, _('Pictures'))
 		elif(moduleKey == 'videos'):
 			self.NB_Main.addTab(widget, _('Videos'))
 			#self.NB_Main.insertTab(index, widget, _('Pictures'))
+			
+			
+		if not preload:
 			self.NB_Main.setCurrentIndex(index)
-		
 		self.moduleLoaded.emit(moduleKey)
 		
 		

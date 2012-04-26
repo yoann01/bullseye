@@ -253,7 +253,7 @@ class Core(gobject.GObject):
 			self.player.stop()
 			self.queueManager.save_state()
 		if('videos' in self.loadedModules):
-			self.videoPlayer.stop()
+			self.managers['videos'].videoPlayerWidget.stop()
 	
 		settings.MANAGER.save()
 		settings.MANAGER.saveTimer.cancel()

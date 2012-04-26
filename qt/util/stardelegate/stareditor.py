@@ -70,6 +70,10 @@ class StarEditor(QWidget):
         painter = QPainter(self)
         self.starRating.paint(painter, self.rect(), self.palette(), isEditable=True)
         
+    def leaveEvent(self, event):
+        self.starRating.starCount = self.current
+        self.update()
+        
     def mouseMoveEvent(self, event):
         """ As the mouse moves inside the editor, track the position and 
             update the editor to display as many stars as necessary. 
@@ -84,8 +88,14 @@ class StarEditor(QWidget):
         """ Once the user has clicked his/her chosen star rating, tell the
             delegate we're done editing.
         """
+        self.current = self.starRating.starCount
         self.editingFinished.emit()
 
+    def setCurrent(self, stars):
+	self.current = stars
+	self.starRating.starCount = stars
+	self.update()
+    
     def starAtPosition(self, x):
         """ Calculate which star the user's mouse cursor is currently 
             hovering over.

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class SimpleListModel(QtGui.QStandardItemModel):
  def __init__(self, mlist):
   QtGui.QStandardItemModel.__init__(self)

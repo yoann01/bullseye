@@ -65,7 +65,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 			pictures = gtk.MenuItem(_("Pictures"))
 			menu = gtk.Menu()
 			item = gtk.MenuItem(_("Check for doubloons"))
-			item.connect('activate', self.checkDoubloons)
+			item.connect_object('activate', self.checkDoubloons, module)
 			menu.append(item)
 			
 			browserMode = settings.get_option(module + '/browser_mode', 'panel')
@@ -118,41 +118,9 @@ class BullseyeMenuBar(gtk.MenuBar):
 			#self.core._imagePanel = newObj
 	
 		
-	def checkDoubloons(self, *args):
-		print('todo')
-		type = 'image'
-		self.bdd.c.execute('SELECT * FROM images GROUP BY size HAVING COUNT(size) > 1;')
-		table = []
-		rows = self.bdd.c.fetchall()
-		for row in rows:
-			t = (row[6],)
-			self.bdd.c.execute('SELECT * FROM images WHERE size = ?', t)
-			for row in self.bdd.c:
-				path = unicode(row[1] + "/" + row[2])
-				print(path)
-				ID = str(row[0])
-				try:
-					thumbnail_path = "thumbnails/" + type + "s/" + ID + ".jpg"
-					if not os.path.exists(thumbnail_path):
-						if(type == "image"):
-							im = Image.open(path)
-							im.thumbnail((128, 128), Image.ANTIALIAS)
-							im.save(thumbnail_path, "JPEG")
-						elif(type == "video"):
-							cmd = ['totem-video-thumbnailer', path, thumbnail_path]
-							ret = subprocess.call(cmd)
-						else:
-							thumbnail_path = "thumbnails/none.jpg"
-				except IOError:
-					thumbnail_path = "thumbnails/none.jpg"
-						
-				#if os.path.exists(thumbnail_path):
-					#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-				#else:
-				thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-				#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
-				table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-		messager.diffuser("des_" + type +"s", self, table)
+	def checkDoubloons(self, module):
+		self.core.managers[module].containerBrowser.checkForDoubloons()
+		
 		
 	def checkForNewFiles(self, menuitem):
 		notifier = self.core.statusBar.addProgressNotifier()

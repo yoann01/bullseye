@@ -76,10 +76,11 @@ class LibraryPanel(gtk.VBox):
 		LS_CB = gtk.ListStore(str, str)
 		LS_CB.append(['("artist", "album", "title")', _("Artist")])
 		LS_CB.append(['("album", "title")', _("Album")])
+		LS_CB.append(['("rating", "title")', _("Rating")])
 		LS_CB.append(['("genre", "album", "title")', _("Genre")])
 		LS_CB.append(['("year", "artist", "album", "title")', _("Year")])
 		LS_CB.append(['("year", "genre", "artist", "album", "title")', _("Year - Genre")])
-		LS_CB.append(['("note", "year", "genre", "artist", "album", "title")', _("Rating - Year - Genre")])
+		LS_CB.append(['("rating", "year", "genre", "artist", "album", "title")', _("Rating - Year - Genre")])
 		CB = gtk.ComboBox()
 		cell = gtk.CellRendererText()
 		CB.pack_start(cell)
@@ -137,7 +138,7 @@ class LibraryPanel(gtk.VBox):
 			TODO : ajouter le ratio d'écoutes par conteneur, qui s'applique uniquement sur les pistes notées
 			ratio = total_ecoutes_conteneur / nb_pistes_notees_conteneur
 		'''
-		indices = {"title":2, "artist":4, "album":3, "genre":5, "note":8, "year":9}
+		indices = {"title":2, "artist":4, "album":3, "genre":5, "rating":8, "year":9}
 		
 		icon_size = settings.get_option('music/panel_icon_size', 32)
 		self.Col_Icon.set_min_width(icon_size + 16)
@@ -269,7 +270,7 @@ class LibraryPanel(gtk.VBox):
 		icon_genre = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
 		icon_year = gtk.gdk.pixbuf_new_from_file('icons/year.png')
 		icon_rating = gtk.gdk.pixbuf_new_from_file('icons/star.png')
-		icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
+		icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "rating":icon_rating, "year":icon_year}
 		mode = eval(self.mode)
 		profondeur_max = len(mode) - 1
 		

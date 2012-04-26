@@ -4,6 +4,9 @@ from common import settings, xdg
 from PySide import QtGui, QtCore
 from qt.util import treemodel
 
+
+from data import elements
+
 class Criterion(QtGui.QWidget):
 	FIELDS = (('artist', _('Artist')), ('album', _('Album')), ('rating', _('Rating')), ('playcount', _('Playcount')), ('path', _('Path')))
 	NUMERIC_OPERATORS = ((" = ", _("equals")), (" < ", _("is inferior to")), (" > ", _("is superior to")), (" <= ", _("is lower than")), (" >= ", _("is at least")))
@@ -540,4 +543,75 @@ class SettingsEditor(QtGui.QDialog):
 	def sectionActivated(self, index):
 		section = index.internalPointer().key
 		self.loadSection(section)
+		
+class TagsEditor(QtGui.QDialog):
+	'''
+		Éditeur de tags de fichiers musicaux
+		TODO indicator to show what we're editing
+	'''
+	def __init__(self, data):
+		QtGui.QDialog.__init__(self)
+		self.setWindowTitle(_('Tags editor'))
+		mainLayout = QtGui.QVBoxLayout()
+		buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+		buttonBox.accepted.connect(self.accept)
+		buttonBox.rejected.connect(self.reject)
+		layout = QtGui.QFormLayout()
+		self.formLayout = layout
+		mainLayout.addLayout(layout)
+		mainLayout.addWidget(buttonBox)
+		self.setLayout(mainLayout)
+
+		single = type(data).__name__ == 'int';
+		
+		
+		if single:
+			layout.addRow(QtGui.QLabel(_('Single file mod')))
+		else:
+			layout.addRow(QtGui.QLabel(_('Container mod')))
+
+		
+		self.tagsEntries = {}
+		def add_line_for(tag, text=''):
+			self.tagsEntries[tag] = QtGui.QLineEdit()
+			self.tagsEntries[tag].setText(str(text))
+			layout.addRow(_(tag) + " : ", self.tagsEntries[tag])
+			
+		
+		
+		if type(data).__name__=='dict':
+			self.incomingData = data
+			
+				
+			self.cm_manager = CriterionManager()
+			
+			mainLayout.insertWidget(1, self.cm_manager)
+		else:
+			piste_ID = data
+			self.loadTrackData(piste_ID)
+			
+		if(self.incomingData != None):
+			for key in self.incomingData.iterkeys():
+				add_line_for(key, self.incomingData[key])
+		
+		
+	def accept(self):
+		#FIXME optimize process by saving file only once (only where all tags are processed)
+		try:
+			matchingTracks = (self.track,)
+		except AttributeError:
+			matchingTracks = elements.bdd.get_tracks(self.incomingData, self.cm_manager.get_config())
+		for track in matchingTracks:
+			for key in self.incomingData.iterkeys():
+				if(self.tagsEntries[key].text() != self.incomingData[key]):
+					track.set_tag(key, self.tagsEntries[key].text())
+		QtGui.QDialog.accept(self)
+		
+	def loadTrackData(self, piste_ID):
+		self.track = elements.Track(int(piste_ID))
+		fichier = self.track.path
+		
+		self.incomingData = self.track.get_tags()
+		
+		self.formLayout.addRow(QtGui.QLabel(_('Path') + " : " + fichier))
 

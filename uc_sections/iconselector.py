@@ -56,15 +56,17 @@ class IconSelector(gtk.IconView):
 			self.connect('set-scroll-adjustments', self.onSetAdj)
 		
 	
-	def append(self, elt):
+	def append(self, elt):	
+		#self.liste.append((int(elt.ID), elt.path, elt.filename, thumbnail, elt.rating, elt.c_ID, elt.u_ID))
+		#glib.idle_add(self.liste.append, (int(elt.ID), elt.path, elt.filename, thumbnail, elt.rating, elt.c_ID, elt.u_ID))
+		glib.idle_add(self.append_element, elt)
+		
+	def append_element(self, elt):
 		try:
 			thumbnail = gtk.gdk.pixbuf_new_from_file(elt.thumbnail_path)
 		except:
-			thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
-		glib.idle_add(self.liste.append, (int(elt.ID), elt.path, elt.filename, thumbnail, elt.rating, elt.c_ID, elt.u_ID))
-		
-	def append_element(self, tuple):
-		self.liste.append(tuple)
+			thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.png")
+		self.liste.append((int(elt.ID), elt.path, elt.filename, thumbnail, elt.rating, elt.c_ID, elt.u_ID))
 		
 	def charger_liste(self, desItems):
 		def traiter():
@@ -259,15 +261,12 @@ class ImageSelector(IconSelector):
 		#self.Image.set_property('pixbuf', pixbuf)
 		print('ok')
 	
-	
 
-	
-	
 	
 	def modifier_note(self, w, note):
 		self.liste[self.index][4] = note
 		ID = self.liste[self.index][0]
-		self.openElement.change_rating(w, note)
+		self.openElement.setRating(note)
 		#messager.diffuser('modification_note', self, ['image', ID, note])
 		
 	

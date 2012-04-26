@@ -19,7 +19,7 @@ icon_album = QtGui.QPixmap('icons/star.png')
 icon_genre = QtGui.QPixmap('icons/genre.png')
 icon_year = QtGui.QPixmap('icons/year.png')
 icon_rating = QtGui.QPixmap('icons/star.png')
-icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "note":icon_rating, "year":icon_year}
+icons = {"title":icon_track, "artist":icon_artist, "album":icon_album, "genre":icon_genre, "rating":icon_rating, "year":icon_year}
 icon_size = settings.get_option('music/panel_icon_size', 32)
 
 class BrowserPanel(QtGui.QTabWidget):
@@ -81,7 +81,14 @@ class LibraryPanel(QtGui.QWidget):
 		
 		modesModel = QtGui.QStandardItemModel()
 		modesModel.appendRow([QtGui.QStandardItem('("artist", "album", "title")'), QtGui.QStandardItem(_("Artist"))])
+		modesModel.appendRow([QtGui.QStandardItem('("album", "title")'), QtGui.QStandardItem(_("Album"))])
+		modesModel.appendRow([QtGui.QStandardItem('("rating", "title")'), QtGui.QStandardItem(_("Rating"))])
 		modesModel.appendRow([QtGui.QStandardItem('("genre", "album", "title")'), QtGui.QStandardItem(_("Genre"))])
+		modesModel.appendRow([QtGui.QStandardItem('("year", "artist", "album", "title")'), QtGui.QStandardItem(_("Year - Genre"))])
+		modesModel.appendRow([QtGui.QStandardItem('("year", "genre", "artist", "album", "title")'), QtGui.QStandardItem(_("Year"))])
+		modesModel.appendRow([QtGui.QStandardItem('("rating", "year", "genre", "artist", "album", "title")'), QtGui.QStandardItem(_("Rating - Year - Genre"))])
+
+
 		self.modeCB = QtGui.QComboBox()
 		self.modeCB.setModel(modesModel)
 		self.modeCB.setModelColumn(1)
@@ -154,7 +161,7 @@ class LibraryPanel(QtGui.QWidget):
 			TODO : ajouter le ratio d'écoutes par conteneur, qui s'applique uniquement sur les pistes notées
 			ratio = total_ecoutes_conteneur / nb_pistes_notees_conteneur
 		'''
-		indices = {"title":2, "artist":4, "album":3, "genre":5, "note":8, "year":9}
+		indices = {"title":2, "artist":4, "album":3, "genre":5, "rating":8, "year":9}
 		
 		global icon_size
 		icon_size = settings.get_option('music/panel_icon_size', 32)

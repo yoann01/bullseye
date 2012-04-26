@@ -35,7 +35,7 @@ class SpecialElement():
 		
 		self.thumbnail_path = thumbnail_path
 	
-	def change_rating(self, w, new_rating):
+	def setRating(self, new_rating):
 		query = "UPDATE " + self.module + "s SET rating = " + str(new_rating) + " WHERE " + self.module + "_ID = " + self.ID
 		bdd.execute(query)
 		self.rating = new_rating
@@ -160,6 +160,11 @@ class Container():
 		self.label = data[1]
 		self.parent_ID = data[2]
 		self.thumbnail_ID = data[3]
+		
+		try:
+			self.rating = data[4]
+		except IndexError:
+			self.rating = -1
 		self.module = module
 		self.container_type = container_type
 		

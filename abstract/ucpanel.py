@@ -14,13 +14,58 @@ logger = logging.getLogger(__name__)
 class UCPanelInterface(object):
 	'''
 		A base class inherited by both Qt & Gtk U(niverses)C(ategories)Panels classes
+		It also acts as a utility class for a module providing methods such as moveToUCStructure, checkForDoubloons
 	'''
+	
 	def __init__(self, module):
 		self.module = module
 		#self.elementSelector = elementSelector
 		self.categories = {}
 		self.universes = {}
 		self.filters = {}
+		self.THUMBNAIL_DIR = xdg.get_thumbnail_dir(self.module + os.sep + '128' + os.sep)
+		
+		
+	def checkForDoubloons(self):
+		module = self.module
+		self.bdd = BDD()
+		self.bdd.c.execute('SELECT ' + module + '_ID, filename, folder, rating, categorie_ID, univers_ID, size FROM ' + module + 's GROUP BY size HAVING COUNT(size) > 1;')
+		table = []
+		rows = self.bdd.c.fetchall()
+		for row in rows:
+			t = (row[6],)
+			self.bdd.c.execute('SELECT ' + module + '_ID, filename, folder, rating, categorie_ID, univers_ID, size FROM ' + module + 's WHERE size = ?', t)
+			for row in self.bdd.c:
+				path = unicode(row[1] + "/" + row[2])
+				ID = str(row[0])
+				thumbnail_path = self.createThumbnail(ID, path)
+
+				self.elementSelector.append(SpecialElement(row, self.module, thumbnail_path))
+				
+				
+	def createThumbnail(self, ID, path):
+		print(path)
+		thumbnail_path = self.THUMBNAIL_DIR + ID + ".jpg"
+
+		if not os.path.exists(thumbnail_path):
+			if(self.module == "picture"):
+				try:
+					im = Image.open(path)
+					im.thumbnail((128, 128), Image.ANTIALIAS)
+					im.save(thumbnail_path, "JPEG")
+				except IOError:
+					thumbnail_path = 'icons/none.png'
+					logger.debug('IOError on thumbnail ' + path)
+			elif(self.module == "video"):
+				if(os.path.isfile(path)):
+					cmd = ['totem-video-thumbnailer', path, thumbnail_path]
+					ret = subprocess.call(cmd)
+				else:
+					thumbnail_path = "icons/none.png"
+			else:
+				thumbnail_path = "icons/none.png"
+		return thumbnail_path
+		
 		
 	def enqueue(self, parameters):
 		bdd = BDD()
@@ -113,49 +158,18 @@ class UCPanelInterface(object):
 		print(t)
 		bdd.c.execute(query, t)
 		#table = []
-		thumbnail_dir = xdg.get_thumbnail_dir(self.module + '/128/')
+
 		for row in bdd.c:
-			path = unicode(row[2] + "/" + row[1])
-			print(path)
 			ID = str(row[0])
-			thumbnail_path = thumbnail_dir + ID + ".jpg"
-			
-			if not os.path.exists(thumbnail_path):
-				if(type == "picture"):
-					try:
-						im = Image.open(path)
-						im.thumbnail((128, 128), Image.ANTIALIAS)
-						im.save(thumbnail_path, "JPEG")
-					except IOError:
-						thumbnail_path = 'icons/none.jpg'
-						logger.debug('IOError on thumbnail ' + path)
-				elif(type == "video"):
-					if(os.path.isfile(path)):
-						cmd = ['totem-video-thumbnailer', path, thumbnail_path]
-						ret = subprocess.call(cmd)
-					else:
-						thumbnail_path = "thumbnails/none.jpg"
-				else:
-					thumbnail_path = "thumbnails/none.jpg"
-					
-			#if os.path.exists(thumbnail_path):
-				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-			#else:
-			# TODO thumbnail loading in selector class
-			#try:
-				#thumbnail = gtk.gdk.pixbuf_new_from_file(thumbnail_path)
-			#except:
-				#thumbnail = gtk.gdk.pixbuf_new_from_file("icons/none.jpg")
-			#On veut : ID, chemin, libellé,  apperçu, note, categorie_ID, univers_ID
-			#table.append((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
-			#self.elementSelector.append_element((row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
+			path = unicode(row[2] + "/" + row[1])
+			thumbnail_path = self.createThumbnail(ID, path)
+
 			self.elementSelector.append(SpecialElement(row, self.module, thumbnail_path))
-			#glib.idle_add(self.elementSelector.append_element, (row[0], path, row[1], thumbnail, row[3], row[4], row[5]))
 			
 			
 	def filter(self, container):
 		'''
-			Used by Panes to filter antagonist pane with clicked pane selection
+			Used by Panes to filter antagonists panes with clicked pane selection
 		'''
 		backgroundColor = '#A9E2F3'
 		mode = self.mode
@@ -202,6 +216,9 @@ class UCPanelInterface(object):
 						nodes[parent] = self.append(model, Container((parent, dic[parent]['label'], dic[parent]['parent'], 0),  antagonist, self.module), nodes[dic[parent]['parent']])
 				# Now we can add the node that caused the exception
 				nodes[row[0]] = self.append(model, Container(row, antagonist, self.module), nodes[row[2]], backgroundColor)
+				
+		if mode != 'folder':
+			self.loadFolders(self.folderModel, container)
 		
 	
 	def moveToUCStructure(self, *args):
@@ -285,7 +302,7 @@ class UCPanelInterface(object):
 		
 	
 	@util.threaded
-	def processLoading(self, mode, liste, show_antagonistic=True):
+	def processLoading(self, mode, liste, show_antagonistic=True, word=''):
 		'''
 			Remplit la liste fournie en fonction du type de données et du mode séléctionné
 			TODO? pixbufs are repeated, maybe I should keep their addresses and reuse them 
@@ -295,9 +312,9 @@ class UCPanelInterface(object):
 
 		bdd = BDD()
 		type = self.module
-		self.clear(liste)
 		
 		if(mode != 'folder'):
+			self.clear(liste)
 			if(mode == 'category'):
 				container = 'categorie'
 				dic = self.categories
@@ -307,54 +324,96 @@ class UCPanelInterface(object):
 				dic = self.universes
 				antagonist = 'categorie'
 			
-			bdd.c.execute('SELECT DISTINCT * FROM ' + container + '_' + type + 's ORDER BY parent_ID')
+			bdd.c.execute('SELECT DISTINCT c.' + container + '_ID, ' + container + '_L, parent_ID, thumbnail_ID, \
+					IFNULL(SUM(rating), 0) FROM ' + container + '_' + type + 's c LEFT JOIN ' + type + 's t \
+					ON c.' + container + '_ID = t.' + container + '_ID \
+					GROUP BY c.' + container + '_ID \
+					ORDER BY parent_ID')
 			containers = bdd.c.fetchall()
 			nodes = {0:None}
 			
 			#  ID, letter, label, iconID
-			self.append(liste, Container([0, _('All'), 0, 0], container, type), None)
+			if word == '':
+				self.append(liste, Container([0, _('All'), 0, 0], container, type), None)
 			
+			addAll = set() # container id list
+			selection = set()
+			neededButMaybeNotPresent = set()
 			dic[0] = {'label':None, 'children':[], 'parent':-1}
-			for cont in containers:
-				pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
-				nodes[cont[0]] = pere
-				
-				dic[cont[0]] = {'label':cont[1], 'children':[], 'parent':cont[2]}
-
-				dic[cont[2]]['children'].append(cont[0])
-				
-				if(show_antagonistic):
-					#Add matching antagonistic (if category universe, if universe category) to node
-					query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ' + str(cont[0])
-					for row in bdd.conn.execute(query):
-						self.append(liste, Container(row, antagonist, type), pere)
 			
+			# First we filter
+			for cont in containers:
+				if(cont[2] in addAll or cont[1].lower().find(word) != -1):
+					addAll.add(cont[0])
+					neededButMaybeNotPresent.add(cont[2])
+					selection.add(cont[0])
+
+				
+			selection = selection.union(neededButMaybeNotPresent)
+
+
+			expand = []
+			for cont in containers:
+				if cont[0] in selection:
+					
+					dic[cont[0]] = {'label':cont[1], 'children':[], 'parent':cont[2]}
+					dic[cont[2]]['children'].append(cont[0])
+					pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
+					if nodes[cont[2]] != None:
+						nodes[cont[2]].container.rating += cont[4]
+					
+					if(show_antagonistic):
+						#Add matching antagonistic (if category universe, if universe category) to node
+						query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ' + str(cont[0])
+						for row in bdd.conn.execute(query):
+							self.append(liste, Container(row, antagonist, type), pere)
+					
+					if cont[0] not in addAll:
+						expand.append(pere)
+						
+					nodes[cont[0]] = pere
+			
+			self.expand(mode, expand)
 			#elif(mode == "dossier"):
 				#self.c.execute('SELECT DISTINCT dossier FROM ' + type + 's ORDER BY dossier')
 				#for dossier in self.c:
 					#path = dossier[0].rpartition(os.sep)
 					#liste.append([dossier[0], path[2]])
 		else:
-			def add_node(path):
-				"""
-					Add a folder node, and all parent folder nodes if needed
-				"""
-				parts = path.split(os.sep)
-				s = ''
-				node = None
-				for part in parts:
-					s += part
-					if(s not in nodes.keys()):
-						nodes[s] = self.append(liste, Container((s + '%', part, 0, 0), 'folder', self.module), node) #[0, 'f' + s, part, icon, None, None])
-					node = nodes[s]
-					s += os.sep
-					
-			#icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
-			bdd.c.execute('SELECT DISTINCT folder FROM ' + self.module + 's ORDER BY folder')
-			folders = bdd.c.fetchall()
-			nodes = {}
-			i = 0
-			
-			while(i < len(folders)):
-				add_node(folders[i][0])
-				i += 1
+			self.loadFolders(liste)
+				
+				
+	def loadFolders(self, liste, container=None):
+		self.clear(liste)
+		def add_node(path, rating):
+			"""
+				Add a folder node, and all parent folder nodes if needed
+			"""
+			parts = path.split(os.sep)
+			s = ''
+			node = None
+			for part in parts:
+				s += part
+				if(s not in nodes.keys()):
+					nodes[s] = self.append(liste, Container((s + '%', part, 0, 0, rating), 'folder', self.module), node, backgroundColor) #[0, 'f' + s, part, icon, None, None])
+				node = nodes[s]
+				s += os.sep
+				
+		#icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
+		query = 'SELECT DISTINCT folder, IFNULL(SUM(rating), 0) FROM ' + self.module + 's'
+		if(container != None and container.ID != 0):
+			backgroundColor = '#A9E2F3'
+			query += ' WHERE ' + container.container_type + '_ID = ' + str(container.ID)
+		else:
+			backgroundColor = 'white'
+		query += ' GROUP BY folder ORDER BY folder'
+		
+		bdd = BDD()
+		bdd.c.execute(query)
+		folders = bdd.c.fetchall()
+		nodes = {}
+		i = 0
+		
+		while(i < len(folders)):
+			add_node(folders[i][0], folders[i][1])
+			i += 1

@@ -64,11 +64,16 @@ class UCManager(gtk.VBox):
 			else:
 				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
 			
-			HPaned_Video = gtk.HPaned()
-			HPaned_Video.pack1(self.containerBrowser)
-			HPaned_Video.pack2(SW_IconsV)
-			self.pack_start(self.videoPlayerWidget)
-			self.pack_start(HPaned_Video, False)
+			#HPaned_Video = gtk.HPaned()
+			#HPaned_Video.pack1(self.containerBrowser)
+			#HPaned_Video.pack2(SW_IconsV)
+			
+			upperBox = gtk.HBox()
+			upperBox.pack_start(self.containerBrowser ,False)
+			upperBox.pack_end(self.videoPlayerWidget)
+			
+			self.pack_start(upperBox)
+			self.pack_start(SW_IconsV, False)
 			self.show_all()
 			
 	def setBrowserMode(self, viewType):
@@ -86,6 +91,8 @@ class UCManager(gtk.VBox):
 		box = self.containerBrowser.get_parent()
 		self.containerBrowser.destroy()
 		box.pack_start(newObj, False)
+		#else:
+			#box.pack1(newObj, False)
 		newObj.show_all()
 
 		self.containerBrowser = newObj
