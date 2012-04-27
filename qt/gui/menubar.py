@@ -51,8 +51,12 @@ class MenuBar(QtGui.QMenuBar):
 
 			self.addMenu(pictures)
 		elif(module == 'music'):
+			def reloadCovers():
+				progressNotifier = self.core.statusBar.addProgressNotifier()
+				self.core.BDD.reloadCovers(progressNotifier)
 			music = QtGui.QMenu(_('Music'))
-			music.addAction(_('Reload covers'), self.core.BDD.reloadCovers)
+			music.addAction(_('Reload covers'), reloadCovers)
+			
 			
 			self.addMenu(music)
 		

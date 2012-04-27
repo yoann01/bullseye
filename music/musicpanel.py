@@ -516,6 +516,10 @@ class LibraryPanel(gtk.VBox):
 		
 		
 class Playlists_Panel(gtk.VBox):
+	
+	FOLDER = os.path.join(xdg.get_data_home(), 'playlists' + os.sep)
+	DYNAMIC_FOLDER = FOLDER + os.sep + 'dynamic' + os.sep
+	
 	def __init__(self, db, queueManager):
 		#Attributs:
 		self.mdb = db
@@ -523,20 +527,19 @@ class Playlists_Panel(gtk.VBox):
 		
 		self.TV = gtk.TreeView()
 		self.model = gtk.TreeStore(gtk.gdk.Pixbuf, int, str) #icon, ID, titre
-		dossier = 'playlists/'
 		
 		
 		pixbuf_dir = gtk.ToolButton().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_BUTTON)
 		self.pere = self.model.append(None, [pixbuf_dir, 0, "Static playlists"])
-		for f in os.listdir(dossier):
+		for f in os.listdir(self.FOLDER):
 			pixbuf = gtk.gdk.pixbuf_new_from_file('icons/playlist.png')
-			if os.path.isfile(os.path.join(dossier, f)):
+			if os.path.isfile(os.path.join(self.FOLDER, f)):
 				self.model.append(self.pere, [pixbuf, 0, f])
 		
 		self.intelligent_pere = self.model.append(None, [pixbuf_dir, 0, _("Dynamic playlists")])
-		dossier = dossier + 'intelligents/'
-		for f in os.listdir(dossier):
-			if os.path.isfile(os.path.join(dossier, f)):
+
+		for f in os.listdir(self.DYNAMIC_FOLDER):
+			if os.path.isfile(os.path.join(self.DYNAMIC_FOLDER, f)):
 				self.model.append(self.intelligent_pere, [pixbuf, 0, f])
 		
 				
@@ -580,13 +583,13 @@ class Playlists_Panel(gtk.VBox):
 		if(level == 2): #On est bien sur une playlist
 			nom = self.model[i][2]
 			if(i[0] == 0): #On est sur une playlist perso
-				fichier = open('playlists/' + nom,'r')
+				fichier = open(self.FOLDER + nom,'r')
 				liste = fichier.readlines()
 				fichier.close()
 				#On envoie la liste d'ID à la BDD, elle va la traiter et renvoyer les infos au queue_manager
 				messager.diffuser('playlistData', self, [liste, nom, stop_mod])
 			else: #On est sur une playlist intelligente
-				fichier = open('playlists/intelligents/' + nom,'r')
+				fichier = open(self.DYNAMIC_FOLDER + nom,'r')
 				data = fichier.readlines()
 				fichier.close()
 				self.queueManager.addQueue()
@@ -606,9 +609,9 @@ class Playlists_Panel(gtk.VBox):
 		path = self.model.get_path(uneLigne)
 		nom = self.model.get_value(uneLigne, 2)
 		if(path[0] == 0):
-			os.remove('playlists/' + nom)
+			os.remove(self.FOLDER + nom)
 		else:
-			os.remove('playlists/intelligents/' + nom)
+			os.remove(self.DYNAMIC_FOLDER + nom)
 		self.model.remove(uneLigne)
 		
 	def surClicDroit(self, TreeView, event):

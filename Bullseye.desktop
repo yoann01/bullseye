@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Version=0.1
+Name=Bullseye
+GenericName=Bullseye Media Manager
+Comment=Manage media files by modules (Music, Pictures, Videos)
+Exec=bullseye
+Terminal=false
+Type=Application
+Icon=bullseye.png
+Categories=AudioVideo;Audio;Music;Player;GTK;

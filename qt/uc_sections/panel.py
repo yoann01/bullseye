@@ -49,10 +49,15 @@ class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 			index = model.createIndex(node.row(), 0, node)
 			tv.setExpanded(index, True)
 		
-	def onContainerActivated(self, index):
+	@util.threaded
+	def onContainerActivated(self, index, dontDigIfMelted=False):
 		dic = self.filters.copy()
 		dic.update(index.internalPointer().getFilter())
-		self.enqueue(dic)
+		
+		if dontDigIfMelted:
+			self.enqueue(dic, len(dic) == 1) # Dig only if one parameter = one container type = not melted
+		else:
+			self.enqueue(dic)
 		print dic
 		
 	def showContextMenu(self, point):
@@ -133,11 +138,15 @@ class UC_Panel(AbstractPanel):
 		refreshButton = QtGui.QPushButton(QtGui.QIcon.fromTheme('view-refresh'), None)
 		refreshButton.clicked.connect(self.load)
 		
+		self.showAntagonistic = QtGui.QCheckBox()
+		self.showAntagonistic.setToolTip(_('Show antagonistic'))
+		
 		
 		layout = QtGui.QVBoxLayout()
 		modeBox = QtGui.QHBoxLayout()
+		modeBox.addWidget(self.showAntagonistic, 0)
 		modeBox.addWidget(self.modesCB, 1)
-		modeBox.addWidget(refreshButton)
+		modeBox.addWidget(refreshButton, 0)
 		layout.addLayout(modeBox, 0)
 		layout.addWidget(TreeView, 1)
 		self.searchEntry = QtGui.QLineEdit()
@@ -147,18 +156,10 @@ class UC_Panel(AbstractPanel):
 		self.setMinimumWidth(300)
 		
 		self.load()
-		
-	def append(self, model, container, parentNode):
-		if(parentNode == None):
-			parentNode = model.rootItem
-		return model.append(parentNode, UCItem(parentNode, container))
-		return parentNode.append(UCItem(parentNode, container))
-		
-	def clear(self, model):
-		model.reset()
-		
 	
-		
+	def onContainerActivated(self, index):
+		AbstractPanel.onContainerActivated(self, index, True)
+	
 	@property
 	def mode(self):
 		model = self.modesCB.model()
@@ -174,8 +175,7 @@ class UC_Panel(AbstractPanel):
 		'''
 		mode = self.mode
 		word = self.searchEntry.text()
-		print mode
-		self.processLoading(mode, self.model, True, word)
+		self.processLoading(mode, self.model, self.showAntagonistic.isChecked(), word)
 		
 
 	
@@ -248,6 +248,7 @@ class UC_Panes(AbstractPanel):
 		buttonBar = QtGui.QToolBar()
 		buttonBar.addAction(QtGui.QIcon.fromTheme('view-refresh'), None, self.load)
 		buttonBar.addWidget(self.modesCB)
+		buttonBar.addSeparator()
 		buttonBar.addWidget(self.filterLabel)
 		
 		
@@ -407,7 +408,7 @@ class UCModel(treemodel.TreeModel):
 	DEFAULT_ICONS = {
 		'univers': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'genre.png'),
 		'categorie': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'artist.png'),
-		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'playlist.png')
+		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'folder.png')
 		}
 		
 	

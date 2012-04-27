@@ -2,6 +2,7 @@
 import gtk
 import gst
 import os
+gtk.gdk.threads_init()
 
 class Player(object):
 	def __init__(self):

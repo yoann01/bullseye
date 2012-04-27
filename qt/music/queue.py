@@ -282,7 +282,7 @@ class Queue(QtGui.QTableView):
 		tempAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(jumpListSize, (18, 18), '#FFCC00', '#000', '#000')), _('Add to temp jump list'))
 		self.popMenu.addSeparator()
 		self.popMenu.addAction(u'José Long')
-		tagsEdit = self.popMenu.addAction(QtGui.QIcon.fromTheme('list-edit'), _('Edit tags'))
+		tagsEdit = self.popMenu.addAction(QtGui.QIcon.fromTheme('document-edit'), _('Edit tags'))
 		#self.popMenu.setStyleSheet(" QMenu {    icon-size: 128px; } " )
 		
 		# --- BRIDGES SOURCES ---

@@ -3,7 +3,7 @@ import gobject
 import gtk
 import os
 
-from common import messager
+from common import messager, xdg
 
 from data import elements
 
@@ -46,7 +46,7 @@ class CreatePlaylistMenu(gtk.Menu):
 		name = Entry.get_text()
 		DN.destroy()
 		if(action == 1):
-			fichier = open('playlists/' + name,'w')
+			fichier = open(os.path.join(xdg.get_data_home(), 'playlists' + os.sep) + name,'w')
 			fichier.close()
 			messager.diffuser('playlist_ajoutee', self, ['personalised', name])
 

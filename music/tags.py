@@ -11,7 +11,10 @@ class Tags:
 	def fromPath(path):
 		format = os.path.splitext(path)[1]
 		if(format == ".mp3"):
-			audio = EasyID3(path)
+			try:
+				audio = EasyID3(path)
+			except:
+				audio = None
 		elif(format == ".ogg"):
 			audio = OggVorbis(path)
 			

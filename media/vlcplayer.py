@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import vlc
 import os
-import glib
 import sys
 
 from common import messager
@@ -12,6 +11,7 @@ class Player(object):
 	def __init__(self):
 		#self._player = instance.media_player_new()
 		self.backend = 'VLC'
+		self.connectedWidgets = []
 		self._player = vlc.MediaPlayer()
 		#Ne fonctionne pas, va savoir pourquoi. Bypass = trick sur le get pourcentage
 		#self._player.event_manager().event_attach(vlc.EventType.MediaPlayerEndReached, self.on_message)
@@ -64,6 +64,10 @@ class Player(object):
 		except:
 			value = "Nothing"
 		return value
+		
+	def addConnectedWidget(self, playerWidget):
+		''' This allow me to not used gsignal and qt signal'''
+		self.connectedWidgets.append(playerWidget)
 
 	def get_volume(self):
 		return self._player.get_property('volume')

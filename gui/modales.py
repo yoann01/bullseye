@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import gtk
 import logging
 
@@ -183,6 +184,10 @@ class IntelligentPlaylistCreator(gtk.Dialog):
 	'''
 		Créateur de fichiers contenant des paramètres pour créer une requête SQL séléctionnant des pistes y correspondant
 	'''
+	
+	FOLDER = os.path.join(xdg.get_data_home(), 'playlists' + os.sep)
+	DYNAMIC_FOLDER = FOLDER + os.sep + 'dynamic' + os.sep
+	
 	def __init__(self, name=None):
 		
 		self.E_Name = gtk.Entry()
@@ -222,7 +227,7 @@ class IntelligentPlaylistCreator(gtk.Dialog):
 		self.destroy()
 
 	def load_criterions(self, name):
-		fichier = open('playlists/intelligents/' + name,'r')
+		fichier = open(self.DYNAMIC_FOLDER + name,'r')
 		data = fichier.readlines()
 		fichier.close()
 		self.c_manager.load_criterions(eval(data[0]))
@@ -243,7 +248,7 @@ class IntelligentPlaylistCreator(gtk.Dialog):
 		
 	def valider(self, edit):
 		name = self.E_Name.get_text()
-		fichier = open('playlists/intelligents/' + name, 'w')
+		fichier = open(self.DYNAMIC_FOLDER + name, 'w')
 		fichier.write(str(self.c_manager.get_config()))
 		#if(self.RB_Random.get_active()):
 			#fichier.write("random" + "\n")

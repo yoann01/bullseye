@@ -21,9 +21,9 @@ class Frame(QtGui.QMainWindow):
 	def __init__(self, parent=None):
 		QtGui.QMainWindow.__init__(self, parent)
 		#print os.is_file(QtGui.QIcon.themeSearchPaths()[-1])
-		if not  QtGui.QIcon.hasThemeIcon("document-open"):
+		if not QtGui.QIcon.hasThemeIcon("document-open"):
 			import fallbackicons
-			QtGui.QIcon.setThemeName('silk')
+			QtGui.QIcon.setThemeName('oxygen')
 		self.move(settings.get_option('gui/window_x', 50), settings.get_option('gui/window_y', 50))
 		self.resize(settings.get_option('gui/window_width', 700), settings.get_option('gui/window_height', 500))
 		if(settings.get_option('gui/maximized', False)):
@@ -36,9 +36,8 @@ class Frame(QtGui.QMainWindow):
 
 		self.setWindowTitle("Bullseye")
 
-	
 		try:
-			self.setWindowIcon(QtGui.Icon("icons/bullseye.png"))
+			self.setWindowIcon(QtGui.QIcon("icons/bullseye.png"))
 		except:pass
 		self.NB_Main = QtGui.QTabWidget(self)
 		self.NB_Main.setTabPosition(QtGui.QTabWidget.West)

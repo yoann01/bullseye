@@ -1,4 +1,0 @@
-random
- AND 
-['artist', ' = ', 'ZZ Top']
-['note', ' > ', '2']

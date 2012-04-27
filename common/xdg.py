@@ -29,6 +29,8 @@ elif sys.platform == "darwin": # for MacOS
 data_thumbnails = os.path.join(data_home, 'thumbnails')
 
 data_dir = os.path.dirname(os.path.dirname(__file__)) + os.sep
+if sys.platform == "win32":
+	data_dir = os.path.dirname(os.path.dirname(data_dir)) + os.sep
 
 
 def get_data_dir():

@@ -15,7 +15,7 @@ import time
 
 icon_track = QtGui.QPixmap('icons/track.png')
 icon_artist = QtGui.QPixmap('icons/artist.png')
-icon_album = QtGui.QPixmap('icons/star.png')
+icon_album = QtGui.QPixmap('icons/album.png')
 icon_genre = QtGui.QPixmap('icons/genre.png')
 icon_year = QtGui.QPixmap('icons/year.png')
 icon_rating = QtGui.QPixmap('icons/star.png')
@@ -529,7 +529,7 @@ class PlaylistBrowser(QtGui.QWidget):
 	
 	FOLDER = os.path.join(xdg.get_data_home(), 'playlists')
 	PLAYLIST_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/playlist.png')
-	FOLDER_ICON = QtGui.QIcon.fromTheme('folder')
+	FOLDER_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/folder.png')
 	
 	def __init__(self, db, queueManager):
 		self.mdb = db

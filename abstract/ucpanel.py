@@ -67,10 +67,14 @@ class UCPanelInterface(object):
 		return thumbnail_path
 		
 		
-	def enqueue(self, parameters):
+	def enqueue(self, parameters, dig=True):
+		'''
+			@param parameters : a dict containing a container_ID
+			@dig : tell if we also enqueue children containers of containers in parameters
+		'''
 		bdd = BDD()
 		mode = self.mode
-		
+
 		# DEPRECATED STUFF
 		#level = len(i)
 		#if(level == 2):
@@ -89,7 +93,7 @@ class UCPanelInterface(object):
 		#critere = data[2] # category_ID, universe_ID or folder path
 		
 		#def fill_selector
-		dig = True
+
 		condition = ' = ? '
 		
 		t = []
@@ -360,11 +364,14 @@ class UCPanelInterface(object):
 					dic[cont[2]]['children'].append(cont[0])
 					pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
 					if nodes[cont[2]] != None:
+						#FIXME Qt Code in abstract!
 						nodes[cont[2]].container.rating += cont[4]
 					
 					if(show_antagonistic):
 						#Add matching antagonistic (if category universe, if universe category) to node
-						query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ' + str(cont[0])
+						query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID, IFNULL(SUM(rating), 0) \
+						FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID \
+						WHERE ' + container + '_ID = ' + str(cont[0]) + ' GROUP BY t.' + antagonist + '_ID'
 						for row in bdd.conn.execute(query):
 							self.append(liste, Container(row, antagonist, type), pere)
 					

@@ -74,7 +74,7 @@ class AbstractIconSelector(QtGui.QWidget):
 		layout.addWidget(self.buttonBar, 0)
 		self.setLayout(layout)
 		
-	@util.threaded
+		
 	def append(self, elt):
 		print elt.thumbnail_path
 		self.iconViewer.model.append(elt)
@@ -147,7 +147,7 @@ class ThumbnailModel(QtCore.QAbstractListModel):
 	def __init__(self):
 		QtCore.QAbstractListModel.__init__(self)
 		self.items = []
-		
+	
 	def append(self, elt):
 		self.beginInsertRows(QtCore.QModelIndex(), 0, 1)
 		self.items.append(elt)
