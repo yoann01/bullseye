@@ -107,7 +107,11 @@ class Frame(QtGui.QMainWindow):
 		from data.bdd import BDD
 		BDD.saveCache()
 		if 'music' in self.loadedModules:
+			self.playerWidget.stop()
 			self.queueManager.saveState()
+		if 'videos' in self.loadedModules:
+			self.managers['videos'].videoPlayerWidget.stop()
+			
 		settings.set_option('gui/maximized', self.maximized)
 		settings.MANAGER.save()
 		settings.MANAGER.saveTimer.cancel()
@@ -131,6 +135,7 @@ class Frame(QtGui.QMainWindow):
 		from qt.music.queue import QueueManager
 		
 		playerWidget = PlayerWidget(player)
+		self.playerWidget = playerWidget
 		
 		index = self.NB_Main.currentIndex()
 		self.NB_Main.removeTab(index)

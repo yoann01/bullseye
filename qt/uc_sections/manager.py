@@ -10,6 +10,8 @@ class UCManager(QtGui.QWidget):
 	def __init__(self, moduleKey):
 		QtGui.QWidget.__init__(self)
 		
+		self.fullScreen = False
+		
 		if(moduleKey == 'pictures'):
 			self.module = 'picture'
 			from qt.uc_sections.iconselector import ImageSelector
@@ -28,6 +30,9 @@ class UCManager(QtGui.QWidget):
 			layout.addWidget(imageWidget, 1)
 			mainLayout.addLayout(layout, 1)
 			mainLayout.addWidget(self.elementSelector, 0)
+			
+			imageWidget.mouseDoubleClickEvent = self.toggleFullScreen
+			imageWidget.keyPressEvent = self.onViewWidgetKeyPress
 
 
 			
@@ -66,11 +71,19 @@ class UCManager(QtGui.QWidget):
 			mainLayout.addLayout(layout, 1)
 			mainLayout.addWidget(self.elementSelector, 0)
 			
+			self.videoPlayerWidget.mouseDoubleClickEvent = self.toggleFullScreen
+			
 			
 		self.setLayout(mainLayout)
 		self.upLayout = layout
-			
-			
+		
+
+	def onViewWidgetKeyPress(self, e):
+		if self.fullScreen:
+			if e.key() == QtCore.Qt.Key_Right:
+				self.elementSelector.loadNext()
+			elif e.key() == QtCore.Qt.Key_Left:
+				self.elementSelector.loadPrevious()
 			
 	def setBrowserMode(self, viewType):
 		'''
@@ -91,4 +104,13 @@ class UCManager(QtGui.QWidget):
 		self.upLayout.insertWidget(index, newObj, 0)
 		
 		self.containerBrowser = newObj
-		
+	
+	
+	def toggleFullScreen(self, *args):
+		if self.fullScreen:
+			self.containerBrowser.show()
+			self.elementSelector.show()
+		else:
+			self.containerBrowser.hide()
+			self.elementSelector.hide()
+		self.fullScreen = not self.fullScreen

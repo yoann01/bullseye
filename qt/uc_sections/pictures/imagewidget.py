@@ -114,6 +114,7 @@ class SimpleImageWidget(QtGui.QScrollArea):
 		#drag.exec_()
 		#print drag
 		
+		
 	def mouseMoveEvent(self, e):
 		self.horizontalScrollBar().setSliderPosition(self.hadjustment_value + self.x - e.x())
 		self.verticalScrollBar().setSliderPosition(self.vadjustment_value + self.y - e.y())

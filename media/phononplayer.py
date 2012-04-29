@@ -21,7 +21,7 @@ class Player(QtCore.QObject):
 		Phonon.createPath(self.player, self.audioOuptut)
 		
 		self.connectedWidgets = []
-		#self.aboutToFinish.connect(self.onPlaybackEnded)
+		self.player.aboutToFinish.connect(self.onPlaybackEnded)
 		
 	@property
 	def percentage(self):
@@ -38,7 +38,8 @@ class Player(QtCore.QObject):
 			uri = filename
 		else:
 			uri = 'file://' + os.path.abspath(filename)
-		self.player.setCurrentSource(Phonon.MediaSource(uri))
+		self.player.setCurrentSource(filename)
+		#self.player.setCurrentSource(Phonon.MediaSource(uri))
 		
 	def playTrack(self, element):
 		self.load(element.path)
@@ -79,6 +80,14 @@ class Player(QtCore.QObject):
 			@param pos : float ranging from 0 to 1
 		'''
 		self.player.seek(int(self.player.totalTime() * (float(pos) / float(100))))
+		
+	def togglePause(self):
+		if self.is_paused():
+			self.play()
+		elif self.isStopped():
+			messager.diffuser('need_piste_suivante', self, 'click')
+		else:
+			self.pause()
 			
 	def getQtVideoWidget(self):
 		videoArea = Phonon.VideoWidget()

@@ -44,7 +44,7 @@ class UCPanelInterface(object):
 				
 				
 	def createThumbnail(self, ID, path):
-		print(path)
+		
 		thumbnail_path = self.THUMBNAIL_DIR + ID + ".jpg"
 
 		if not os.path.exists(thumbnail_path):
@@ -58,8 +58,11 @@ class UCPanelInterface(object):
 					logger.debug('IOError on thumbnail ' + path)
 			elif(self.module == "video"):
 				if(os.path.isfile(path)):
-					cmd = ['totem-video-thumbnailer', path, thumbnail_path]
-					ret = subprocess.call(cmd)
+					try:
+						cmd = ['totem-video-thumbnailer', path, thumbnail_path]
+						ret = subprocess.call(cmd)
+					except:
+						thumbnail_path = "icons/none.png"
 				else:
 					thumbnail_path = "icons/none.png"
 			else:

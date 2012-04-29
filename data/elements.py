@@ -34,6 +34,7 @@ class SpecialElement():
 		self.size = data[6]
 		
 		self.thumbnail_path = thumbnail_path
+		self.flags = set()
 	
 	def setRating(self, new_rating):
 		query = "UPDATE " + self.module + "s SET rating = " + str(new_rating) + " WHERE " + self.module + "_ID = " + self.ID

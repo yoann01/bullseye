@@ -17,7 +17,7 @@ from abstract.ucpanel import UCPanelInterface
 
 logger = logging.getLogger(__name__)
 
-icon_size = settings.get_option('pictures/panel_icon_size', 32)
+icon_size = settings.get_option('pictures/panel_icon_size', 64)
 
 class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 
