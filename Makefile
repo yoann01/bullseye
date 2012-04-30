@@ -28,7 +28,7 @@ install:
 
 	install -m755 trunk/bullseye_qt.py $(DATADIR)/bullseye
 	install -m644 trunk/core.py $(DATADIR)/bullseye
-	install -m644 trunk/bullseye.py $(DATADIR)/bullseye
+	install -m755 trunk/bullseye.py $(DATADIR)/bullseye
 
 uninstall:
 	rm -f $(DATADIR)/applications/Bullseye.desktop

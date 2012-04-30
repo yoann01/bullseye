@@ -1,10 +1,10 @@
 
 [Desktop Entry]
 Version=0.2
-Name=Bullseye Gtk
+Name=Bullseye Qt
 GenericName=Bullseye Media Manager
 Comment=Manage media files by modules (Music, Pictures, Videos)
-Exec=bullseye-gtk
+Exec=bullseye-qt
 Terminal=false
 Type=Application
 Icon=bullseye.png
