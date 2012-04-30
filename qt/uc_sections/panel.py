@@ -29,6 +29,8 @@ class AbstractPanel(UCPanelInterface, QtGui.QWidget):
 		
 		self.expandRequested.connect(self.expandNodes)
 		
+	def addRating(self, node, rating):
+		node.container.rating += rating
 		
 	def append(self, model, container, parentNode=None, backgroundColor='white'):
 		if(parentNode == None):
@@ -266,13 +268,7 @@ class UC_Panes(AbstractPanel):
 		self.toggled['universe'] = not self.toggled['universe']
 		
 
-	def expandNodes(self, view, nodes):
-		tv = self.treeViews[view]
-		model = tv.model()
-		for node in nodes:
-			index = model.createIndex(node.row(), 0, node)
-			tv.setExpanded(index, True)
-			
+
 	def filteringTreeViewChanged(self, index):
 		model = self.modesCB.model()
 		value = model.data(model.index(index, 0))
@@ -406,8 +402,8 @@ class UCItem(treemodel.TreeItem):
 class UCModel(treemodel.TreeModel):
 	
 	DEFAULT_ICONS = {
-		'univers': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'genre.png'),
-		'categorie': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'artist.png'),
+		'univers': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'U.png'),
+		'categorie': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'C.png'),
 		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'folder.png')
 		}
 		

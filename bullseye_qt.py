@@ -1,14 +1,24 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 import sys
+import locale
 from PySide import QtCore, QtGui
 from common import settings, util
 from data.elements import Track
 
 #Init translation
 import gettext
-filename = "locale/bullseye_Fr.mo"
-trans = gettext.GNUTranslations(open( filename, "rb" ) )
+locale.setlocale(locale.LC_ALL, '') # use user's preferred locale
+# take first two characters of country code
+loc = locale.getlocale()
+filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
+
+
+try:
+	trans = gettext.GNUTranslations(open( filename, "rb" ) )
+except IOError:
+	trans = gettext.NullTranslations()
+
 # Param True : unicode
 trans.install(True)
 #gettext.install("bullseye")

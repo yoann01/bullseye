@@ -1,15 +1,25 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-import sys, os
+import sys, os, locale
 import pygtk
 pygtk.require("2.0")
 import gtk
 gtk.gdk.threads_init()
 
 
-#Initialisation de la traduction
+#Init translation
 import gettext
-gettext.install("bullseye")
+locale.setlocale(locale.LC_ALL, '') # use user's preferred locale
+# take first two characters of country code
+loc = locale.getlocale()
+filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
+#import gettext
+#gettext.install("bullseye")
+try:
+	trans = gettext.GNUTranslations(open( filename, "rb" ) )
+except IOError:
+	trans = gettext.NullTranslations()
+trans.install()
 
 import core
 from common import settings
@@ -36,65 +46,7 @@ class Bullseye:
 		
 		print( "Initialisation terminée" )
 
-	
-	def fermer(self, b, c, d):
-		self.F_Main.destroy()
-	
 
-		
-	def CreerNouvelOnglet(self, widget):
-		
-		#wineDlg = Dialog_Nom();
-		#result,newWine = wineDlg.run()
-		#reponse = self.Dialog_Nom.run()
-		Core.queueManager.ajouter_un_onglet()
-		#Dialog_Nom.destroy()
-		#print(reponse)interface = gtk.Builder()
-		print( "Nouvel onglet créé" )
-			
-	def OuvrirAbout(self, widget):
-
-		
-		
-		gui.about.run()
-		gui.about.hide()
-		#messagedialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, "Est-ce votre dernier mot ?")
-		#messagedialog.run()
-		#messagedialog.destroy()
-
-
-
-class Dialog_Nom:
-	def __init__(self):
-
-		print("Dialog_Nom démarré")
-
-	def run(self):
-
-		DN = gtk.Dialog()
-		Entry = gtk.Entry()
-		hbox = gtk.HBox()
-		hbox.pack_start(gtk.Label("Name:"), False, 5, 5)
-		hbox.pack_end(Entry)
-		DN.vbox.add(hbox)
-		DN.show_all()
-		DN.run()
-		nom = interface.get_object("TB_Name").get_text()
-		
-		EB = gtk.EventBox()
-		
-		TL = gtk.Label(nom)
-		TL.show()
-		EB.add(TL)
-		treeview = gtk.TreeView()
-		treeview.show()
-		
-		interface.get_object("NB_Music").append_page(treeview, EB)
-		print(nom)
-		
-		
-
-		
 if __name__ == "__main__":
 	gui = Bullseye()
 	gtk.main()

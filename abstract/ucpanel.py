@@ -228,11 +228,11 @@ class UCPanelInterface(object):
 			self.loadFolders(self.folderModel, container)
 		
 	
-	def moveToUCStructure(self, *args):
+	def moveToUCStructure(self, folder):
 		"""
 			Move all indexed files to structured folders
 		"""
-		default_path = '/home/piccolo/Images/Bullseye/'
+		default_path = folder + os.sep
 		mode = 'category'
 		bdd = BDD()
 		type = self.module
@@ -368,7 +368,7 @@ class UCPanelInterface(object):
 					pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
 					if nodes[cont[2]] != None:
 						#FIXME Qt Code in abstract!
-						nodes[cont[2]].container.rating += cont[4]
+						self.addRating(nodes[cont[2]], cont[4])
 					
 					if(show_antagonistic):
 						#Add matching antagonistic (if category universe, if universe category) to node

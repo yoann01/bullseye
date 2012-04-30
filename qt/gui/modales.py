@@ -615,3 +615,44 @@ class TagsEditor(QtGui.QDialog):
 		
 		self.formLayout.addRow(QtGui.QLabel(_('Path') + " : " + fichier))
 
+class UCStructureHelper(QtGui.QDialog):
+	def __init__(self, module):
+		QtGui.QDialog.__init__(self)
+		
+		self.module = module
+		self.setWindowTitle(_("Preparing for files moving"))
+		
+		layout = QtGui.QFormLayout()
+		
+		self.folderButton = QtGui.QPushButton(settings.get_option(module + '/structure_folder', '~/' + module + '/Bullseye'))
+		layout.addRow(_('Structure root'), self.folderButton)
+		self.folderButton.clicked.connect(self.changeDirectory)
+		
+		self.modeCB = QtGui.QComboBox()
+		layout.addRow(_('Main source'), self.modeCB)
+		
+		self.showAntagonistc = QtGui.QCheckBox()
+		layout.addRow(_('Show antagonistic'), self.showAntagonistc)
+		
+		
+		mainLayout = QtGui.QVBoxLayout()
+		mainLayout.addLayout(layout, 1)
+		buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+		buttonBox.accepted.connect(self.accept)
+		buttonBox.rejected.connect(self.reject)
+		layout.addWidget(buttonBox)
+		self.setLayout(mainLayout)
+		
+		
+		
+	def exec_(self):
+		if QtGui.QDialog.exec_(self) and QtGui.QDialogButtonBox.Ok:
+			folderPath = self.folderButton.text()
+			settings.set_option(self.module + '/structure_folder', folderPath)
+			return folderPath
+		else:
+			return None
+			
+	def changeDirectory(self):
+		folderPath = QtGui.QFileDialog.getExistingDirectory(self)
+		self.folderButton.setText(folderPath)

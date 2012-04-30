@@ -30,7 +30,7 @@ class MenuBar(QtGui.QMenuBar):
 			pictures = QtGui.QMenu(_(module))
 			#pictures.addAction(_("Check for doubloons"))
 			pictures.addAction(_('Check for doubloons'), self.core.managers[module].containerBrowser.checkForDoubloons)
-			pictures.addAction(_("Move to UC structure"))
+			pictures.addAction(_("Move to UC structure"), lambda: self.moveToUCStructure(module))
 			pictures.addSeparator()
 			
 			panelGroup = QtGui.QActionGroup(self)
@@ -61,6 +61,11 @@ class MenuBar(QtGui.QMenuBar):
 			self.addMenu(music)
 		
 
+	def moveToUCStructure(self, module):
+		dialog = modales.UCStructureHelper(module)
+		folder = dialog.exec_()
+		if folder != None:
+			self.core.managers[module].containerBrowser.moveToUCStructure(folder)
 		
 	def openSettings(self):
 		dialog = modales.SettingsEditor()

@@ -6,6 +6,8 @@ class UCManager(gtk.VBox):
 		gtk.VBox.__init__(self)
 		from uc_sections import iconselector
 		from uc_sections.panel import UC_Panel, UC_Panes
+		
+		self.fullScreen = False
 
 		if(moduleType == 'pictures'):
 			self.module = 'picture'
@@ -37,12 +39,15 @@ class UCManager(gtk.VBox):
 			self.pack_start(Box_ControlsP, False)
 			self.show_all()
 			
+			imageWidget.connect("button-press-event", self.toggleFullScreen)
+			self.DA_Parent = imageWidget.get_parent()
+			
 		elif(moduleType == 'videos'):
 			self.module = 'video'
-			backend = settings.get_option('music/playback_lib', 'GStreamer')
+			backend = settings.get_option('videos/playback_lib', 'GStreamer')
 			
 			from uc_sections.videos.videoplayerwidget import VideoPlayerWidget
-			if(backend != 'VLC'):
+			if(backend == 'VLC'):
 				from media import vlcplayer
 				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
 			elif(backend == 'MPlayer'):
@@ -76,6 +81,9 @@ class UCManager(gtk.VBox):
 			self.pack_start(SW_IconsV, False)
 			self.show_all()
 			
+			self.videoPlayerWidget.connect("button-press-event", self.toggleFullScreen)
+			self.DA_Parent = self.videoPlayerWidget.get_parent()
+			
 	def setBrowserMode(self, viewType):
 		'''
 			Hot swap the widget used to display containers
@@ -97,3 +105,18 @@ class UCManager(gtk.VBox):
 
 		self.containerBrowser = newObj
 		settings.set_option(self.module + 's/browser_mode', viewType)
+		
+	def toggleFullScreen(self, widget, event):
+		if event.type == gtk.gdk._2BUTTON_PRESS:
+			if self.fullScreen:
+				parent = widget.get_parent()
+				widget.reparent(self.DA_Parent)
+				parent.destroy()
+
+			else:
+				fenetre = gtk.Window()
+				fenetre.fullscreen()
+				fenetre.show()
+				widget.reparent(fenetre)
+				
+			self.fullScreen = not self.fullScreen

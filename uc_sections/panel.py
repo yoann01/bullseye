@@ -21,7 +21,7 @@ class AbstractPanel(UCPanelInterface):
 	
 	
 	icon_size = settings.get_option('pictures/panel_icon_size', 32)
-	DEFAULT_ICONS = {'univers': gtk.gdk.pixbuf_new_from_file('icons/genre.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'categorie': gtk.gdk.pixbuf_new_from_file('icons/artist.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'folder':gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU) }
+	DEFAULT_ICONS = {'univers': gtk.gdk.pixbuf_new_from_file('icons/U.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'categorie': gtk.gdk.pixbuf_new_from_file('icons/C.png').scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR), 'folder':gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU) }
 	
 	
 	#icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
@@ -37,8 +37,10 @@ class AbstractPanel(UCPanelInterface):
 	def __init__(self, module):
 		UCPanelInterface.__init__(self, module)
 	
-	
-	def append(self, model, container, parentNode):
+	def addRating(self, node, rating):
+		print 'TODO'
+		
+	def append(self, model, container, parentNode, backgroundColor='white'):
 		def get_icon(ID):
 			if(ID != 0):
 				try:
@@ -58,6 +60,13 @@ class AbstractPanel(UCPanelInterface):
 		
 	def clear(self, model):
 		model.clear()
+		
+	def expand(self, view, nodes):
+		tv = self.treeViews[view]
+		model = tv.get_model()
+
+		for node in nodes:
+			tv.expand_row(model.get_path(node), False)
 		
 	#@util.threaded
 	#def processLoading(self, mode, liste, show_antagonistic=True):
@@ -347,7 +356,7 @@ class AbstractPanel(UCPanelInterface):
 		
 		return dic
 	
-class UC_Panel(AbstractPanel, gtk.Notebook):
+class UC_Panel(AbstractPanel, gtk.VBox):
 	"""
 		TODO multi-paneaux
 		TODO init = hotSwap(obj) [delete, init]
@@ -362,26 +371,12 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		self.categories = {}
 		self.universes = {}
 		
-		TreeView = gtk.TreeView()
-		TreeView.set_headers_visible(False)
 		TVI = gtk.TreeView()
 		TVI.set_headers_visible(False)
+		self.treeViews = {'folder':TVI, 'category':TVI, 'universe':TVI}
 		CB = gtk.ComboBox()
 		
-		#Ini panel dossiers
-		self.folderModel = gtk.TreeStore(str, str)
-		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
-		TreeView.set_model(self.folderModel)
-		colonne = gtk.TreeViewColumn('Column 0')
-		TreeView.append_column(colonne)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		pb.set_property('stock-id', gtk.STOCK_DIRECTORY)
-		colonne.pack_start(pb, True)
-		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 1)
-		TreeView.connect("row-activated", self.on_container_click)
-		TreeView.connect("button-press-event", self.on_folder_click)
+
 		
 		#Ini panel catégories : container_ID, container_type, container_label, container_icon
 		self.model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
@@ -424,33 +419,36 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 		CB.connect("changed", self.changer_mode)
 		self.CB = CB
 		
-		self.load()
+		
 		messager.inscrire(self.reload_sections, "new_category")
 		messager.inscrire(self.reload_sections, "new_universe")
 		
 		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
 		B_refresh.connect('clicked', self.load)
 		
+		self.showAntagonistic = gtk.CheckButton(_("Show antagonistic"))
+		
 		#On assemble tout graphiquement
-		gtk.Notebook.__init__(self)
-		SW = gtk.ScrolledWindow()
-		SW.add(TreeView)
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		label = gtk.Label(_("Folders"))
-		self.append_page(SW, label)
-		Box = gtk.VBox()
+		gtk.VBox.__init__(self)
+		
 		Box_mode = gtk.HBox()
+		Box_mode.pack_start(self.showAntagonistic, False)
 		Box_mode.pack_start(CB)
 		Box_mode.pack_start(B_refresh, False)
-		Box.pack_start(Box_mode, False)
+		self.pack_start(Box_mode, False)
 		SW = gtk.ScrolledWindow()
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		SW.add(TVI)
-		Box.pack_start(SW)
+		self.pack_start(SW)
+		
+		self.searchEntry = gtk.Entry()
+		self.searchEntry.connect('activate', self.load)
+		self.pack_start(self.searchEntry, False)
+		
 		self.set_size_request(300, -1)
-		label = gtk.Label(_("Sections"))
-		self.append_page(Box, label)
 		self.filters = {}
+		
+		self.load()
 		
 	@property
 	def mode(self):
@@ -464,10 +462,12 @@ class UC_Panel(AbstractPanel, gtk.Notebook):
 				instead of using gtk.gdk.pixbuf_new_from_file_at_size every time
 			TODO? Option to collapse expanded on new collapse
 		'''
+		word = self.searchEntry.get_text()
 		mode = self.CB.get_active_text()
 		liste = self.model
-		self.processLoading(mode, liste)
-				
+		self.processLoading(mode, liste, self.showAntagonistic.get_active(), word)
+		
+		
 class UC_Panes(AbstractPanel, gtk.VBox):
 	"""
 		TODO multi-paneaux
@@ -483,10 +483,12 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		self.universes = {}
 		
 		TreeView = gtk.TreeView()
-		TreeView.set_headers_visible(False)
+		#TreeView.set_headers_visible(False)
 		
 		TV_universes = gtk.TreeView()
 		TV_categories = gtk.TreeView()
+		
+		self.treeViews = {'universe':TV_universes, 'category':TV_categories, 'folder':TreeView}
 		CB = gtk.ComboBox()
 		
 		#Ini panel dossiers
@@ -494,7 +496,7 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 
 		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
 		TreeView.set_model(self.folderModel)
-		colonne = gtk.TreeViewColumn('Column 0')
+		colonne = gtk.TreeViewColumn(_('Folders'))
 		TreeView.append_column(colonne)
 		cell = gtk.CellRendererText()
 		pb = gtk.CellRendererPixbuf()
@@ -565,8 +567,16 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		#messager.diffuser('liste_universI', self, liste_univers)
 		#messager.inscrire(self.reload_sections, 'nouvelle_categorieI')
 		
+		
+		messager.inscrire(self.reload_sections, "new_category")
+		messager.inscrire(self.reload_sections, "new_universe")
+		
+		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
+		B_refresh.connect('clicked', self.load)
+		
 		LS_CB = gtk.ListStore(str, str)
-		LS_CB.append(["category", "Categories"])
+		LS_CB.append([None, _('None')])
+		LS_CB.append(["category", _("Categories")])
 		LS_CB.append(["universe", _("Universes")])
 		LS_CB.append(["folder", _("Folders")])
 		cell = gtk.CellRendererText()
@@ -574,21 +584,17 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		CB.add_attribute(cell, "text", 1)
 		CB.set_model(LS_CB)
 		CB.set_active(0)
-		CB.connect("changed", self.changer_mode)
-		self.CB = CB
+		CB.connect("changed", self.filteringTreeViewChanged)
 		
-		self.load()
-		messager.inscrire(self.reload_sections, "new_category")
-		messager.inscrire(self.reload_sections, "new_universe")
-		
-		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
-		B_refresh.connect('clicked', self.load)
+		self.filterLabel = gtk.Label(_('No active filters'))
 		
 		#On assemble tout graphiquement
 		gtk.VBox.__init__(self)
 		
 		BB = gtk.HButtonBox()
 		BB.pack_start(B_refresh, False)
+		BB.pack_start(CB, False)
+		BB.pack_start(self.filterLabel, False)
 		self.pack_start(BB, False)
 		
 		hbox = gtk.HBox()
@@ -605,12 +611,10 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		
 		Box = gtk.VBox()
 		SW = gtk.ScrolledWindow()
-		B = gtk.ToggleButton('Left')
-		B.connect('clicked', self.changeFilter)
+		
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		SW.add(TV_categories)
 		Box.pack_start(SW)
-		Box.pack_start(B, False)
 		hbox.pack_start(Box)
 		
 		SW = gtk.ScrolledWindow()
@@ -618,27 +622,40 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		SW.add(TV_universes)
 		hbox.pack_start(SW)
 		
-		searchEntry = gtk.Entry()
+		self.searchEntry = gtk.Entry()
+		self.searchEntry.connect('activate', self.load)
 		
 		
 		self.pack_start(hbox)
-		self.pack_start(searchEntry, False)
+		self.pack_start(self.searchEntry, False)
 		self.set_size_request(600, -1)
-		label = gtk.Label(_("Sections"))
-		#self.append_page(Box, label)
-		self.toggled = {'category': True, 'universe': False}
+
+		self.toggled = {'category': False, 'universe': False, 'folder':False}
 		self.filters = {}
+		
+		self.load()
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
 		self.toggled['universe'] = not self.toggled['universe']
 		
+	def filteringTreeViewChanged(self, CB):
+		value = CB.get_active_text()
+		
+		for key in self.toggled.iterkeys():
+			self.toggled[key] = False
+			
+		if value != None:
+			self.toggled[value] = True
+			
+		self.load()
 
 	
 	def load(self, *args):
-		self.processLoading('category', self.categories_model, False)
-		self.processLoading('universe', self.universes_model, False)
-		self.processLoading('folder', self.folderModel, False)
+		word = self.searchEntry.get_text()
+		self.processLoading('category', self.categories_model, False, word)
+		self.processLoading('universe', self.universes_model, False, word)
+		self.processLoading('folder', self.folderModel, False, word)
 		
 	def on_container_click(self, w, i, c, mode):
 		self.mode = mode

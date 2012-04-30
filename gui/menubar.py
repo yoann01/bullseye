@@ -71,7 +71,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 			browserMode = settings.get_option(module + '/browser_mode', 'panel')
 			
 			item = gtk.MenuItem(_("Move to UC structure"))
-			item.connect('activate', self.core.managers[module].containerBrowser.moveToUCStructure)
+			item.connect_object('activate', self.moveToUCStructure, module)
 			menu.append(item)
 			
 			panes = gtk.RadioMenuItem(None, _('Multi-panes'))
@@ -81,7 +81,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 			
 			panel = gtk.RadioMenuItem(panes, _('All in one panel'))
 			if browserMode == 'panel':
-				panes.set_active(True)
+				panel.set_active(True)
 
 			panel.connect_object('toggled', self.core.managers[module].setBrowserMode, 'panel')
 			
@@ -129,6 +129,13 @@ class BullseyeMenuBar(gtk.MenuBar):
 	
 	def editSettings(self, *args):
 		modales.SettingsEditor()
+	
+	def moveToUCStructure(self, module):
+		dialog = modales.UCStructureHelper(module)
+		folder = dialog.run()
+		if folder != None:
+			self.core.managers[module].containerBrowser.moveToUCStructure(folder)
+	
 	
 	def retrieveFromLastFM(self, menuitem):
 		self.bdd.retrieveFromLastFM(self.P_Bar)

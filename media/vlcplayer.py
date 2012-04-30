@@ -37,7 +37,7 @@ class Player(object):
 		return value
         
 	@property
-	def pourcentage(self):
+	def percentage(self):
 		pos = round(self._player.get_position(), 2)
 		if(pos == 1.0):
 			messager.diffuser('need_piste_suivante', self, 'eos')
@@ -95,26 +95,24 @@ class Player(object):
 		self._player.set_mrl(filename)
 
 	def play(self):
-		#self._position_updater.start()
 		self._player.play()
+		for pwidget in self.connectedWidgets:
+			pwidget.startUpdatingProgress()
 
 	def pause(self):
-		self._position_updater.stop()
 		self._player.pause()
+		for pwidget in self.connectedWidgets:
+			pwidget.stopUpdatingProgress()
 
 	def stop(self, arret_total=None):
-		self._position_updater.stop()
 		self._player.stop()
-		self.PBar.set_sensitive(False)
-		self.PBar.set_fraction(0)
-		self.Button.set_stock_id(gtk.STOCK_MEDIA_PLAY)
-		if(arret_total != None):
-			self.PBar.set_text('En attente')
+		for pwidget in self.connectedWidgets:
+			pwidget.stopUpdatingProgress(True)
 		
 	def is_paused(self):
 		return (not self._player.is_playing() and self.position != -1)
 		
-	def is_stopped(self):
+	def isStopped(self):
 		return (not self._player.is_playing() and self.position == -1)
 	
 	def is_playing(self):
@@ -126,17 +124,8 @@ class Player(object):
 	def on_volume_change(self, widget, value):
 		self.volume = value
 	
-	def seek_end(self, widget, event):
-		mouse_x, mouse_y = event.get_coords()
-		progress_loc = self.PBar.get_allocation()
-		value = mouse_x / progress_loc.width
-		
-		if value < 0: value = 0
-		if value > 1: value = 1
-		
-
-		self.position = value
-		self.PBar.set_fraction(value)
+	def seekTo(self, pos):
+		self.position = pos * self.position / 100
 		
 	def setUpGtkVideo(self, widget):
 		self.movie_window = widget
@@ -154,14 +143,12 @@ class Player(object):
 		elif sys.platform == "darwin": # for MacOS
 			self._player.set_agl(widget.windId())
 		
-	def toggle_pause(self, button):
+	def togglePause(self):
 		if self.is_paused():
-			button.set_stock_id(gtk.STOCK_MEDIA_PAUSE)
 			self.play()
-		elif self.is_stopped():
+		elif self.isStopped():
 			messager.diffuser('need_piste_suivante', self, 'click')
 		else:
-			button.set_stock_id(gtk.STOCK_MEDIA_PLAY)
 			self.pause()
 			
 class MusicPlayer(Player):

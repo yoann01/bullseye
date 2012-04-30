@@ -452,7 +452,7 @@ class SettingsEditor(gtk.Dialog):
 				self.folders.append([folder[0], folder[1]])
 			
 			def add_folder(*args):
-				dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_OPEN, gtk.FILE_CHOOSER_ACTION_OPEN))
+				dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons=(gtk.STOCK_OPEN, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
 				dialog.run()
 				fichier = dialog.get_filename()
 				dialog.destroy()
@@ -795,3 +795,36 @@ class ImportHelper(gtk.Dialog):
 		if(reponse == -3):
 			bdd.retrieveFromSave(self.button.get_filename(), self.c_manager.get_config())
 		self.destroy()
+		
+class UCStructureHelper(gtk.Dialog):
+	def __init__(self, module):
+		self.module = module
+		gtk.Dialog.__init__(self, title=_("Preparing for files moving"), buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		self.Box_Main = gtk.VBox()
+		self.get_content_area().pack_start(self.Box_Main)
+		self.button = gtk.FileChooserButton(gtk.FileChooserDialog(_("Choose the structure root folder"), 
+			self, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK)))
+			
+		self.button.set_filename(settings.get_option(module + '/structure_folder', '~/' + module + '/Bullseye'))
+		self.Box_Main.pack_start(self.button)
+		
+		CB = gtk.ComboBox()
+		self.Box_Main.pack_start(CB)
+		
+		self.showAntagonistic = gtk.CheckButton(_("Show antagonistic"))
+		self.Box_Main.pack_start(self.showAntagonistic)
+		
+		#self.c_manager = CriterionManager()
+		#self.Box_Main.pack_start(self.c_manager)
+		
+		self.show_all()
+		
+	def run(self):
+		if gtk.Dialog.run(self) == gtk.RESPONSE_ACCEPT:
+			folder = self.button.get_filename()
+			settings.set_option(self.module + '/structure_folder', folder)
+			self.destroy()
+			return folder
+		else:
+			self.destroy()
+			return None
