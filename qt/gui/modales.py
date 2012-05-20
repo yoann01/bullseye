@@ -79,7 +79,7 @@ class Criterion(QtGui.QWidget):
 		
 		
 	def getConfig(self):
-		field = self.FIELDS[self.fieldCB.currentIndex()]
+		field = self.FIELDS[self.fieldCB.currentIndex()][0]
 		
 		operatorModel = self.operatorCB.model()
 		operatorKey = operatorModel.data(operatorModel.index(self.operatorCB.currentIndex(), 0))
@@ -327,7 +327,7 @@ class FilterManager(QtGui.QWidget):
 
 
 class SettingsEditor(QtGui.QDialog):
-	def __init__(self):
+	def __init__(self, section='general'):
 		QtGui.QDialog.__init__(self)
 		self.setWindowTitle(_('Settings editor'))
 		mainLayout = QtGui.QVBoxLayout()
@@ -367,10 +367,10 @@ class SettingsEditor(QtGui.QDialog):
 		self.widgets = {}
 		
 		generalLayout = QtGui.QFormLayout()
-		self.CB_gui_framework = QtGui.QComboBox()
-		self.CB_gui_framework.addItem('Gtk 2')
-		self.CB_gui_framework.addItem('Qt 4')
-		generalLayout.addRow(_('GUI framework' + ' : '), self.CB_gui_framework)
+		#self.CB_gui_framework = QtGui.QComboBox()
+		#self.CB_gui_framework.addItem('Gtk 2')
+		#self.CB_gui_framework.addItem('Qt 4')
+		#generalLayout.addRow(_('GUI framework' + ' : '), self.CB_gui_framework)
 		
 		self.pictures_enabled = QtGui.QCheckBox(_('Enable pictures manager'))
 		self.pictures_enabled.setChecked(settings.get_option('pictures/enabled', False))
@@ -453,6 +453,12 @@ class SettingsEditor(QtGui.QDialog):
 		self.CB_icon_size_panel_music.addItem('64')
 		self.CB_icon_size_panel_music.setCurrentIndex(settings.get_option('music/panel_icon_size', 32) / 16)
 		musicLayout.addRow(_('Panel icon size') + ' : ', self.CB_icon_size_panel_music)
+		
+		self.usePerformer = QtGui.QCheckBox()
+		if settings.get_option('music/use_performer', False):
+			self.usePerformer.setCheckState(QtCore.Qt.Checked)
+		musicLayout.addRow(_('Show performer instead of artist in library browser') + ' : ', self.usePerformer)
+		
 		musicWidget = QtGui.QWidget()
 		musicWidget.setLayout(musicLayout)
 		self.widgets['music'] = musicWidget
@@ -495,7 +501,7 @@ class SettingsEditor(QtGui.QDialog):
 		
 		self.addWidgetFor('videos', videosLayout)
 		
-		
+		self.loadSection(section)
 		
 		self.setLayout(mainLayout)
 		
@@ -509,6 +515,7 @@ class SettingsEditor(QtGui.QDialog):
 		# --- Music settings --- :
 		settings.set_option('music/playback_lib', self.CB_music_playback_lib.currentText())
 		settings.set_option('music/panel_icon_size', int(self.CB_icon_size_panel_music.currentText()))
+		settings.set_option('music/use_performer', self.usePerformer.isChecked())
 		settings.set_option('music/filters', self.widgets['music_filters'].getConfig())
 		
 		#Audioscrobbler settings :

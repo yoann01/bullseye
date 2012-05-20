@@ -46,7 +46,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 		menu.append(item)
 		
 		
-		item = gtk.MenuItem(_('Edit settings'))
+		item = gtk.MenuItem(_('Settings'))
 		item.connect('activate', self.editSettings)
 		menu.append(item)
 		
@@ -62,7 +62,7 @@ class BullseyeMenuBar(gtk.MenuBar):
 		
 	def loadModuleMenus(self, core, module):
 		if(module == 'pictures' or module == 'videos'):
-			pictures = gtk.MenuItem(_("Pictures"))
+			pictures = gtk.MenuItem(_(module[0].capitalize() + module[1:]))
 			menu = gtk.Menu()
 			item = gtk.MenuItem(_("Check for doubloons"))
 			item.connect_object('activate', self.checkDoubloons, module)

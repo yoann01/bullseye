@@ -118,6 +118,10 @@ class Track():
 		task = threading.Thread(target=scrobble)
 		task.start()
 		
+		
+	def initializeTimeStarted(self):
+		self.time_started = int( time.mktime( datetime.utcnow().timetuple() ) )
+		
 	def set_tag(self, tag, value):
 		Tags.setValue(self.path, tag, value)
 		query = 'UPDATE tracks SET ' + tag + ' = ? WHERE track_ID = ?'

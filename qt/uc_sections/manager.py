@@ -17,17 +17,22 @@ class UCManager(QtGui.QWidget):
 			from qt.uc_sections.iconselector import ImageSelector
 			from qt.uc_sections.pictures.imagewidget import SimpleImageWidget
 			from qt.uc_sections.panel import UC_Panel, UC_Panes
+			from qt.uc_sections.propertiespanel import PropertiesPanel
 			
 			mainLayout = QtGui.QVBoxLayout()
 			layout = QtGui.QHBoxLayout()
 			imageWidget = SimpleImageWidget()
-			self.elementSelector = ImageSelector(imageWidget)
+			self.elementViewer = imageWidget
+			self.elementSelector = ImageSelector(self)
 			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
 				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
 			else:
 				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
+				
+			self.propertiesPanel = PropertiesPanel()
 			layout.addWidget(self.containerBrowser, 0)
 			layout.addWidget(imageWidget, 1)
+			layout.addWidget(self.propertiesPanel, 0)
 			mainLayout.addLayout(layout, 1)
 			mainLayout.addWidget(self.elementSelector, 0)
 			
@@ -46,20 +51,20 @@ class UCManager(QtGui.QWidget):
 			from qt.uc_sections.videos.videoplayerwidget import VideoPlayerWidget
 			if(backend == 'VLC'):
 				from media import vlcplayer
-				self.videoPlayerWidget = VideoPlayerWidget(vlcplayer.Player())
+				self.elementViewer = VideoPlayerWidget(vlcplayer.Player())
 			elif(backend == 'MPlayer'):
 				from media import mplayers
-				self.videoPlayerWidget = VideoPlayerWidget(mplayers.Player())
+				self.elementViewer = VideoPlayerWidget(mplayers.Player())
 			elif(backend == 'Phonon'):
 				from media import phononplayer
-				self.videoPlayerWidget = VideoPlayerWidget(phononplayer.Player())
+				self.elementViewer = VideoPlayerWidget(phononplayer.Player())
 			else:
 				from media import player
-				self.videoPlayerWidget = VideoPlayerWidget(player.Player())
+				self.elementViewer = VideoPlayerWidget(player.Player())
 				
 			mainLayout = QtGui.QVBoxLayout()
 			layout = QtGui.QHBoxLayout()
-			self.elementSelector = VideoSelector(self.videoPlayerWidget)
+			self.elementSelector = VideoSelector(self)
 			
 			if(settings.get_option(self.module + 's/browser_mode', 'panel') == 'panes'):
 				self.containerBrowser = UC_Panes(self.module, self.elementSelector)
@@ -67,11 +72,11 @@ class UCManager(QtGui.QWidget):
 				self.containerBrowser = UC_Panel(self.module, self.elementSelector)
 				
 			layout.addWidget(self.containerBrowser, 0)
-			layout.addWidget(self.videoPlayerWidget, 1)
+			layout.addWidget(self.elementViewer, 1)
 			mainLayout.addLayout(layout, 1)
 			mainLayout.addWidget(self.elementSelector, 0)
 			
-			self.videoPlayerWidget.mouseDoubleClickEvent = self.toggleFullScreen
+			self.elementViewer.mouseDoubleClickEvent = self.toggleFullScreen
 			
 			
 		self.setLayout(mainLayout)
@@ -84,6 +89,10 @@ class UCManager(QtGui.QWidget):
 				self.elementSelector.loadNext()
 			elif e.key() == QtCore.Qt.Key_Left:
 				self.elementSelector.loadPrevious()
+				
+	def openElement(self, elt):
+			self.elementViewer.loadFile(elt.path)
+			self.propertiesPanel.openElement(elt)
 			
 	def setBrowserMode(self, viewType):
 		'''

@@ -66,7 +66,7 @@ class ImageWidget(QtGui.QGraphicsView):
 class SimpleImageWidget(QtGui.QScrollArea):
 	def __init__(self):
 		QtGui.QScrollArea.__init__(self)
-		self.pic = QtGui.QPixmap('icons/8.jpg')
+		self.pic = QtGui.QPixmap('icons/bullseye.svg')
 		self.image = QtGui.QLabel()
 		self.image.setBackgroundRole(QtGui.QPalette.Base)
 		self.setBackgroundRole(QtGui.QPalette.Dark);

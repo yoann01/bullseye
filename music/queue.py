@@ -659,9 +659,8 @@ class Queue(gtk.ScrolledWindow):
 					i.connect('activate', remove_bridge_src)
 				else:
 					def add_bridge_src(*args):
-						self.manager.playerWidget.bridgesSrc[letter] = track # gtk.TreeRowReference(self.model, path)
-						track.bridgeSrc = letter
-						self.refreshView(track)
+						self.manager.playerWidget.addBridgeTrack(self, track, True)
+						# gtk.TreeRowReference(self.model, path)
 					
 					letter = chr(65 + len(dic))
 					icon = icons.MANAGER.pixbuf_from_text(letter + ' →', (24, 18), '#58FA58', '#000', '#000')
@@ -685,9 +684,7 @@ class Queue(gtk.ScrolledWindow):
 					i.connect('activate', remove_bridge_dest)
 				else:
 					def add_bridge_dest(*args):
-						self.manager.playerWidget.bridgesDest[letterDest] = track #gtk.TreeRowReference(self.model, path)
-						track.bridgeDest = letterDest
-						self.refreshView(track)
+						self.manager.playerWidget.addBridgeTrack(self, track, False)#gtk.TreeRowReference(self.model, path)
 					
 					letterDest = chr(65 + len(dicDest))
 					icon = icons.MANAGER.pixbuf_from_text('← ' + letterDest, (24, 18), '#CC2EFA')

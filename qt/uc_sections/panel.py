@@ -2,7 +2,7 @@
 import os
 import logging
 
-
+from operator import attrgetter
 
 from common import settings, util, xdg
 from data.elements import Container
@@ -142,6 +142,8 @@ class UC_Panel(AbstractPanel):
 		
 		self.showAntagonistic = QtGui.QCheckBox()
 		self.showAntagonistic.setToolTip(_('Show antagonistic'))
+		self.showAntagonistic.setChecked(settings.get_option(self.module + 's/show_antagonistic', False))
+		self.showAntagonistic.stateChanged.connect(self.toggleAntagonistic)
 		
 		
 		layout = QtGui.QVBoxLayout()
@@ -179,6 +181,10 @@ class UC_Panel(AbstractPanel):
 		word = self.searchEntry.text()
 		self.processLoading(mode, self.model, self.showAntagonistic.isChecked(), word)
 		
+		
+	def toggleAntagonistic(self, state):
+		settings.set_option(self.module + 's/show_antagonistic', self.showAntagonistic.isChecked())
+		self.load()
 
 	
 
@@ -261,7 +267,13 @@ class UC_Panes(AbstractPanel):
 		self.setLayout(mainLayout)
 		
 		self.toggled = {'category': False, 'universe': False, 'folder':False}
-		self.load()
+		
+		filterIndex = settings.get_option(self.module + 's/container_filter', 0)
+		if filterIndex != 0:
+			self.modesCB.setCurrentIndex(filterIndex)
+			self.filteringTreeViewChanged(filterIndex)
+		else:
+			self.load()
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
@@ -280,6 +292,7 @@ class UC_Panes(AbstractPanel):
 			self.toggled[value] = True
 			
 		self.load()
+		settings.set_option(self.module + 's/container_filter', index)
 		
 	
 	def load(self, *args):
@@ -322,6 +335,7 @@ class ContainerBrowser(QtGui.QTreeView):
 		self.setDropIndicatorShown(True)
 		self.setAnimated(True)
 		self.setExpandsOnDoubleClick(False)
+		self.setSortingEnabled(True)
 		
 		self.mode = mode
 		self.setModel(model)
@@ -407,6 +421,8 @@ class UCModel(treemodel.TreeModel):
 		'folder': QtGui.QPixmap(xdg.get_data_dir() + os.sep + 'icons' + os.sep + 'folder.png')
 		}
 		
+	COLUMNS_FIELDS = ('container.size', 'container.label', 'container.rating')
+		
 	
 		
 	def __init__(self):
@@ -474,6 +490,24 @@ class UCModel(treemodel.TreeModel):
 			FIXME Not used, didn't manage to find out how to automatically serialize items (thus overrided mimeData instead)
 		'''
 		return ('bullseye/library.items',)
+		
+		
+	def sort(self, columnIndex, order):
+		self.layoutAboutToBeChanged.emit()
+		if(order == QtCore.Qt.AscendingOrder):
+			reverse = False
+		else:
+			reverse = True
+			
+		def sort(elt, reverse):
+			elt.childItems = sorted(elt.childItems, key=attrgetter(self.COLUMNS_FIELDS[columnIndex]), reverse=reverse)
+			for childElt in elt.childItems:
+				sort(childElt, reverse)
+				
+		sort(self.rootItem, reverse)
+		
+		self.layoutChanged.emit()
+		
 		
 	def supportedDropActions(self):
 		return QtCore.Qt.CopyAction | QtCore.Qt.MoveAction

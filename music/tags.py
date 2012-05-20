@@ -43,13 +43,21 @@ class Tags:
 			year = audio['date'][0][0:4]
 		except:
 			year = _("Unknown")
+			
+			
+		try:
+			performer = audio['performer'][0]
+		except:
+			performer = None
 		
 		if(format == ".mp3"):
 			length = int(MP3(path).info.length)
 		else:
 			length =  int(audio.info.length)
 			
-		return {"title":title, "album":album, "artist":artist, "genre":genre, "year":year, "length":length}
+		#print audio
+			
+		return {"title":title, "album":album, "artist":artist, "genre":genre, "year":year, "length":length, 'performer':performer}
 	
 	
 	@staticmethod

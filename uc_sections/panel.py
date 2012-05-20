@@ -9,6 +9,7 @@ from PIL import Image
 
 from common import messager, settings, util, xdg
 from data.bdd import BDD
+from data.elements import Container
 from gui import menus
 
 from abstract.ucpanel import UCPanelInterface
@@ -55,7 +56,7 @@ class AbstractPanel(UCPanelInterface):
 			return icon
 
 		
-		node = model.append(parentNode, [container.ID, container.container_type[0], container.label, get_icon(container.thumbnail_ID), None, None])
+		node = model.append(parentNode, [container.ID, container.container_type[0], container.label, container.rating, get_icon(container.thumbnail_ID), backgroundColor, None])
 		return node
 		
 	def clear(self, model):
@@ -68,175 +69,10 @@ class AbstractPanel(UCPanelInterface):
 		for node in nodes:
 			tv.expand_row(model.get_path(node), False)
 		
-	#@util.threaded
-	#def processLoading(self, mode, liste, show_antagonistic=True):
-		#'''
-			#Remplit la liste fournie en fonction du type de données et du mode séléctionné
-			#TODO? pixbufs are repeated, maybe I should keep their addresses and reuse them 
-				#instead of using gtk.gdk.pixbuf_new_from_file_at_size every time
-			#TODO? Option to collapse expanded on new collapse
-		#'''
-		
 
-		#bdd = BDD()
-		#type = self.module
-		#liste.clear()
-		#if(mode != 'folder'):
-			#icon_universe = gtk.gdk.pixbuf_new_from_file('icons/genre.png')
-			#icon_category = gtk.gdk.pixbuf_new_from_file('icons/artist.png')
-			#icon_size = settings.get_option('pictures/panel_icon_size', 32)
-			#icon_category = icon_category.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-			#thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
-			
-			#def get_icon(ID, default):
-				#if(ID != 0):
-					#try:
-						#icon_path = thumbnail_path + str(ID) + ".jpg"
-						##icon = gtk.gdk.pixbuf_new_from_file(icon_path)
-						##icon = icon.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-						#icon = gtk.gdk.pixbuf_new_from_file_at_size(icon_path, icon_size, icon_size)
-					#except:
-						#icon = default
-				#else:
-					#icon = default
-				#return icon
-	
-
-			#if(mode == 'category'):
-				#container = 'categorie'
-				#dic = self.categories
-				#default_icon = icon_category
-				#default_antagonist_icon = icon_universe
-				#antagonist = 'univers'
-			#elif(mode == 'universe'):
-				#container = 'univers'
-				#dic = self.universes
-				#default_icon = icon_universe
-				#default_antagonist_icon = icon_category
-				#antagonist = 'categorie'
-			
-			#bdd.c.execute('SELECT DISTINCT * FROM ' + container + '_' + type + 's ORDER BY parent_ID')
-			#containers = bdd.c.fetchall()
-			#nodes = {0:None}
-			
-			#liste.append(None, [0, container[0], _('All'), None, None, None])
-			
-			#dic[0] = {'label':None, 'children':[], 'parent':-1}
-			#for cont in containers:
-				#icon = get_icon(cont[3], default_icon)
-				#pere = liste.append(nodes[cont[2]], [cont[0], container[0], cont[1], icon, None, None])
-				#nodes[cont[0]] = pere
-				
-				#dic[cont[0]] = {'label':cont[1], 'children':[], 'parent':cont[2]}
-
-				#dic[cont[2]]['children'].append(cont[0])
-				
-				#if(show_antagonistic):
-					##Add matching antagonistic (if category universe, if universe category) to node
-					#query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ' + str(cont[0])
-					#for row in bdd.conn.execute(query):
-						#icon = get_icon(row[3], default_antagonist_icon)
-						#liste.append(pere, [row[0], antagonist[0], row[1], icon, None, None])
-			
-			##elif(mode == "dossier"):
-				##self.c.execute('SELECT DISTINCT dossier FROM ' + type + 's ORDER BY dossier')
-				##for dossier in self.c:
-					##path = dossier[0].rpartition('/')
-					##liste.append([dossier[0], path[2]])
-		#else:
-			#def add_node(path):
-				#"""
-					#Add a folder node, and all parent folder nodes if needed
-				#"""
-				#parts = path.split('/')
-				#s = ''
-				#node = None
-				#for part in parts:
-					#s += part
-					#if(s not in nodes.keys()):
-						#nodes[s] = liste.append(node, [0, 'f' + s, part, icon, None, None])
-					#node = nodes[s]
-					#s += '/'
-					
-			#icon = gtk.Image().render_icon(gtk.STOCK_DIRECTORY, gtk.ICON_SIZE_MENU)
-			#bdd.c.execute('SELECT DISTINCT dossier FROM ' + self.module + 's ORDER BY dossier')
-			#folders = bdd.c.fetchall()
-			#nodes = {}
-			#i = 0
-			
-			#while(i < len(folders)):
-				#add_node(folders[i][0])
-				#i += 1
-		
-	#@util.threaded
-	#def loadFolders(self):
-		#def get_parent(path, level):
-			#"""
-				#Ex get_parent('/home/piccolo/Downloads/Pictures/DBZ, 2) = /home/piccolo/Downloads
-			#"""
-			#parts = path.split('/')
-			#parent = ''
-			#for i in xrange(len(parts) - level):
-				#parent += parts[i] + '/'
-				
-			#return parent[:-1] # remove last slash
-			
-		#def add_node(path):
-			#"""
-				#Add a folder node, and all parent folder nodes if needed
-			#"""
-			#parts = path.split('/')
-			#s = ''
-			#node = None
-			#for part in parts:
-				#s += part + '/'
-				#if(s not in nodes.keys()):
-					#nodes[s] = self.folderModel.append(node, [s, part])
-				#node = nodes[s]
-		
-		#bdd = BDD()
-		#bdd.c.execute('SELECT DISTINCT folder FROM ' + self.module + 's ORDER BY folder')
-		
-		#folders = bdd.c.fetchall()
-		##i = 0
-		##node = None
-		##parent = ''
-		#nodes = {}
-		#i = 0
-		##node = self.folderModel.append(None, [folders[0][0], folders[0][0]])
-		##parent = folders[0][0]
-		
-		
-		#while(i < len(folders)):
-			##print parent
-			##print folders[i][0]
-			##print folders[i][0].find(parent)
-			
-			## Recherche du plus proche dossier parent
-			##j = 0
-			##while(get_parent(folders[i][0], j) != get_parent(parent, j)):
-				##j += 1
-			
-			##print(get_parent(folders[i][0], j))
-			##if(folders[i][0].find(parent) != -1):
-				##self.folderModel.append(node, [folders[i][0], folders[i][0]])
-			##else:
-				##parent = folders[i][0]
-				##node = self.folderModel.append(None, [folders[i][0], folders[i][0]])
-			##while(i < len(folders) and folders[i][0].find(parent) != -1):
-				##self.folderModel.append(node, [folders[i][0], folders[i][0]])
-				##i += 1
-			##parent = folders[i][0]
-			##node = self.folderModel.append(node, [folders[i][0], folders[i][0]])
-			
-			#add_node(folders[i][0])
-			#i += 1
-		
-	
-				
 
 	@util.threaded
-	def on_container_click(self, w, i, c):
+	def onContainerActivated(self, w, i, c):
 		'''
 			Séléctionne toutes les infos sur les fichiers du type donné (image ou video) et appartenant au conteneur data[1] (categorie_ID, univers_ID, dossier)
 			
@@ -280,7 +116,7 @@ class AbstractPanel(UCPanelInterface):
 			else:
 				TreeView.expand_row(path, False)
 				
-	def on_right_click(self, TreeView, event):
+	def onContainerClicked(self, TreeView, event):
 		if event.button == 3:
 			model = TreeView.get_model()
 			try:
@@ -322,6 +158,7 @@ class AbstractPanel(UCPanelInterface):
 		
 		if(type == 'f'):
 			ID = model[container_path][1][1:] + '%'
+			ID = unicode(model[container_path][0])
 		dic = {}
 		
 		if(len(container_path) > 1 and model[container_path[0:-1]][1][0] != type): # EX : universes matching category in same treeview
@@ -358,66 +195,45 @@ class AbstractPanel(UCPanelInterface):
 	
 class UC_Panel(AbstractPanel, gtk.VBox):
 	"""
-		TODO multi-paneaux
-		TODO init = hotSwap(obj) [delete, init]
-		TODO rewrite folders management
 		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
 		INFO Categorie = forme, univers = fond
 	"""
 	def __init__(self, type, elementSelector):
 		AbstractPanel.__init__(self, type)
-		self.module = type
 		self.elementSelector = elementSelector
-		self.categories = {}
-		self.universes = {}
+
 		
-		TVI = gtk.TreeView()
-		TVI.set_headers_visible(False)
-		self.treeViews = {'folder':TVI, 'category':TVI, 'universe':TVI}
-		CB = gtk.ComboBox()
+		#Ini panel catégories : container_ID, container_type, container_label, container_rating, container_icon
+		self.model = gtk.TreeStore(int, str, str, int, gtk.gdk.Pixbuf, str, str)
+		#messager.diffuser('liste_sections', self, [self.module, "category", self.model])
+		
+		TreeView = ContainerBrowser(self.model)
+		TreeView.set_headers_visible(False)
+		self.treeViews = {'folder':TreeView, 'category':TreeView, 'universe':TreeView}
+		modeCB = gtk.ComboBox()
 		
 
 		
-		#Ini panel catégories : container_ID, container_type, container_label, container_icon
-		self.model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		#messager.diffuser('liste_sections', self, [self.module, "category", self.model])
 		
 		
-		TVI.set_model(self.model)
-		colonne = gtk.TreeViewColumn('Column 27')
-		TVI.append_column(colonne)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		colonne.pack_start(pb, False)
-		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 2)
-		colonne.add_attribute(pb, 'pixbuf', 3)
-		TVI.connect("row-activated", self.on_container_click)
-		TVI.connect("drag-data-received", self.on_drag_data_receive)
-		TVI.connect("button-press-event", self.on_right_click)
+		TreeView.connect("row-activated", self.onContainerActivated)
+		TreeView.connect("drag-data-received", self.on_drag_data_receive)
+		TreeView.connect("button-press-event", self.onContainerClicked)
 		
 		#Le TreeView sera la destination à toucher avec la souris
-		TVI.enable_model_drag_dest([('text/plain', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-                  
+		TreeView.enable_model_drag_dest([('text/plain', 0, 0)], gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
 		
-                  
-		#Ini panel univers
-		#liste_univers = gtk.ListStore(int, str)
-		#messager.diffuser('liste_universI', self, liste_univers)
-		#messager.inscrire(self.reload_sections, 'nouvelle_categorieI')
-		
-		LS_CB = gtk.ListStore(str, str)
-		LS_CB.append(["category", "Categories"])
-		LS_CB.append(["universe", _("Universes")])
-		LS_CB.append(["folder", _("Folders")])
+		modeModel = gtk.ListStore(str, str)
+		modeModel.append(["category", "Categories"])
+		modeModel.append(["universe", _("Universes")])
+		modeModel.append(["folder", _("Folders")])
 		cell = gtk.CellRendererText()
-		CB.pack_start(cell)
-		CB.add_attribute(cell, "text", 1)
-		CB.set_model(LS_CB)
-		CB.set_active(0)
-		CB.connect("changed", self.changer_mode)
-		self.CB = CB
+		modeCB.pack_start(cell)
+		modeCB.add_attribute(cell, "text", 1)
+		modeCB.set_model(modeModel)
+		modeCB.set_active(0)
+		modeCB.connect("changed", self.changer_mode)
+		self.modeCB = modeCB
 		
 		
 		messager.inscrire(self.reload_sections, "new_category")
@@ -427,18 +243,20 @@ class UC_Panel(AbstractPanel, gtk.VBox):
 		B_refresh.connect('clicked', self.load)
 		
 		self.showAntagonistic = gtk.CheckButton(_("Show antagonistic"))
+		self.showAntagonistic.set_active(settings.get_option(self.module + 's/show_antagonistic', False))
+		self.showAntagonistic.connect('toggled', self.toggleAntagonisitc)
 		
 		#On assemble tout graphiquement
 		gtk.VBox.__init__(self)
 		
 		Box_mode = gtk.HBox()
 		Box_mode.pack_start(self.showAntagonistic, False)
-		Box_mode.pack_start(CB)
+		Box_mode.pack_start(modeCB)
 		Box_mode.pack_start(B_refresh, False)
 		self.pack_start(Box_mode, False)
 		SW = gtk.ScrolledWindow()
 		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(TVI)
+		SW.add(TreeView)
 		self.pack_start(SW)
 		
 		self.searchEntry = gtk.Entry()
@@ -452,7 +270,7 @@ class UC_Panel(AbstractPanel, gtk.VBox):
 		
 	@property
 	def mode(self):
-		return self.CB.get_active_text()
+		return self.modeCB.get_active_text()
 
 				
 	def load(self, *args):
@@ -463,109 +281,65 @@ class UC_Panel(AbstractPanel, gtk.VBox):
 			TODO? Option to collapse expanded on new collapse
 		'''
 		word = self.searchEntry.get_text()
-		mode = self.CB.get_active_text()
+		mode = self.modeCB.get_active_text()
 		liste = self.model
 		self.processLoading(mode, liste, self.showAntagonistic.get_active(), word)
+		
+	def toggleAntagonisitc(self, button):
+		settings.set_option(self.module + 's/show_antagonistic', self.showAntagonistic.get_active())
+		self.load()
 		
 		
 class UC_Panes(AbstractPanel, gtk.VBox):
 	"""
-		TODO multi-paneaux
-		TODO rewrite folders management
 		TODO? possibilité de linker un univers à une catégorie : dès qu'on set l'univers, la catégorie est automatiquement settée. EX : dès que univers Piccolo alors caté perso
 		INFO Categorie = forme, univers = fond
 	"""
 	def __init__(self, module, elementSelector):
 		AbstractPanel.__init__(self, module)
-		self.module = module
 		self.elementSelector = elementSelector
-		self.categories = {}
-		self.universes = {}
-		
-		TreeView = gtk.TreeView()
-		#TreeView.set_headers_visible(False)
-		
-		TV_universes = gtk.TreeView()
-		TV_categories = gtk.TreeView()
-		
-		self.treeViews = {'universe':TV_universes, 'category':TV_categories, 'folder':TreeView}
-		CB = gtk.ComboBox()
+
 		
 		#Ini panel dossiers
-		self.folderModel = gtk.TreeStore(str, str, str, gtk.gdk.Pixbuf, str, str)
-
-		#messager.diffuser('liste_sections', self, [self.module, "dossier", self.folderModel])
-		TreeView.set_model(self.folderModel)
-		colonne = gtk.TreeViewColumn(_('Folders'))
-		TreeView.append_column(colonne)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		pb.set_property('stock-id', gtk.STOCK_DIRECTORY)
-		colonne.pack_start(pb, True)
-		colonne.pack_start(cell, True)
-		colonne.add_attribute(cell, 'text', 2)
-		TreeView.connect("row-activated", self.on_container_click, 'folder')
-		TreeView.connect("button-press-event", self.on_folder_click)
+		self.folderModel = gtk.TreeStore(str, str, str, int, gtk.gdk.Pixbuf, str, str)
+		TreeView = ContainerBrowser(self.folderModel, 'folder')
+		#TreeView.set_headers_visible(False)
 		
 		#Ini panel catégories : container_ID, container_type, container_label, container_icon, background, foreground
-		self.categories_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		self.universes_model = gtk.TreeStore(int, str, str, gtk.gdk.Pixbuf, str, str)
-		#messager.diffuser('liste_sections', self, [self.module, "category", self.model])
+		self.categoriesModel = gtk.TreeStore(int, str, str, int, gtk.gdk.Pixbuf, str, str)
+		self.universesModel = gtk.TreeStore(int, str, str, int, gtk.gdk.Pixbuf, str, str)
+		TV_universes = ContainerBrowser(self.universesModel, 'universe')
+		TV_categories = ContainerBrowser(self.categoriesModel, 'category')
+		
+		self.treeViews = {'universe':TV_universes, 'category':TV_categories, 'folder':TreeView}
+		modeCB = gtk.ComboBox()
 		
 		
-		TV_universes.set_model(self.universes_model)
-		TV_categories.set_model(self.categories_model)
+		tvLayout = gtk.HBox()
+		for key in ('folder', 'category', 'universe'):
+			tv = self.treeViews[key]
+			if key != 'folder':
+				tv.connect("drag-data-received", self.on_drag_data_receive)
+				tv.connect("button-press-event", self.onContainerClicked)
+				tv.enable_model_drag_dest([('text/plain', 0, 0)],gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
+			
+			else:
+				tv.connect("button-press-event", self.on_folder_click)
+				
+			tv.connect("row-activated", self.onContainerActivated)
+			
+			SW = gtk.ScrolledWindow()
+			SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+			SW.add(tv)
+			tvLayout.pack_start(SW)
+			
 		
-		col = gtk.TreeViewColumn(_('Categories'))
-		TV_categories.append_column(col)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		col.pack_start(pb, False)
-		col.pack_start(cell, True)
-		col.add_attribute(cell, 'text', 2)
-		col.add_attribute(cell, 'cell-background', 4)
-		col.add_attribute(pb, 'cell-background', 4)
-		col.add_attribute(cell, 'foreground', 5)
-		col.add_attribute(pb, 'pixbuf', 3)
+
 		
-		self.columns = {}
-		self.columns["universe"] = col
-		
-		col = gtk.TreeViewColumn(_('Universes'))
-		TV_universes.append_column(col)
-		cell = gtk.CellRendererText()
-		pb = gtk.CellRendererPixbuf()
-		col.pack_start(pb, False)
-		col.pack_start(cell, True)
-		col.add_attribute(cell, 'text', 2)
-		col.add_attribute(pb, 'pixbuf', 3)
-		col.add_attribute(cell, 'cell-background', 4)
-		col.add_attribute(pb, 'cell-background', 4)
-		
-		self.columns["category"] = col
-		
-		TV_categories.connect("row-activated", self.on_container_click, 'category')
-		TV_universes.connect("row-activated", self.on_container_click, 'universe')
-		
-		
-		TV_categories.connect("drag-data-received", self.on_drag_data_receive)
-		TV_universes.connect("drag-data-received", self.on_drag_data_receive)
-		
-		TV_categories.connect("button-press-event", self.on_right_click, 'category')
-		TV_universes.connect("button-press-event", self.on_right_click, 'universe')
-		
-		#Le TreeView sera la destination à toucher avec la souris
-		TV_categories.enable_model_drag_dest([('text/plain', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-                  
-		TV_universes.enable_model_drag_dest([('text/plain', 0, 0)],
-                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
-		
-                  
-		#Ini panel univers
-		#liste_univers = gtk.ListStore(int, str)
-		#messager.diffuser('liste_universI', self, liste_univers)
-		#messager.inscrire(self.reload_sections, 'nouvelle_categorieI')
+		# DEPRECATED
+		#self.columns = {}
+		#self.columns["universe"] = col
+		#self.columns["category"] = col
 		
 		
 		messager.inscrire(self.reload_sections, "new_category")
@@ -574,107 +348,85 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		B_refresh = gtk.ToolButton(gtk.STOCK_REFRESH)
 		B_refresh.connect('clicked', self.load)
 		
-		LS_CB = gtk.ListStore(str, str)
-		LS_CB.append([None, _('None')])
-		LS_CB.append(["category", _("Categories")])
-		LS_CB.append(["universe", _("Universes")])
-		LS_CB.append(["folder", _("Folders")])
+		modeModel = gtk.ListStore(str, str)
+		modeModel.append([None, _('None')])
+		modeModel.append(["category", _("Categories")])
+		modeModel.append(["universe", _("Universes")])
+		modeModel.append(["folder", _("Folders")])
 		cell = gtk.CellRendererText()
-		CB.pack_start(cell)
-		CB.add_attribute(cell, "text", 1)
-		CB.set_model(LS_CB)
-		CB.set_active(0)
-		CB.connect("changed", self.filteringTreeViewChanged)
+		modeCB.pack_start(cell)
+		modeCB.add_attribute(cell, "text", 1)
+		modeCB.set_model(modeModel)
+		modeCB.set_active(0)
+		modeCB.connect("changed", self.filteringTreeViewChanged)
 		
 		self.filterLabel = gtk.Label(_('No active filters'))
 		
 		#On assemble tout graphiquement
 		gtk.VBox.__init__(self)
 		
-		BB = gtk.HButtonBox()
+		BB = gtk.HBox()
 		BB.pack_start(B_refresh, False)
-		BB.pack_start(CB, False)
-		BB.pack_start(self.filterLabel, False)
+		BB.pack_start(modeCB, False)
+		BB.pack_start(self.filterLabel, True)
 		self.pack_start(BB, False)
 		
-		hbox = gtk.HBox()
-		SW = gtk.ScrolledWindow()
-		SW.add(TreeView)
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		label = gtk.Label(_("Folders"))
-		hbox.pack_start(SW)
-		Box = gtk.VBox()
-		Box_mode = gtk.HBox()
-		Box_mode.pack_start(CB)
-		Box_mode.pack_start(B_refresh, False)
-		Box.pack_start(Box_mode, False)
-		
-		Box = gtk.VBox()
-		SW = gtk.ScrolledWindow()
-		
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(TV_categories)
-		Box.pack_start(SW)
-		hbox.pack_start(Box)
-		
-		SW = gtk.ScrolledWindow()
-		SW.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		SW.add(TV_universes)
-		hbox.pack_start(SW)
 		
 		self.searchEntry = gtk.Entry()
 		self.searchEntry.connect('activate', self.load)
 		
 		
-		self.pack_start(hbox)
+		self.pack_start(tvLayout)
 		self.pack_start(self.searchEntry, False)
-		self.set_size_request(600, -1)
+		self.set_size_request(700, -1)
 
 		self.toggled = {'category': False, 'universe': False, 'folder':False}
 		self.filters = {}
 		
-		self.load()
+		filterIndex = settings.get_option(self.module + 's/container_filter', 0)
+		if filterIndex != 0:
+			modeCB.set_active(filterIndex) # trigger filteringTreeViewChanged() and thus load
+		else:
+			self.load()
+		
 		
 	def changeFilter(self, button):
 		self.toggled['category'] = not self.toggled['category']
 		self.toggled['universe'] = not self.toggled['universe']
 		
-	def filteringTreeViewChanged(self, CB):
-		value = CB.get_active_text()
+	def filteringTreeViewChanged(self, modeCB):
+		value = modeCB.get_active_text()
 		
 		for key in self.toggled.iterkeys():
 			self.toggled[key] = False
 			
 		if value != None:
 			self.toggled[value] = True
+		
+		for key in self.toggled.iterkeys():
+			self.treeViews[key].modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 			
+		settings.set_option(self.module + 's/container_filter', modeCB.get_active())
 		self.load()
 
 	
 	def load(self, *args):
 		word = self.searchEntry.get_text()
-		self.processLoading('category', self.categories_model, False, word)
-		self.processLoading('universe', self.universes_model, False, word)
+		self.processLoading('category', self.categoriesModel, False, word)
+		self.processLoading('universe', self.universesModel, False, word)
 		self.processLoading('folder', self.folderModel, False, word)
 		
-	def on_container_click(self, w, i, c, mode):
-		self.mode = mode
-		AbstractPanel.on_container_click(self, w, i, c)
+	def onContainerActivated(self, w, i, c):
+		self.mode = w.mode
+		AbstractPanel.onContainerActivated(self, w, i, c)
 		
-	def on_right_click(self, TreeView, event, mode):
-		# TODO should use Interface filter() method
-		self.mode = mode
-		AbstractPanel.on_right_click(self, TreeView, event)
+	def onContainerClicked(self, TreeView, event):
+		self.mode = TreeView.mode
+		AbstractPanel.onContainerClicked(self, TreeView, event)
 		
 		if(event.button == 1):
-			if(self.toggled[self.mode]):
-				path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
-				self.categories_model[path][4] = 'yellow'
-				for item in self.universes_model:
-					item[4] = 'yellow'
-				col = self.columns[self.mode]
+			if self.toggled[self.mode]:
 				model = TreeView.get_model()
-				col.set_title('Universes of' + ' ' + model[path][2])
 				try:
 					path = TreeView.get_path_at_pos(int(event.x),int(event.y))[0]
 					model = TreeView.get_model()
@@ -683,70 +435,50 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 				except TypeError:
 					id = 0
 					
-				icon_universe = self.DEFAULT_ICONS['univers']
-				icon_category = self.DEFAULT_ICONS['categorie']
-				thumbnail_path = xdg.get_thumbnail_dir(self.module + '/128/')
-				
-				def get_icon(ID, default):
-					if(ID != 0):
-						try:
-							icon_path = thumbnail_path + str(ID) + ".jpg"
-							#icon = gtk.gdk.pixbuf_new_from_file(icon_path)
-							#icon = icon.scale_simple(icon_size, icon_size, gtk.gdk.INTERP_BILINEAR)
-							icon = gtk.gdk.pixbuf_new_from_file_at_size(icon_path, icon_size, icon_size)
-						except:
-							icon = default
-					else:
-						icon = default
-					return icon
-					
-				bdd = BDD()
-				self.filters.clear()
-				if(mode == 'category'):
-					container = 'categorie'
-					dic = self.universes
-					default_icon = icon_category
-					default_antagonist_icon = icon_universe
-					antagonist = 'univers'
-					model = self.universes_model
-				elif(mode == 'universe'):
-					container = 'univers'
-					dic = self.categories
-					default_icon = icon_universe
-					default_antagonist_icon = icon_category
-					antagonist = 'categorie'
-					model = self.categories_model
-				
-				
-				model.clear()
-				nodes = {0:None}
-				
-				model.append(None, [0, antagonist[0], _('All'), None, None, None])
-				
-				query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
-				if(id != 0):
-					query += ' WHERE ' + container + '_ID = ' + str(id)
-					self.filters[container + '_ID'] = id
-				query += ' ORDER BY parent_ID'
-				for row in bdd.conn.execute(query):
-					icon = get_icon(row[3], default_antagonist_icon)
+				container = Container(id, type, self.module)
+				self.filterLabel.set_text(_('Filtering') + ' : ' + container.label + ' (' + self.mode + ')')
+				for key in self.toggled.iterkeys():
+					if not self.toggled[key]:
+						self.treeViews[key].modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("#A9E2F3"))
+						#self.treeViews[key].show()
 
-					try:
-						nodes[row[0]] = model.append(nodes[row[2]], [row[0], antagonist[0], row[1], icon, None, None])
-					except KeyError:
-						# parent node missing
-						parent = row[2]
-						parents = []
-						while(parent != 0):
-							parents.append(parent)
-							parent = dic[parent]['parent']
-						
-						parents.reverse() # Sort them in the right order
-						for parent in parents:
-							# TODO icon in dic (thumbnail_ID)
-							if(parent not in nodes.keys()):
-								nodes[parent] = model.append(nodes[dic[parent]['parent']], [parent, antagonist[0], dic[parent]['label'], default_antagonist_icon, None, None])
-						# Now we can add the node that caused the exception
-						nodes[row[0]] = model.append(nodes[row[2]], [row[0], antagonist[0], row[1], icon, None, None])
+				self.filter(container)
+
 
 		
+		
+class ContainerBrowser(gtk.TreeView):
+	def __init__(self, model, mode='Melted'):
+		gtk.TreeView.__init__(self)
+		self.mode = mode
+		self.set_model(model)
+		
+		col = gtk.TreeViewColumn(_(mode))
+		self.append_column(col)
+		cell = gtk.CellRendererText()
+		pb = gtk.CellRendererPixbuf()
+		col.pack_start(pb, False)
+		col.pack_start(cell, True)
+		col.add_attribute(cell, 'text', 2)
+		col.add_attribute(cell, 'cell-background', 5)
+		col.add_attribute(pb, 'cell-background', 5)
+		col.add_attribute(cell, 'foreground', 6)
+		col.add_attribute(pb, 'pixbuf', 4)
+		col.set_sort_column_id(2)
+		col.connect("clicked", self.on_column_clicked)
+		
+		col = gtk.TreeViewColumn(_('Rating'))
+		self.append_column(col)
+		cell = gtk.CellRendererText()
+		col.pack_start(cell, True)
+		col.add_attribute(cell, 'text', 3)
+		col.set_sort_column_id(3)
+		col.connect("clicked", self.on_column_clicked)
+		
+	def on_column_clicked(self, column):
+		def disable_sorting_state():
+			time.sleep(2.0)
+			self.model.set_sort_column_id(-2, 0)
+			
+		a = threading.Thread(target=disable_sorting_state)
+		a.start()

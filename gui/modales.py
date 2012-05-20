@@ -114,7 +114,7 @@ class CriterionManager(gtk.VBox):
 			Formatte une ligne de critères pour que les widgets soient conformes au type
 		'''
 		children = Box.get_children()
-		if (children[0].get_active_text() == "note" or children[0].get_active_text() == "compteur"):
+		if (children[0].get_active_text() == "rating" or children[0].get_active_text() == "playcount"):
 			children[1].set_model(self.liste_operateurs_note)
 			children[1].set_active(0)
 			children[2].destroy()
@@ -367,7 +367,7 @@ class TagsEditor(gtk.Dialog):
 		
 
 class SettingsEditor(gtk.Dialog):
-		def __init__(self):
+		def __init__(self, section='general'):
 			gtk.Dialog.__init__(self, title=_("Settings editor"), buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			self.Box_Main = gtk.HBox()
 			self.get_content_area().pack_start(self.Box_Main)
@@ -395,7 +395,7 @@ class SettingsEditor(gtk.Dialog):
 			
 			self.show_all()
 			self.initialiser_composants()
-			self.load_section('general')
+			self.load_section(section)
 			
 			reponse = self.run()
 			if(reponse == -3):
@@ -417,10 +417,10 @@ class SettingsEditor(gtk.Dialog):
 			# Général
 			Box_General = gtk.VBox()
 			
-			self.CB_gui_framework = gtk.combo_box_new_text()
-			libs = {'Gtk 2':0, 'Qt 4':1}
-			self.CB_gui_framework.append_text('Gtk 2')
-			self.CB_gui_framework.append_text('Qt 4')
+			#self.CB_gui_framework = gtk.combo_box_new_text()
+			#libs = {'Gtk 2':0, 'Qt 4':1}
+			#self.CB_gui_framework.append_text('Gtk 2')
+			#self.CB_gui_framework.append_text('Qt 4')
 			
 			self.picture_enabled = gtk.CheckButton(_('Enable pictures manager'))
 			self.picture_enabled.set_active(settings.get_option('pictures/enabled', False))
@@ -429,7 +429,7 @@ class SettingsEditor(gtk.Dialog):
 			
 			# Option : Cacher les menus de la barre d'outils en fonction de la section
 			
-			Box_General.pack_start(self.CB_gui_framework)
+			#Box_General.pack_start(self.CB_gui_framework)
 			Box_General.pack_start(self.picture_enabled)
 			Box_General.pack_start(self.video_enabled)
 			self.Box_Main.pack_start(Box_General)
@@ -453,6 +453,7 @@ class SettingsEditor(gtk.Dialog):
 			
 			def add_folder(*args):
 				dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons=(gtk.STOCK_OPEN, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
+				dialog.set_current_folder_uri('~')
 				dialog.run()
 				fichier = dialog.get_filename()
 				dialog.destroy()
@@ -480,7 +481,9 @@ class SettingsEditor(gtk.Dialog):
 			self.Box_Main.pack_start(Box_folders)
 			self.widgets['folders'] = Box_folders
 			
+			
 			# ******* Music section *********
+			
 			Box_music = gtk.Table(2,2)
 			i = 0
 			Box_music.attach(gtk.Label(_('Playback library') + ' :'), 0, 1, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
@@ -508,6 +511,11 @@ class SettingsEditor(gtk.Dialog):
 			
 			self.CB_icon_size_panel_music.set_active(settings.get_option('music/panel_icon_size', 32) / 16)
 			Box_music.attach(self.CB_icon_size_panel_music, 1, 2, i, i+1, gtk.FILL|gtk.EXPAND, gtk.FILL)
+			
+			i+= 1
+			self.usePerformerTag = gtk.CheckButton(_('Show performer instead of artist in library browser'))
+			self.usePerformerTag.set_active(settings.get_option('music/use_performer', False))
+			Box_music.attach(self.usePerformerTag, 0, 2, i, i+1, gtk.FILL, gtk.FILL)
 			
 			self.Box_Main.pack_start(Box_music)
 			self.widgets['music'] = Box_music
@@ -599,7 +607,6 @@ class SettingsEditor(gtk.Dialog):
 			
 			
 			
-			
 		def load_section(self, section):
 			try:
 				self.active_widget.hide_all()
@@ -629,6 +636,7 @@ class SettingsEditor(gtk.Dialog):
 			#Music settings:
 			settings.set_option('music/playback_lib', self.CB_music_playback_lib.get_active_text())
 			settings.set_option('music/panel_icon_size', int(self.CB_icon_size_panel_music.get_active_text()))
+			settings.set_option('music/use_performer', self.usePerformerTag.get_active())
 			
 			settings.set_option('music/filters', self.Box_mfilters.get_config())
 			

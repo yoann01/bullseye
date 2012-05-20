@@ -10,14 +10,19 @@ clean:
 	rm -f locale/*/LC_MESSAGES/bullseye.mo
 	rm -f bullseye.1.gz
 
+make-install-dirs:
+	mkdir -p $(BIN)
+	mkdir -p $(DATADIR)/pixmaps
+	mkdir -p $(DATADIR)/applications
 
-install:
+
+install: uninstall make-install-dirs
 	install -d $(LOCALEDIR) $(BIN) $(DATADIR)/bullseye
 
 
-	install -m644 trunk/Bullseye.desktop $(DATADIR)/applications
+	install -m644 trunk/bullseye-qt.desktop $(DATADIR)/applications/bullseye-qt.desktop
 	install -m644 trunk/icons/bullseye.png $(DATADIR)/pixmaps
-	install -m755 trunk/bullseye $(BIN)
+	install -m755 trunk/bullseye-qt $(BIN)
 
 	for sourcedir in `find trunk/ -type d | grep -v '.svn' | grep -v '.pyc' | sed 's:trunk/::g'` ; do \
 		install -d $(DATADIR)/bullseye/$$sourcedir; \
@@ -31,9 +36,9 @@ install:
 	install -m755 trunk/bullseye.py $(DATADIR)/bullseye
 
 uninstall:
-	rm -f $(DATADIR)/applications/Bullseye.desktop
+	rm -f $(DATADIR)/applications/bullseye-qt.desktop
 	rm -f $(DATADIR)/pixmaps/bullseye.png
-	rm -f $(BIN)/bullseye
+	rm -f $(BIN)/bullseye-qt
 	rm -f $(MANDIR)/man1/bullseye.1.gz
 	rm -rf $(LIBDIR)/bullseye
 	rm -rf $(DATADIR)/bullseye

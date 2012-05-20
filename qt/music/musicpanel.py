@@ -175,6 +175,8 @@ class LibraryPanel(QtGui.QWidget):
 			'''
 			try:
 				value = track_line[indices[mode[level]]]
+				if indices[mode[level]] == 8:
+					value = str(value)
 			except IndexError:
 				value = None
 			return value
@@ -509,7 +511,7 @@ class LibraryModel(treemodel.TreeModel):
 		
 	def sort(self, columnIndex, order):
 		self.layoutAboutToBeChanged.emit()
-		if(order == Qt.AscendingOrder):
+		if(order == QtCore.Qt.AscendingOrder):
 			reverse = False
 		else:
 			reverse = True
@@ -527,9 +529,11 @@ class LibraryModel(treemodel.TreeModel):
 
 class PlaylistBrowser(QtGui.QWidget):
 	
+	PLAYLIST_ICON_PATH = xdg.get_data_dir() + 'icons' + os.sep + 'playlist.png'
+	FOLDER_ICON_PATH = xdg.get_data_dir() + 'icons' + os.sep + 'folder.png'
 	FOLDER = os.path.join(xdg.get_data_home(), 'playlists')
-	PLAYLIST_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/playlist.png')
-	FOLDER_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/folder.png')
+	#PLAYLIST_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/playlist.png')
+	#FOLDER_ICON = QtGui.QPixmap(xdg.get_data_dir() + 'icons/folder.png')
 	
 	def __init__(self, db, queueManager):
 		self.mdb = db
@@ -540,15 +544,21 @@ class PlaylistBrowser(QtGui.QWidget):
 		treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		treeView.customContextMenuRequested.connect(self.showContextMenu)
 		self.model = treemodel.SimpleTreeModel()
-		self.reloadModel()
+		
+		self.treeView = treeView
 		treeView.setModel(self.model)
+		self.reloadModel()
+		
 		treeView.activated.connect(self.onActivated)
+		
 		
 		layout = QtGui.QVBoxLayout()
 		layout.addWidget(treeView)
 		self.setLayout(layout)
 		
-	def addPlaylist(self, key, text, iconPath=xdg.get_data_dir() + 'icons/playlist.png', parent=None):
+	def addPlaylist(self, key, text, iconPath=None, parent=None):
+		if iconPath is None:
+			iconPath = self.FOLDER_ICON_PATH
 		node = treemodel.SimpleTreeItem(parent, key, iconPath, text)
 		self.model.append(parent, node)
 		return node
@@ -582,13 +592,15 @@ class PlaylistBrowser(QtGui.QWidget):
 		self.staticNode = self.addPlaylist('42static', _("Static playlists"))
 		for f in os.listdir(self.FOLDER):
 			if os.path.isfile(os.path.join(self.FOLDER, f)):
-				self.addPlaylist(f, f, None, self.staticNode)
+				self.addPlaylist(f, f, self.PLAYLIST_ICON_PATH, self.staticNode)
 		
 		self.dynamicNode = self.addPlaylist('42dynamic', _("Dynamic playlists"))
 		dossier = self.FOLDER + os.sep + 'dynamic' + os.sep
 		for f in os.listdir(dossier):
 			if os.path.isfile(os.path.join(dossier, f)):
-				self.addPlaylist(f, f, None, self.dynamicNode)
+				self.addPlaylist(f, f, self.PLAYLIST_ICON_PATH, self.dynamicNode)
+				
+		self.treeView.expandAll()
 				
 	def showContextMenu(self, pos):
 		item = self.sender().indexAt(pos).internalPointer()

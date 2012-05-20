@@ -151,6 +151,8 @@ class LibraryPanel(gtk.VBox):
 			'''
 			try:
 				value = track_line[indices[mode[level]]]
+				if indices[mode[level]] == 8:
+					value = str(value)
 			except IndexError:
 				value = None
 			return value

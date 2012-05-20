@@ -372,7 +372,7 @@ class MainBDD():
 			
 			for section in new_files.iterkeys():
 				if(section == 'music'):
-					conn.executemany('INSERT INTO tracks (path, title, album, artist, genre, length, rating, playcount, year) VALUES (?,?,?,?,?, ?, ?, ?, ?)', new_files[section])
+					conn.executemany('INSERT INTO tracks (path, title, album, artist, genre, length, rating, playcount, year, performer) VALUES (?,?,?,?,?, ?, ?, ?, ?, ?)', new_files[section])
 				else:
 					conn.executemany('INSERT INTO ' + section + 's (folder, filename, rating, categorie_ID, univers_ID, size) VALUES (?, ?, ?, ?, ?, ?)', new_files[section])
 			
@@ -387,7 +387,7 @@ class MainBDD():
 		def get_track_data(fichier, extension):
 			tags = Tags.fromPath(fichier)
 			fichier = unicode(fichier)
-			t = (fichier, tags['title'], tags['album'], tags['artist'], tags['genre'], tags['length'], 0, 0, tags['year'])
+			t = (fichier, tags['title'], tags['album'], tags['artist'], tags['genre'], tags['length'], 0, 0, tags['year'], tags['performer'])
 			#conn.execute('INSERT INTO tracks (path, title, album, artist, genre, length, note, compteur, year) VALUES (?,?,?,?,?, ?, ?, ?, ?)', t)
 			return t
 			
@@ -463,7 +463,7 @@ class MainBDD():
 		# ***** Musique *****
 		self.c.execute('''CREATE TABLE tracks
 		(track_ID INTEGER PRIMARY KEY AUTOINCREMENT, path text, title text, album text,
-		artist text, genre text, length int, playcount int, rating int, year text, num int, status text DEFAULT 'a')''')
+		artist text, genre text, length int, playcount int, rating int, year text, num int, performer text, status text DEFAULT 'a')''')
 		
 		
 		self.c.execute('''CREATE TRIGGER insert_track BEFORE INSERT ON tracks
@@ -751,6 +751,7 @@ class MainBDD():
 		'''
 			Crée une requête pour séléctionner des pistes selon les paramètres envoyés
 		'''
+		print filter
 		params = []
 		for t in filter['criterions']:
 			try:
@@ -861,8 +862,12 @@ class MainBDD():
 		'''
 			Charge les données de toutes les pistes selon une structure donnée
 		'''
+		if settings.get_option('music/use_performer', False):
+			artist_query = 'IFNULL(performer, artist) AS artist'
+		else:
+			artist_query = 'artist'
 
-		query = 'SELECT * FROM tracks '
+		query = 'SELECT track_ID, path, title, album, ' + artist_query + ', genre, length, playcount, rating, year, num FROM tracks '
 		
 		filters = settings.get_option('music/filters', {})
 		params = []

@@ -15,6 +15,19 @@ class AbstractPlayerWidget(object):
 		self.player = player
 		self.player.addConnectedWidget(self)
 		
+		
+	def addBridgeTrack(self, queue, track, source=True):
+		if source:
+			letter = chr(65 + len(self.bridgesSrc))
+			self.bridgesSrc[letter] = JumpTrack(queue, track)
+			track.bridgeSrc = letter
+		else:
+			letter = chr(65 + len(self.bridgesDest))
+			self.bridgesDest[letter] = JumpTrack(queue, track)
+			track.bridgeDest = letter
+			
+		queue.refreshView(track)
+		
 	def addToJumpList(self, queue, track, temp=False):
 		# First we check that the jumpTrack is not already here
 		jt = JumpTrack(queue, track, temp)
@@ -51,17 +64,32 @@ class AbstractPlayerWidget(object):
 
 	def play(self):
 		if self.currentJumpTrack == None:
+			self.currentTrack.initializeTimeStarted()
 			self.player.playTrack(self.currentTrack)
 			self.currentQueue.refreshView(self.currentTrack)
 		else:
+			self.currentJumpTrack.track.initializeTimeStarted()
 			self.player.playTrack(self.currentJumpTrack.track)
 			self.currentJumpTrack.queue.refreshView(self.currentJumpTrack.track)
+			
+	def playBridgeDest(self):
+		if self.currentTrack.bridgeSrc != None:
+			try:
+				jt = self.bridgesDest[self.currentTrack.bridgeSrc]
+				self.currentTrack = jt.track
+				self.currentQueue = jt.queue
+				self.play()
+				return True
+			except KeyError:
+				return False
+			
 			
 	def playDefaultTrack(self):
 		self.currentTrack = self.queueManager.getDefaultTrack()
 		self.currentQueue = self.queueManager.visibleQueue
 		if(self.currentTrack != None):
 			self.play()
+			
 	
 	def playJumpTrack(self):
 		self.currentJumpTrack = self.popJumpList()
@@ -87,7 +115,7 @@ class AbstractPlayerWidget(object):
 				except:
 					pass
 				return True
-		return False;
+		return False
 
 
 	def playNextTrack(self, songFinished=False):
@@ -100,11 +128,8 @@ class AbstractPlayerWidget(object):
 			self.cleanPlayFlag()
 			if 'stop' not in self.currentTrack.flags:
 				# First, process potential jump track
-				if not self.playJumpTrack(): # No jump track, just play next track under this one 
-					if self.currentTrack.bridgeSrc != None:
-						self.currentTrack = self.bridgesDest[self.currentTrack.bridgeSrc]
-					else:
-						self.currentTrack = self.currentQueue.getNextTrack(self.currentTrack)
+				if not self.playJumpTrack() and not self.playBridgeDest(): # No jump track, just play next track under this one 
+					self.currentTrack = self.currentQueue.getNextTrack(self.currentTrack)
 					if self.currentTrack is None:
 						self.stop()
 					else:
@@ -150,7 +175,7 @@ class AbstractPlayerWidget(object):
 			self.player.togglePause()
 			
 class JumpTrack:
-	def __init__(self, queue, track, temp):
+	def __init__(self, queue, track, temp=False):
 		self.queue = queue
 		self.track = track
 		self.temp = temp

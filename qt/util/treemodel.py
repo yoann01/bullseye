@@ -202,13 +202,13 @@ class SimpleTreeModel(TreeModel):
 		elif role == Qt.DecorationRole and index.column() == 0:
 			if(item.icon is None):
 				try:
-					path = self.iconPath
+					path = item.iconPath
 					item.icon = QtGui.QPixmap(path)
 					#item.icon = item.icon.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation) #scaledToHeight(icon_size)
 						
 				except:
 					item.icon = None
-				
+			
 			return item.icon
 		return None
 

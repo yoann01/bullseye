@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 from common import messager, settings
-import gtk
+import gtk, glib
 import gobject
 
 
 class Core(gobject.GObject):
 	"""
 		Object that contain all Bullseye core widgets
-		TODO prompt to add indexed folders
+		TODO settings show antag, active filter
+		TODO flat univers, flat categories
 		TODO sort Library Qt + sort UC Sections and add rating & search functionnalities!
 		TODO verifier l'existence des fichiers (on load + routine)
 		TODO possibilité de supprimer les fichiers
+		TODO drag'n'drop in & from folders
 		
 		
 		TODO controle dbus
 		TODO stop flag when temp
 		TODO add a tableview for UC Sections
+		TODO add a QueueManager for UC Sections queue type (~ selector) defined from base
 		TODO moveToUCStrucutre : filter
+		TODO param module in settings : add new modules, set external program, indexed extensions, etc
 	"""
 	
 	__gsignals__ = { "module-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str,)) }
@@ -63,14 +67,15 @@ class Core(gobject.GObject):
 		
 		
 		#Musique
-		self.HPaned_Music = gtk.HPaned()
-		if(settings.get_option('pictures/preload', False)):
-			self.loadMusic()
-		else:
-			B_loadMusic = gtk.Button(_('Load'))
-			B_loadMusic.connect('clicked', self.loadMusic)
-			self.HPaned_Music.pack1(B_loadMusic)
-			
+		if settings.get_option('music/enabled', True):
+			self.HPaned_Music = gtk.HPaned()
+			if(settings.get_option('music/preload', False)):
+				glib.idle_add(self.loadMusic)
+			else:
+				B_loadMusic = gtk.Button(_('Load'))
+				B_loadMusic.connect('clicked', self.loadMusic)
+				self.HPaned_Music.pack1(B_loadMusic)
+				
 			label = gtk.Label(_('Music'))
 			label.set_angle(90)
 			self.NB_Main.append_page(self.HPaned_Music, label)
@@ -78,7 +83,7 @@ class Core(gobject.GObject):
 
 		
 		#Image
-		if(settings.get_option('pictures/enabled', False) == True):
+		if settings.get_option('pictures/enabled', True):
 			Box_PicturesMain = gtk.VBox()
 			if(settings.get_option('pictures/preload', False)):
 				from uc_sections.pictures.image_widget import ImageWidget
@@ -114,7 +119,7 @@ class Core(gobject.GObject):
 			self.NB_Main.append_page(Box_PicturesMain, label)
 			
 		#Vidéo
-		if(settings.get_option('videos/enabled', False) == True):
+		if settings.get_option('videos/enabled', True):
 			Box_Video = gtk.VBox()
 			if(settings.get_option('videos/preload', False)):
 				self.loadModule('videos')
@@ -160,21 +165,28 @@ class Core(gobject.GObject):
 		self.F_Main.connect('configure-event', self.on_window_resize)
 		self.F_Main.connect('destroy', self.on_window_destroy)
 		
-	
-	
+		self.NB_Main.connect('switch-page', self.onModuleChanged)
+		
+		#glib.idle_add(self.onReady)
+		self.onReady()
 		
 		
 	def ajouter_raccourcis(self, unGroupeDeRaccourcis):
 		self.F_Main.add_accel_group(unGroupeDeRaccourcis)
 	
 	
-	def loadModule(self, button, section):
+	def loadModule(self, senderWidget, section):
 		from uc_sections.manager import UCManager
 		widget = UCManager(section, self.F_Main)
 		self.managers[section] = widget
-		parentBox = button.get_parent() # FIXME parentBox is an empty VBox in which we pack a VBox
-		parentBox.pack_start(widget)
-		button.destroy()
+
+		if type(senderWidget).__name__ != 'VBox':
+			senderWidget = senderWidget.get_parent() # FIXME parentBox is an empty VBox in which we pack a VBox
+			senderWidget.destroy()
+		else:
+			for child in senderWidget:
+				child.destroy()
+		senderWidget.pack_start(widget)
 		
 		self.loadedModules.append(section)
 		self.emit('module-loaded', section)
@@ -187,6 +199,8 @@ class Core(gobject.GObject):
 		
 		if(button is not None):
 			button.destroy()
+		else:
+			self.HPaned_Music.get_child1().destroy()
 		
 		Left_music_box = gtk.VBox()
 		Right_music_box = gtk.VBox()
@@ -242,6 +256,26 @@ class Core(gobject.GObject):
 			self._imagePanel = UC_Panel("image", self._imageSelector)
 			box.pack_start(self._imagePanel, False)
 			self._imagePanel.show_all()
+			
+	def onModuleChanged(self, notebook, page, index):
+		if(index == 0 and 'music' not in self.loadedModules):
+			glib.idle_add(self.loadMusic)
+		if(index == 1 and 'pictures' not in self.loadedModules):
+			self.loadModule(notebook.get_nth_page(index), 'pictures')
+		elif(index == 2 and 'videos' not in self.loadedModules):
+			self.loadModule(notebook.get_nth_page(index), 'videos')
+			
+	def onReady(self):
+		if len(settings.get_option('music/folders', [])) == 0:
+			dialog = gtk.Dialog(title=_('No indexed folders'), buttons=(gtk.STOCK_NO, gtk.RESPONSE_REJECT, gtk.STOCK_YES, gtk.RESPONSE_ACCEPT))
+			box = dialog.get_content_area()
+			box.pack_start(gtk.Label(_('Set indexed folders now ?')), False, 5, 5)
+			box.show_all()
+			reponse = dialog.run()
+			dialog.destroy()
+			if(reponse == gtk.RESPONSE_ACCEPT): #Valider
+				from gui import modales
+				modales.SettingsEditor('folders')
 			
 		
 	def on_window_destroy(self, widget):

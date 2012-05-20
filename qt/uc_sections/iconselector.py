@@ -59,10 +59,11 @@ class IconViewer(QtGui.QListView):
 			self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())
 			
 class AbstractIconSelector(QtGui.QWidget):
-	def __init__(self, module):
+	def __init__(self, manager):
 		QtGui.QWidget.__init__(self)
 		layout = QtGui.QVBoxLayout()
-		self.iconViewer = IconViewer(module)
+		self.manager = manager
+		self.iconViewer = IconViewer(self.manager.module)
 		
 		buttonGroup = QtGui.QButtonGroup()
 		self.buttonBar = QtGui.QToolBar()
@@ -106,9 +107,9 @@ class AbstractIconSelector(QtGui.QWidget):
 
 		
 class ImageSelector(AbstractIconSelector):
-	def __init__(self, imageWidget):
-		AbstractIconSelector.__init__(self, 'picture')
-		self.imageWidget = imageWidget
+	def __init__(self, manager):
+		AbstractIconSelector.__init__(self, manager)
+		self.imageWidget = manager.elementViewer
 		
 		self.buttonBar.addSeparator()
 		self.buttonBar.addAction(QtGui.QIcon.fromTheme('zoom-original'), None, lambda: self.imageWidget.setMode('original'))
@@ -122,23 +123,25 @@ class ImageSelector(AbstractIconSelector):
 		starEditor.starRating = StarRating()
 		starEditor.setCurrent(0)
 		starEditor.editingFinished.connect(self.updateRating)
+		starEditor.setEnabled(False)
 		self.starWidget = starEditor
 		self.buttonBar.addSeparator()
 		self.buttonBar.addWidget(starEditor)
 		
 	def openElement(self, elt):
+		self.manager.openElement(elt)
+		self.starWidget.setEnabled(True)
 		self.currentElt = elt
 		self.starWidget.setCurrent(elt.rating)
-		self.imageWidget.loadFile(elt.path)
 		
 	def updateRating(self):
 		self.currentElt.setRating(self.starWidget.current)
 	
 	
 class VideoSelector(AbstractIconSelector):
-	def __init__(self, playerWidget):
-		AbstractIconSelector.__init__(self, 'video')
-		self.playerWidget = playerWidget
+	def __init__(self, manager):
+		AbstractIconSelector.__init__(self, manager)
+		self.playerWidget = manager.elementViewer
 		
 	def openElement(self, elt):
 		self.playerWidget.player.playTrack(elt)

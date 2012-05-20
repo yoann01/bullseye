@@ -111,7 +111,7 @@ class QueueManager(QtGui.QWidget):
 	
 	def removeQueue(self, i=-1):
 		if i == -1: # triggered by shortcut
-			i = self.currentIndex()
+			i = self.tabWidget.currentIndex()
 		if(self.tabWidget.widget(i).modified == True):
 			if QtGui.QMessageBox.question (self, _("Closing non-saved playlist"), _("Save changes?"), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
 				self.tabWidget.widget(i).save()
@@ -296,9 +296,7 @@ class Queue(QtGui.QTableView):
 			self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(track.bridgeSrc, (18, 18), '#FF0000')), _("Unset bridge source"), remove_bridge_src)
 		else:
 			def add_bridge_src(*args):
-				self.manager.playerWidget.bridgesSrc[letter] = track
-				track.bridgeSrc = letter
-				self.refreshView(track)
+				self.manager.playerWidget.addBridgeTrack(self, track, True)
 			
 			letter = chr(65 + len(dic))
 			#bridgeSrcAction = self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText(letter + ' →', (24, 18), '#58FA58', '#000', '#000')), _("Add bridge source"), add_bridge_src)
@@ -319,9 +317,7 @@ class Queue(QtGui.QTableView):
 
 		else:
 			def add_bridge_dest(*args):
-				self.manager.playerWidget.bridgesDest[letterDest] = track
-				track.bridgeDest = letterDest
-				self.refreshView(track)
+				self.manager.playerWidget.addBridgeTrack(self, track, False)
 			
 			letterDest = chr(65 + len(dicDest))
 			#self.popMenu.addAction(QtGui.QIcon(icons.pixmapFromText('← ' + letterDest, (24, 18), '#CC2EFA')), _("Add bridge dest"), add_bridge_dest)

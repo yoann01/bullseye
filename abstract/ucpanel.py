@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-import os
+import os, threading
 import subprocess
 
 from PIL import Image
@@ -24,6 +24,9 @@ class UCPanelInterface(object):
 		self.universes = {}
 		self.filters = {}
 		self.THUMBNAIL_DIR = xdg.get_thumbnail_dir(self.module + os.sep + '128' + os.sep)
+		
+		self.notLoading = threading.Event()
+		self.notLoading.set()
 		
 		
 	def checkForDoubloons(self):
@@ -199,11 +202,13 @@ class UCPanelInterface(object):
 		
 		self.append(model, Container((0, _('All'), 0, 0), antagonist, self.module), None, backgroundColor)
 		
-		query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID '
+		query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID, IFNULL(SUM(rating), 0)\
+			FROM ' + self.module + 's t JOIN ' + antagonist + '_' + self.module + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID'
+			
 		if(container.ID != 0):
 			query += ' WHERE ' + containerType + '_ID = ' + str(container.ID)
 			self.filters[containerType + '_ID'] = container.ID
-		query += ' ORDER BY parent_ID'
+		query += ' GROUP BY t.' + antagonist + '_ID ORDER BY parent_ID'
 		for row in bdd.conn.execute(query):
 
 			try:
@@ -220,9 +225,12 @@ class UCPanelInterface(object):
 				for parent in parents:
 					# TODO icon in dic (thumbnail_ID)
 					if(parent not in nodes.keys()):
-						nodes[parent] = self.append(model, Container((parent, dic[parent]['label'], dic[parent]['parent'], 0),  antagonist, self.module), nodes[dic[parent]['parent']])
+						nodes[parent] = self.append(model, Container((parent, dic[parent]['label'], dic[parent]['parent'], 0),  antagonist, self.module), nodes[dic[parent]['parent']], backgroundColor)
 				# Now we can add the node that caused the exception
 				nodes[row[0]] = self.append(model, Container(row, antagonist, self.module), nodes[row[2]], backgroundColor)
+				
+			if nodes[row[2]] != None:
+				self.addRating(nodes[row[2]], row[4])
 				
 		if mode != 'folder':
 			self.loadFolders(self.folderModel, container)
@@ -277,7 +285,7 @@ class UCPanelInterface(object):
 						pass
 					bdd.c.execute('UPDATE ' + type + 's SET folder = ?, filename = ? WHERE ' + type + '_ID = ?', (root_path, new_name, child[0]))
 			
-			if(show_antagonistic): #Elements of this container which are antagonist-setted (if category -> universe, if universe->category) will be placed in a subfolder
+			if(show_antagonistic): # Elements of this container which are antagonist-setted (if category -> universe, if universe->category) will be placed in a subfolder
 				bdd.c.execute('SELECT t.' + type + '_ID, folder, filename, ' + antagonist + '_L, t.' + antagonist + '_ID FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID WHERE ' + container + '_ID = ? AND t.' + antagonist + '_ID != 1', (container_ID,))
 				children = bdd.c.fetchall()
 				for child in children:
@@ -317,6 +325,8 @@ class UCPanelInterface(object):
 			TODO? Option to collapse expanded on new collapse
 		'''
 
+		self.notLoading.wait()
+		self.notLoading.clear()
 		bdd = BDD()
 		type = self.module
 		
@@ -346,19 +356,35 @@ class UCPanelInterface(object):
 			addAll = set() # container id list
 			selection = set()
 			neededButMaybeNotPresent = set()
+			antagonistChildren = {}
 			dic[0] = {'label':None, 'children':[], 'parent':-1}
 			
 			# First we filter
 			for cont in containers:
-				if(cont[2] in addAll or cont[1].lower().find(word) != -1):
+				if(cont[2] in addAll or cont[1].lower().find(word) != -1): # If append whole parent or match search
 					addAll.add(cont[0])
 					neededButMaybeNotPresent.add(cont[2])
 					selection.add(cont[0])
+					
+				if(show_antagonistic):
+					# Add matching antagonistic (if category universe, if universe category) to node
+					query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID, IFNULL(SUM(rating), 0) \
+					FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID \
+					WHERE ' + container + '_ID = ' + str(cont[0]) + ' GROUP BY t.' + antagonist + '_ID'
+					aChildren = []
+					for row in bdd.conn.execute(query):
+						if cont[0] in addAll or row[1].lower().find(word) != -1:
+							aChildren.append(row)
+						
+					if len(aChildren) != 0:
+						selection.add(cont[0])
+					antagonistChildren[cont[0]] = aChildren
 
 				
 			selection = selection.union(neededButMaybeNotPresent)
 
 
+			# Then we append to model
 			expand = []
 			for cont in containers:
 				if cont[0] in selection:
@@ -367,23 +393,19 @@ class UCPanelInterface(object):
 					dic[cont[2]]['children'].append(cont[0])
 					pere = self.append(liste, Container(cont, container, type), nodes[cont[2]])
 					if nodes[cont[2]] != None:
-						#FIXME Qt Code in abstract!
 						self.addRating(nodes[cont[2]], cont[4])
 					
 					if(show_antagonistic):
-						#Add matching antagonistic (if category universe, if universe category) to node
-						query = 'SELECT DISTINCT t.' + antagonist + '_ID, ' + antagonist + '_L, parent_ID, thumbnail_ID, IFNULL(SUM(rating), 0) \
-						FROM ' + type + 's t JOIN ' + antagonist + '_' + type + 's u ON t.' + antagonist + '_ID = u.' + antagonist + '_ID \
-						WHERE ' + container + '_ID = ' + str(cont[0]) + ' GROUP BY t.' + antagonist + '_ID'
-						for row in bdd.conn.execute(query):
+						for row in antagonistChildren[cont[0]]:
 							self.append(liste, Container(row, antagonist, type), pere)
 					
 					if cont[0] not in addAll:
 						expand.append(pere)
-						
 					nodes[cont[0]] = pere
 			
 			self.expand(mode, expand)
+			
+			
 			#elif(mode == "dossier"):
 				#self.c.execute('SELECT DISTINCT dossier FROM ' + type + 's ORDER BY dossier')
 				#for dossier in self.c:
@@ -391,6 +413,7 @@ class UCPanelInterface(object):
 					#liste.append([dossier[0], path[2]])
 		else:
 			self.loadFolders(liste)
+		self.notLoading.set()
 				
 				
 	def loadFolders(self, liste, container=None):
@@ -427,3 +450,4 @@ class UCPanelInterface(object):
 		while(i < len(folders)):
 			add_node(folders[i][0], folders[i][1])
 			i += 1
+			

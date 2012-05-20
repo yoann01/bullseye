@@ -27,7 +27,7 @@ class MenuBar(QtGui.QMenuBar):
 		
 	def loadModuleMenus(self, module):
 		if(module == 'pictures' or module == 'videos'):
-			pictures = QtGui.QMenu(_(module))
+			pictures = QtGui.QMenu(_(module[0].capitalize() + module[1:]))
 			#pictures.addAction(_("Check for doubloons"))
 			pictures.addAction(_('Check for doubloons'), self.core.managers[module].containerBrowser.checkForDoubloons)
 			pictures.addAction(_("Move to UC structure"), lambda: self.moveToUCStructure(module))

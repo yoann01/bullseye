@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import sys
 import locale
@@ -95,7 +95,7 @@ class Frame(QtGui.QMainWindow):
 		
 		
 		self.NB_Main.currentChanged.connect(self.onModuleChanged)
-		self.ready.connect(self.loadMusic)
+		self.ready.connect(self.onReady)
 
 		@util.threaded
 		def emitReady():
@@ -120,7 +120,7 @@ class Frame(QtGui.QMainWindow):
 			self.playerWidget.stop()
 			self.queueManager.saveState()
 		if 'videos' in self.loadedModules:
-			self.managers['videos'].videoPlayerWidget.stop()
+			self.managers['videos'].elementViewer.stop()
 			
 		settings.set_option('gui/maximized', self.maximized)
 		settings.MANAGER.save()
@@ -211,6 +211,15 @@ class Frame(QtGui.QMainWindow):
 			self.loadModule('pictures')
 		elif(index == 2 and 'videos' not in self.loadedModules):
 			self.loadModule('videos')
+			
+	def onReady(self):
+		if len(settings.get_option('music/folders', [])) == 0:
+			if(QtGui.QMessageBox.question(self, _('No indexed folders'), _('Set indexed folders now ?'), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes):
+				from qt.gui import modales
+				d = modales.SettingsEditor('folders')
+				d.exec_()
+		
+		self.loadMusic()
 		
 	def resizeEvent(self, e):
 		if(not self.maximized):
