@@ -88,18 +88,24 @@ class StatusBar(QtGui.QStatusBar):
 class ProgressNotifier(QtGui.QProgressBar):
 	
 	valueRequested = QtCore.Signal(int)
+	pulseRequested = QtCore.Signal()
 	done = QtCore.Signal()
 	
 	def __init__(self, statusBar):
 		QtGui.QProgressBar.__init__(self)
 		self.statusBar = statusBar
 		self.valueRequested.connect(self.setValue)
+		self.pulseRequested.connect(self.doPulse)
+		
+	def doPulse(self):
+		self.setRange(0, 0)
 		
 	def emitDone(self):
 		self.done.emit()
 		
 	def pulse(self):
-		self.setRange(0, 0)
+		self.pulseRequested.emit()
+		
 		
 	def setFraction(self, val):
 		val *= 100

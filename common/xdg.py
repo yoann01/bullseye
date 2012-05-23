@@ -13,17 +13,18 @@ import os, sys
 #data_dir = '~/workspace/bullseye/trunk/'
 #data_dir = os.path.dirname(os.path.dirname(__file__)) + os.sep
 
-config_home = data_home = os.path.expanduser("~")
+home = os.environ.get("XDG_HOME", os.path.expanduser("~"))
 if sys.platform == "linux2": # for Linux using the X Server
-	config_home = os.path.join(config_home, ".config/bullseye")
-	data_home = os.path.join(data_home, '.local/share/bullseye')
+	config_home = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.join(home, ".config")), "bullseye")
+	data_home = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.join(home, ".local", "share")), "bullseye")
 elif sys.platform == "win32": # for Windows
-	config_home = os.path.join(config_home, '.bullseye')
-	data_home = os.path.join(data_home, '.bullseye')
-	#config_home = os.path.join(config_home, 'Local Settings\Application Data\\bullseye')
-	#data_home = os.path.join(data_home, 'Application Data\\bullseye')
+	home = os.environ.get("USERPROFILE", os.path.expanduser("~"))
+	config_home = os.path.join(home, ".bullseye")
+	data_home = os.path.join(home, ".bullseye")
+	#config_home = os.path.join(home, "bullseye")
+	#data_home = os.path.join(os.environ.get("APPDATA", "Application Data"), "bullseye")
 elif sys.platform == "darwin": # for MacOS
-	config_home = os.path.join(config_home, "bullseye")
+	config_home = os.path.join(home, "bullseye")
 
 
 data_thumbnails = os.path.join(data_home, 'thumbnails')
@@ -35,18 +36,18 @@ if sys.platform == "win32":
 
 def get_data_dir():
 	return data_dir
-	
+
 def get_data_home():
 	return data_home
-	
+
 def get_config_dir():
 	return config_home
-	
+
 def get_thumbnail_dir(subdir):
 	dir = os.path.join(data_thumbnails, subdir)
 	return dir
-	
-	
+
+
 def make_missing_dirs():
 	"""
 		Called in MainBDD. Not elsewhere.
@@ -55,6 +56,6 @@ def make_missing_dirs():
 	for dir in dirs:
 		if not os.path.exists(dir):
 			os.makedirs(dir)
-			
-			
+
+
 make_missing_dirs()

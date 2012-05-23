@@ -194,6 +194,8 @@ class UC_Panes(AbstractPanel):
 		NOTE Categorie = forme, univers = fond
 	"""
 	
+	refreshStyle = QtCore.Signal(str)
+	
 	def __init__(self, module, elementSelector):
 		AbstractPanel.__init__(self, module)
 		self.module = module
@@ -227,6 +229,8 @@ class UC_Panes(AbstractPanel):
 			tv.clicked.connect(self.onContainerClicked)
 				
 			tvLayout.addWidget(tv)
+			
+		self.refreshStyle.connect(self.refreshView)
 	
 	
 		# --- Other work ---
@@ -288,24 +292,27 @@ class UC_Panes(AbstractPanel):
 		for key in self.toggled.iterkeys():
 			self.toggled[key] = False
 			
-		if value != None:
+		if value != '':
 			self.toggled[value] = True
-			
+		print self.toggled
 		self.load()
 		settings.set_option(self.module + 's/container_filter', index)
 		
 	
 	def load(self, *args):
 		self.filterLabel.setText(_('No active filters'))
-		for key in self.toggled.iterkeys():
-			if not self.toggled[key]:
-				self.treeViews[key].setStyleSheet("background-color:white;")
-			else:
-				self.treeViews[key].setStyleSheet("")
+		#for key in self.toggled.iterkeys():
+			#if not self.toggled[key]:
+				#self.treeViews[key].setStyleSheet("background-color:white;")
+			#else:
+				#self.treeViews[key].setStyleSheet("")
 		word = self.searchEntry.text()
 		self.processLoading('category', self.categoriesModel, False, word)
 		self.processLoading('universe', self.universesModel, False, word)
 		self.processLoading('folder', self.folderModel, False, word)
+		
+	def loadingEnded(self, mode):
+		self.refreshStyle.emit(mode)
 		
 	def onContainerActivated(self, index):
 		self.mode = self.sender().mode
@@ -325,6 +332,12 @@ class UC_Panes(AbstractPanel):
 				else:
 					self.treeViews[key].setStyleSheet('')
 			self.filter(container)
+			
+	def refreshView(self, key):
+		if not self.toggled[key]:
+			self.treeViews[key].setStyleSheet("background-color:white;")
+		else:
+			self.treeViews[key].setStyleSheet("")
 			
 
 
@@ -387,8 +400,9 @@ class UCItem(treemodel.TreeItem):
 		treemodel.TreeItem.__init__(self, container.label, parent)
 		self.container = container
 		self.subelements = []
-		self.icon = None
 		self.background = background
+		self.icon = None
+		
 		
 	def __str__( self ):
 		return self.label

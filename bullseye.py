@@ -11,15 +11,18 @@ gtk.gdk.threads_init()
 import gettext
 locale.setlocale(locale.LC_ALL, '') # use user's preferred locale
 # take first two characters of country code
-loc = locale.getlocale()
-filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
-#import gettext
-#gettext.install("bullseye")
-try:
-	trans = gettext.GNUTranslations(open( filename, "rb" ) )
-except IOError:
+if locale.getlocale()[0]:
+	filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
+	
+	try:
+		trans = gettext.GNUTranslations(open( filename, "rb" ) )
+	except IOError:
+		trans = gettext.NullTranslations()
+else:
 	trans = gettext.NullTranslations()
+
 trans.install()
+#gettext.install("bullseye")
 
 import core
 from common import settings

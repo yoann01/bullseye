@@ -414,7 +414,10 @@ class UCPanelInterface(object):
 		else:
 			self.loadFolders(liste)
 		self.notLoading.set()
-				
+		self.loadingEnded(mode)
+		
+	def loadingEnded(self, *args):
+		return
 				
 	def loadFolders(self, liste, container=None):
 		self.clear(liste)

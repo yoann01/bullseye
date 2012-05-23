@@ -256,6 +256,8 @@ class Queue(QtGui.QTableView):
 		#self.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
 		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
+		header.setResizeMode(2, QtGui.QHeaderView.Stretch)
+		header.setResizeMode(3, QtGui.QHeaderView.Stretch)
 		header.setResizeMode(6, QtGui.QHeaderView.Fixed)
 		
 		self.activated.connect(self.onActivated)

@@ -327,7 +327,7 @@ class LibraryPanel(gtk.VBox):
 			ligne = 0
 
 			while(ligne < len(tracks)):
-				self.expand = [[], []]
+				self.expand = [[], [], [], [], []]
 				self.expand_paths = []
 				self.selection = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
 				ligne = traiter_conteneur(0, ligne, self.selection)

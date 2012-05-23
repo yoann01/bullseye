@@ -70,11 +70,12 @@ class LibraryPanel(QtGui.QWidget):
 		self.TreeView.setColumnWidth(1, settings.get_option('music/col_label_panel_width', 170))
 		header = self.TreeView.header()
 		header.setStretchLastSection(False)
+		header.setDefaultSectionSize(60)
 		header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
 		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
-		header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
-		header.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
-		header.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
+		header.setResizeMode(2, QtGui.QHeaderView.Fixed)
+		header.setResizeMode(3, QtGui.QHeaderView.Fixed)
+		header.setResizeMode(4, QtGui.QHeaderView.Fixed)
 		self.TreeView.setAnimated(True)
 		
 		# --- Mode selector ---
@@ -342,7 +343,7 @@ class LibraryPanel(QtGui.QWidget):
 			i = 0
 			while(ligne < len(tracks)):
 				
-				self.expand = [[], []]
+				self.expand = [[], [], [], [], []]
 				self.expand_paths = []
 				self.selection = {'children':{}, 'props':{'count':0, 'rating':0, 'rated':0}}
 				ligne = traiter_conteneur(0, ligne, self.selection)

@@ -4,19 +4,19 @@ import sys
 import locale
 from PySide import QtCore, QtGui
 from common import settings, util
-from data.elements import Track
 
 #Init translation
 import gettext
 locale.setlocale(locale.LC_ALL, '') # use user's preferred locale
 # take first two characters of country code
-loc = locale.getlocale()
-filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
+if locale.getlocale()[0]:
+	filename = "locale/bullseye_%s.mo" % locale.getlocale()[0][0:2]
 
-
-try:
+	try:
 	trans = gettext.GNUTranslations(open( filename, "rb" ) )
-except IOError:
+	except IOError:
+		trans = gettext.NullTranslations()
+else:
 	trans = gettext.NullTranslations()
 
 # Param True : unicode
@@ -103,7 +103,7 @@ class Frame(QtGui.QMainWindow):
 			time.sleep(0.5)
 			self.ready.emit()
 			
-		#emitReady()
+		emitReady()
 
 
 	def changeEvent(self, e):

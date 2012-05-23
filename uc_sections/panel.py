@@ -403,8 +403,6 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		if value != None:
 			self.toggled[value] = True
 		
-		for key in self.toggled.iterkeys():
-			self.treeViews[key].modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 			
 		settings.set_option(self.module + 's/container_filter', modeCB.get_active())
 		self.load()
@@ -415,6 +413,11 @@ class UC_Panes(AbstractPanel, gtk.VBox):
 		self.processLoading('category', self.categoriesModel, False, word)
 		self.processLoading('universe', self.universesModel, False, word)
 		self.processLoading('folder', self.folderModel, False, word)
+		
+	def loadingEnded(self, key):
+		#for key in self.toggled.iterkeys():
+		self.treeViews[key].modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
+		
 		
 	def onContainerActivated(self, w, i, c):
 		self.mode = w.mode
